@@ -208,15 +208,15 @@ model Message {
 
 ### 2. **Prisma & Database**
 
-- [ ] Install Prisma and set up PostgreSQL connection (`/prisma/schema.prisma`)
-- [ ] Define models as per spec (User, Job, Application, Message)
-- [ ] Run `npx prisma migrate dev` to create tables
+- [x] Install Prisma and set up SQLite connection (`/prisma/schema.prisma`)
+- [x] Define models as per spec (User, Job, Application, Message)
+- [x] Run `npx prisma migrate dev` to create tables
 
 ### 3. **Role Selection & Onboarding**
 
-- [ ] On sign-up, prompt user to select "customer" or "tradesperson"
-- [ ] Store role in User model (extend Clerk user with custom DB record if needed)
-- [ ] Enforce role-based UI and permissions
+- [x] On sign-up, prompt user to select "customer" or "tradesperson"
+- [x] Store role in User model (extend Clerk user with custom DB record if needed)
+- [x] Enforce role-based UI and permissions
 
 ### 4. **Job Posting (Customer)**
 
