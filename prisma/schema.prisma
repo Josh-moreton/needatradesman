@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  jobsPosted       Job[]         @relation("CustomerJobs")
+  applications     Application[]
+  messagesSent     Message[]     @relation("MessageSender")
+  messagesReceived Message[]     @relation("MessageReceiver")
+
+  @@map("users")
+}
+
+model Job {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  category    JobCategory
+  location    String
+  budget      Decimal?
+  status      JobStatus   @default(OPEN)
+  attachments String? // Store as JSON string of file URLs
+  customerId  String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relationships
+  customer     User          @relation("CustomerJobs", fields: [customerId], references: [id], onDelete: Cascade)
+  applications Application[]
+  messages     Message[]
+
+  @@map("jobs")
+}
+
+model Application {
+  id             String            @id @default(cuid())
+  message        String
+  quote          Decimal?
+  status         ApplicationStatus @default(PENDING)
+  jobId          String
+  tradespersonId String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // Relationships
+  job          Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tradesperson User @relation(fields: [tradespersonId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, tradespersonId])
+  @@map("applications")
+}
+
+model Message {
+  id          String      @id @default(cuid())
+  content     String
+  senderId    String
+  receiverId  String
+  jobId       String?
+  messageType MessageType @default(TEXT)
+  createdAt   DateTime    @default(now())
+
+  // Relationships
+  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  job      Job? @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// Enums
+enum UserRole {
+  CUSTOMER
+  TRADESPERSON
+}
+
+enum JobCategory {
+  PLUMBING
+  ELECTRICAL
+  CARPENTRY
+  PAINTING
+  LANDSCAPING
+  CLEANING
+  HANDYMAN
+  OTHER
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+}
