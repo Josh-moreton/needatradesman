@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { UserRole } from '@prisma/client'
 import { z } from 'zod'
@@ -41,11 +41,24 @@ export async function POST(request: NextRequest) {
                 user: updatedUser
             })
         } else {
+            // Fetch user info from Clerk
+            const clerkUser = await currentUser();
+            if (!clerkUser) {
+                return NextResponse.json({ error: 'Clerk user not found' }, { status: 404 });
+            }
+            const email = clerkUser.emailAddresses?.[0]?.emailAddress || clerkUser.primaryEmailAddress?.emailAddress;
+            const firstName = clerkUser.firstName || null;
+            const lastName = clerkUser.lastName || null;
+            if (!email) {
+                return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
+            }
             // Create new user record
             const newUser = await prisma.user.create({
                 data: {
                     clerkId: userId,
-                    email: '', // We'll get this from Clerk webhook later
+                    email,
+                    firstName,
+                    lastName,
                     role
                 }
             })
