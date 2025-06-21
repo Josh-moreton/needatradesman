@@ -28,7 +28,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         {/* Logo */}
-        <div className="mr-4 hidden md:flex">
+        <div className="mr-4 hidden md:flex pl-2 md:pl-4">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <div className="flex items-center">
               <span className="text-xl font-bold">NeedA</span>
@@ -40,7 +40,7 @@ export default function Header() {
         </div>
 
         {/* Mobile Logo */}
-        <div className="mr-4 flex md:hidden">
+        <div className="mr-4 flex md:hidden pl-2 md:pl-4">
           <Link href="/" className="flex items-center space-x-2">
             <span className="font-bold">NAT</span>
           </Link>
