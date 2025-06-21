@@ -196,3 +196,89 @@ model Message {
 - All models defined in **Prisma**, validated with Zod
 - Respect separation of roles (enforced at API + UI levels)
 - Plan for horizontal scalability (e.g. Redis for pub/sub, Upstash limits)
+
+---
+
+## 🏗️ Step-by-Step Build Guide (MVP)
+
+### 1. **Project Setup**
+
+- [x] Scaffolded with Next.js (App Router, ESM only)
+- [x] Clerk authentication installed and configured
+
+### 2. **Prisma & Database**
+
+- [ ] Install Prisma and set up PostgreSQL connection (`/prisma/schema.prisma`)
+- [ ] Define models as per spec (User, Job, Application, Message)
+- [ ] Run `npx prisma migrate dev` to create tables
+
+### 3. **Role Selection & Onboarding**
+
+- [ ] On sign-up, prompt user to select "customer" or "tradesperson"
+- [ ] Store role in User model (extend Clerk user with custom DB record if needed)
+- [ ] Enforce role-based UI and permissions
+
+### 4. **Job Posting (Customer)**
+
+- [ ] Create `/app/jobs/new` page with form (title, description, category, location, budget, attachments)
+- [ ] Validate with Zod
+- [ ] On submit, create Job in DB (Prisma)
+- [ ] Index/caches job in Redis for fast feed (optional for MVP)
+
+### 5. **Job Feed & Application (Tradesperson)**
+
+- [ ] Create `/app/jobs` feed page, visible to tradespeople
+- [ ] Add filters (category, location, etc.)
+- [ ] Each job card: "Express Interest" or "Apply" button
+- [ ] Application form: message + (optional) quote
+- [ ] On submit, create Application in DB, notify customer
+
+### 6. **Live Chat MVP**
+
+- [ ] When tradesperson applies, create chat thread (Message model)
+- [ ] Build `/app/messages/[chatId]` page for 1:1 chat
+- [ ] Use WebSockets (e.g. Pusher, Ably, or custom with Upstash Redis pub/sub)
+- [ ] Fallback to polling if needed
+- [ ] Persist messages in DB
+
+### 7. **Payments (Stripe)**
+
+- [ ] Integrate Stripe (test mode)
+- [ ] Customer can pay to accept a quote (escrow/hold funds)
+- [ ] Funds released to tradesperson when job marked complete
+- [ ] Admin dashboard for payouts/disputes (basic for MVP)
+
+### 8. **Dashboards**
+
+- [ ] `/app/dashboard` for both roles:
+  - Customers: "My Jobs", "Applications Received"
+  - Tradespeople: "My Applications", "Jobs Won"
+- [ ] List jobs, applications, and chat links
+
+### 9. **UI & Styling**
+
+- [ ] Use ShadCN UI kit for forms, modals, lists
+- [ ] Tailwind CSS for layout and custom styles
+- [ ] Mobile responsiveness
+
+### 10. **Caching & Performance**
+
+- [ ] Use Upstash Redis to cache job listings (optional for MVP)
+- [ ] Rate limit job posting/applications as needed
+
+### 11. **Validation & Type Safety**
+
+- [ ] Use Zod for all API/form validation
+- [ ] Enforce strict types in API routes and components
+
+### 12. **Deployment**
+
+- [ ] Deploy to Vercel
+- [ ] Set up environment variables for Clerk, DB, Stripe, Redis
+
+---
+
+**Tip:**  
+Build incrementally—start with core flows (auth, job posting, job feed, applications), then add chat and payments. Use feature flags or MVP toggles for unfinished features.
+
+---
