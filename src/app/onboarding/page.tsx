@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { UserRole } from '@prisma/client'
+import { UserRole } from "@prisma/client";
 
 export default function OnboardingPage() {
   return (
@@ -12,7 +12,7 @@ export default function OnboardingPage() {
             Tell us how you&apos;d like to use our platform
           </p>
         </div>
-        
+
         <div className="space-y-4">
           <RoleCard
             userRole="CUSTOMER"
@@ -20,7 +20,7 @@ export default function OnboardingPage() {
             description="Post jobs and hire trusted tradespeople"
             icon="🏠"
           />
-          
+
           <RoleCard
             userRole="TRADESPERSON"
             title="I'm a tradesperson"
@@ -30,37 +30,37 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 interface RoleCardProps {
-  userRole: UserRole
-  title: string
-  description: string
-  icon: string
+  userRole: UserRole;
+  title: string;
+  description: string;
+  icon: string;
 }
 
 function RoleCard({ userRole, title, description, icon }: RoleCardProps) {
   const handleRoleSelect = async () => {
     try {
-      const response = await fetch('/api/user/role', {
-        method: 'POST',
+      const response = await fetch("/api/user/role", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ role: userRole }),
-      })
+      });
 
       if (response.ok) {
         // Redirect to dashboard based on role
-        window.location.href = '/dashboard'
+        window.location.href = "/dashboard";
       } else {
-        console.error('Failed to set user role')
+        console.error("Failed to set user role");
       }
     } catch (error) {
-      console.error('Error setting user role:', error)
+      console.error("Error setting user role:", error);
     }
-  }
+  };
 
   return (
     <button
@@ -75,5 +75,5 @@ function RoleCard({ userRole, title, description, icon }: RoleCardProps) {
         </div>
       </div>
     </button>
-  )
+  );
 }

@@ -1,27 +1,27 @@
-import { redirect } from 'next/navigation'
-import { currentUser } from '@clerk/nextjs/server'
-import { prisma } from '@/lib/prisma'
+import { redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
-  const clerkUser = await currentUser()
-  
+  const clerkUser = await currentUser();
+
   if (!clerkUser) {
     // Show landing page for unauthenticated users
-    return <LandingPage />
+    return <LandingPage />;
   }
 
   // Check if user exists in our database
   const user = await prisma.user.findUnique({
-    where: { clerkId: clerkUser.id }
-  })
+    where: { clerkId: clerkUser.id },
+  });
 
   if (!user || !user.role) {
     // User needs onboarding
-    redirect('/onboarding')
+    redirect("/onboarding");
   }
 
   // User has a role, redirect to dashboard
-  redirect('/dashboard')
+  redirect("/dashboard");
 }
 
 function LandingPage() {
@@ -33,9 +33,10 @@ function LandingPage() {
             Need a Tradesman?
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Connect with trusted tradespeople in your area. Post jobs, get quotes, and hire with confidence.
+            Connect with trusted tradespeople in your area. Post jobs, get
+            quotes, and hire with confidence.
           </p>
-          
+
           <div className="flex justify-center space-x-4">
             <div className="bg-white p-6 rounded-lg shadow-md max-w-sm">
               <div className="text-4xl mb-4">🏠</div>
@@ -44,7 +45,7 @@ function LandingPage() {
                 Post your job and receive quotes from qualified tradespeople
               </p>
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-md max-w-sm">
               <div className="text-4xl mb-4">🔨</div>
               <h3 className="text-lg font-semibold mb-2">For Tradespeople</h3>
@@ -56,5 +57,5 @@ function LandingPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
