@@ -143,6 +143,18 @@
 
 ---
 
+## 🚩 Known Gaps / TODOs
+
+- **Tradesperson "My Responses" Page**
+  - [ ] `/jobs/my-responses` does not exist yet. Tradespeople cannot currently view a list of jobs they have responded to. This is a key dashboard feature for tradespeople and should be implemented soon.
+
+- **Chat Initiation from Job Management**
+  - [ ] When a customer clicks "Start Chat" with a tradesperson, they are taken to the chat page but a conversation is not automatically started or selected. The chat UI should auto-initiate or select the correct conversation based on the job and tradesperson.
+
+- **General**
+  - [ ] Review all user creation and sync logic between Clerk and the database after user wipes.
+  - [ ] Continue to polish and test all role-based navigation and onboarding flows.
+
 ## 📌 Ongoing
 
 - Maintain strict type safety (Zod, TypeScript)
