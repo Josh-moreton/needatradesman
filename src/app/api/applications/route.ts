@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { createApplicationSchema } from "@/lib/schemas";
-import { UserRole } from "@prisma/client";
+import { createApplicationSchema, UserRole } from "@/lib/schemas";
+import { applicationRateLimit, redis, CACHE_KEYS, CACHE_TTL, invalidateApplicationCaches, invalidateJobCaches, invalidateUserStats } from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
     try {
@@ -23,6 +23,21 @@ export async function POST(request: NextRequest) {
 
         if (user.role !== UserRole.TRADESPERSON) {
             return new NextResponse("Only tradespeople can apply to jobs", { status: 403 });
+        }
+
+        // Rate limiting for applications
+        if (applicationRateLimit) {
+            const rateLimitResult = await applicationRateLimit.limit(user.id);
+            if (!rateLimitResult.success) {
+                return new NextResponse("Rate limit exceeded. You can only submit 10 applications per hour.", { 
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': '10',
+                        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+                        'X-RateLimit-Reset': new Date(rateLimitResult.reset).toISOString(),
+                    }
+                });
+            }
         }
 
         // Parse and validate request body
@@ -82,10 +97,31 @@ export async function POST(request: NextRequest) {
                 job: {
                     select: {
                         title: true,
+                        customerId: true,
                     },
                 },
             },
         });
+
+        // Invalidate relevant caches after application creation
+        if (redis) {
+            try {
+                // Invalidate application caches for both tradesperson and customer
+                await Promise.all([
+                    invalidateApplicationCaches(user.id, UserRole.TRADESPERSON),
+                    invalidateApplicationCaches(application.job.customerId, UserRole.CUSTOMER),
+                    // Also invalidate job list caches as application count has changed
+                    invalidateJobCaches(),
+                    // Invalidate user stats for both users
+                    invalidateUserStats(user.id, UserRole.TRADESPERSON),
+                    invalidateUserStats(application.job.customerId, UserRole.CUSTOMER)
+                ]);
+                console.log('Invalidated caches after application creation');
+            } catch (cacheError) {
+                console.error('Cache invalidation error:', cacheError);
+                // Don't fail the request if cache invalidation fails
+            }
+        }
 
         return NextResponse.json(application, { status: 201 });
     } catch (error) {
@@ -114,6 +150,21 @@ export async function GET() {
 
         if (!user) {
             return new NextResponse("User not found", { status: 404 });
+        }
+
+        // Try to get from cache first
+        const cacheKey = CACHE_KEYS.USER_APPLICATIONS(user.id, user.role);
+        
+        if (redis) {
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    console.log('Cache hit for applications:', cacheKey);
+                    return NextResponse.json(cached);
+                }
+            } catch (cacheError) {
+                console.error('Cache read error:', cacheError);
+            }
         }
 
         let applications;
@@ -171,6 +222,16 @@ export async function GET() {
             });
         } else {
             return new NextResponse("Invalid user role", { status: 403 });
+        }
+
+        // Cache the result
+        if (redis) {
+            try {
+                await redis.set(cacheKey, applications, { ex: CACHE_TTL.APPLICATIONS });
+                console.log('Cached applications:', cacheKey);
+            } catch (cacheError) {
+                console.error('Cache write error:', cacheError);
+            }
         }
 
         return NextResponse.json(applications);

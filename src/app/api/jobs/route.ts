@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { createJobSchema } from "@/lib/schemas";
-import { UserRole, JobCategory } from "@prisma/client";
+import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
+import { 
+    redis, 
+    jobPostingRateLimit, 
+    CACHE_KEYS, 
+    CACHE_TTL,
+    invalidateJobCaches,
+    getCachedJobsList,
+    cacheJobsList,
+    invalidateUserStats
+} from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
     try {
@@ -25,6 +34,21 @@ export async function POST(request: NextRequest) {
             return new NextResponse("Only customers can create jobs", { status: 403 });
         }
 
+        // Rate limiting for job posting
+        if (jobPostingRateLimit) {
+            const rateLimitResult = await jobPostingRateLimit.limit(user.id);
+            if (!rateLimitResult.success) {
+                return new NextResponse("Rate limit exceeded. You can only post 3 jobs per hour.", { 
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': '3',
+                        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+                        'X-RateLimit-Reset': new Date(rateLimitResult.reset).toISOString(),
+                    }
+                });
+            }
+        }
+
         // Parse and validate request body
         const body = await request.json();
         const validatedData = createJobSchema.parse(body);
@@ -42,6 +66,20 @@ export async function POST(request: NextRequest) {
                 status: "OPEN",
             },
         });
+
+        // Invalidate job feed caches when a new job is created
+        if (redis) {
+            try {
+                await Promise.all([
+                    invalidateJobCaches(),
+                    invalidateUserStats(user.id, UserRole.CUSTOMER)
+                ]);
+                console.log('Invalidated job feed caches and user stats after job creation');
+            } catch (cacheError) {
+                console.error('Cache invalidation error:', cacheError);
+                // Don't fail the request if cache invalidation fails
+            }
+        }
 
         return NextResponse.json(job, { status: 201 });
     } catch (error) {
@@ -61,7 +99,27 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const category = searchParams.get("category");
         const location = searchParams.get("location");
+        const search = searchParams.get("search");
+        const page = parseInt(searchParams.get("page") || "1");
+        const limit = 12; // jobs per page
 
+        // Create more comprehensive cache key based on all filters
+        const filterParts = [
+            category || 'all',
+            location || 'all',
+            search || 'all',
+            page.toString()
+        ];
+        const filterKey = filterParts.join(':');
+        const cacheKey = CACHE_KEYS.JOBS_LIST(filterKey);
+
+        // Try to get from cache first
+        const cached = await getCachedJobsList(cacheKey);
+        if (cached) {
+            return NextResponse.json(cached);
+        }
+
+        // Build where clause for database query
         const where = {
             status: "OPEN" as const,
             ...(category && { category: category as JobCategory }),
@@ -71,29 +129,65 @@ export async function GET(request: NextRequest) {
                     mode: "insensitive" as const,
                 }
             }),
+            ...(search && {
+                OR: [
+                    {
+                        title: {
+                            contains: search,
+                            mode: "insensitive" as const,
+                        }
+                    },
+                    {
+                        description: {
+                            contains: search,
+                            mode: "insensitive" as const,
+                        }
+                    }
+                ]
+            }),
         };
 
-        const jobs = await prisma.job.findMany({
-            where,
-            include: {
-                customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
+        // Get total count for pagination
+        const [jobs, totalCount] = await Promise.all([
+            prisma.job.findMany({
+                where,
+                include: {
+                    customer: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                        },
+                    },
+                    _count: {
+                        select: {
+                            applications: true,
+                        },
                     },
                 },
-                _count: {
-                    select: {
-                        applications: true,
-                    },
+                orderBy: {
+                    createdAt: "desc",
                 },
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-        });
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            prisma.job.count({ where })
+        ]);
 
-        return NextResponse.json(jobs);
+        const response = {
+            jobs,
+            pagination: {
+                page,
+                limit,
+                total: totalCount,
+                pages: Math.ceil(totalCount / limit),
+                hasMore: page * limit < totalCount
+            }
+        };
+
+        // Cache the result with shorter TTL for real-time feel
+        await cacheJobsList(cacheKey, response, CACHE_TTL.JOBS_LIST);
+
+        return NextResponse.json(response);
     } catch (error) {
         console.error("Error fetching jobs:", error);
         return new NextResponse("Internal server error", { status: 500 });
