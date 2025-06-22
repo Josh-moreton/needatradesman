@@ -80,7 +80,7 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
   if (isSuccess) {
     return (
       <div className="text-center py-8">
-        <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+        <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">Application Submitted!</h3>
         <p className="text-muted-foreground mb-4">
           Your application has been sent to the customer. They will review it
