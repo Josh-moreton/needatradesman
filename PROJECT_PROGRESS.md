@@ -16,8 +16,14 @@
   - Sidebar and header now both in `/components/layout` for codebase consistency
   - Sidebar is context-aware, highlights current page, and is visible on all dashboard pages for authenticated users
   - Sidebar now role-aware: customers see "Post Job", "My Jobs", "Messages"; tradespeople see "Browse Jobs", "My Responses", "Messages"
-  - Dashboard, "Post Job", "My Jobs", "Messages", and "Browse Jobs" pages all use the new sidebar layout
-  - Old/obsolete sidebar code removed
+  - **Streamlined customer experience**:
+    - Customers never see landing page if logged in (redirect to dashboard)
+    - Dashboard redirects customers directly to simplified job posting workflow (`/jobs/new`)
+    - Job posting page serves as customer dashboard with job form, quick stats, and recent jobs sidebar
+    - No complex multi-button dashboard for customers - they just need to post jobs and manage responses
+  - **Full tradesperson dashboard**: tradespeople get comprehensive dashboard with job browsing, stats, and management tools
+  - Dashboard, job posting, job management, messages, and job browsing pages all use consistent sidebar layout
+  - Old/obsolete customer dashboard code removed to keep codebase clean
   - Imports and role checks standardized
   - Onboarding flow rebuilt with ShadCN forms and trade selection for tradespeople
   - Landing page modernized with ShadCN

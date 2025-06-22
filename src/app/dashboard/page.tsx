@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { UserRole } from "@/lib/schemas";
 import Dashboard from "@/components/dashboard/Dashboard";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
@@ -20,6 +21,13 @@ export default async function DashboardPage() {
       redirect("/onboarding");
     }
 
+    // For customers, redirect directly to job posting workflow
+    // This simplifies their experience as they mainly need to post jobs
+    if (user.role === UserRole.CUSTOMER) {
+      redirect("/jobs/new");
+    }
+
+    // For tradespeople, show the full dashboard with job browsing, stats, etc.
     return (
       <DashboardLayout userRole={user.role}>
         <Dashboard user={user} />
