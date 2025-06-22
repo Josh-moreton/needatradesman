@@ -92,7 +92,7 @@ export const CACHE_TTL = {
 // Helper functions for cache management
 export const invalidateJobCaches = async () => {
     if (!redis) return;
-    
+
     try {
         // Invalidate common job list cache patterns
         const commonCacheKeys = [
@@ -111,7 +111,7 @@ export const invalidateJobCaches = async () => {
 
         // Delete all common cache keys
         await Promise.all(commonCacheKeys.map(key => redis!.del(key)));
-        
+
         console.log('Invalidated job list caches:', commonCacheKeys.length, 'keys');
     } catch (error) {
         console.error('Error invalidating job caches:', error);
@@ -120,7 +120,7 @@ export const invalidateJobCaches = async () => {
 
 export const invalidateApplicationCaches = async (userId: string, role: string) => {
     if (!redis) return;
-    
+
     try {
         const cacheKey = CACHE_KEYS.USER_APPLICATIONS(userId, role);
         await redis.del(cacheKey);
@@ -132,7 +132,7 @@ export const invalidateApplicationCaches = async (userId: string, role: string) 
 
 export const invalidateJobDetailCache = async (jobId: string) => {
     if (!redis) return;
-    
+
     try {
         const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
         await redis.del(cacheKey);
@@ -144,7 +144,7 @@ export const invalidateJobDetailCache = async (jobId: string) => {
 
 export const cacheUserStats = async (userId: string, role: string, data: any) => {
     if (!redis) return;
-    
+
     try {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
         await redis.set(cacheKey, data, { ex: CACHE_TTL.USER_STATS });
@@ -156,7 +156,7 @@ export const cacheUserStats = async (userId: string, role: string, data: any) =>
 
 export const getCachedUserStats = async (userId: string, role: string) => {
     if (!redis) return null;
-    
+
     try {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
         const cached = await redis.get(cacheKey);
@@ -172,7 +172,7 @@ export const getCachedUserStats = async (userId: string, role: string) => {
 
 export const invalidateUserStats = async (userId: string, role: string) => {
     if (!redis) return;
-    
+
     try {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
         await redis.del(cacheKey);
@@ -184,7 +184,7 @@ export const invalidateUserStats = async (userId: string, role: string) => {
 
 export const cacheJobsList = async (key: string, data: any, ttl: number = CACHE_TTL.JOBS_LIST) => {
     if (!redis) return;
-    
+
     try {
         await redis.set(key, data, { ex: ttl });
         console.log('Cached jobs list:', key);
@@ -195,7 +195,7 @@ export const cacheJobsList = async (key: string, data: any, ttl: number = CACHE_
 
 export const getCachedJobsList = async (key: string) => {
     if (!redis) return null;
-    
+
     try {
         const cached = await redis.get(key);
         if (cached) {

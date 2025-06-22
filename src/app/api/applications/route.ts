@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         if (applicationRateLimit) {
             const rateLimitResult = await applicationRateLimit.limit(user.id);
             if (!rateLimitResult.success) {
-                return new NextResponse("Rate limit exceeded. You can only submit 10 applications per hour.", { 
+                return new NextResponse("Rate limit exceeded. You can only submit 10 applications per hour.", {
                     status: 429,
                     headers: {
                         'X-RateLimit-Limit': '10',
@@ -154,7 +154,7 @@ export async function GET() {
 
         // Try to get from cache first
         const cacheKey = CACHE_KEYS.USER_APPLICATIONS(user.id, user.role);
-        
+
         if (redis) {
             try {
                 const cached = await redis.get(cacheKey);

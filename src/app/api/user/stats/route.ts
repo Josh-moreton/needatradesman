@@ -7,7 +7,7 @@ import { getCachedUserStats, cacheUserStats } from "@/lib/redis";
 export async function GET(request: NextRequest) {
     try {
         const user = await getCurrentUser();
-        
+
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
                     }
                 }),
                 prisma.job.count({
-                    where: { 
+                    where: {
                         customerId: user.id,
                         status: { in: ["OPEN", "IN_PROGRESS"] }
                     }
                 }),
                 prisma.job.count({
-                    where: { 
+                    where: {
                         customerId: user.id,
                         status: "COMPLETED"
                     }
@@ -73,19 +73,19 @@ export async function GET(request: NextRequest) {
                     where: { tradespersonId: user.id }
                 }),
                 prisma.application.count({
-                    where: { 
+                    where: {
                         tradespersonId: user.id,
                         status: "ACCEPTED"
                     }
                 }),
                 prisma.application.count({
-                    where: { 
+                    where: {
                         tradespersonId: user.id,
                         status: "PENDING"
                     }
                 }),
                 prisma.application.count({
-                    where: { 
+                    where: {
                         tradespersonId: user.id,
                         status: "REJECTED"
                     }

@@ -15,7 +15,7 @@ export async function GET(
 
         // Try to get from cache first
         const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
-        
+
         if (redis) {
             try {
                 const cached = await redis.get(cacheKey);

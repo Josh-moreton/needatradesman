@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
-import { 
-    redis, 
-    jobPostingRateLimit, 
-    CACHE_KEYS, 
+import {
+    redis,
+    jobPostingRateLimit,
+    CACHE_KEYS,
     CACHE_TTL,
     invalidateJobCaches,
     getCachedJobsList,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         if (jobPostingRateLimit) {
             const rateLimitResult = await jobPostingRateLimit.limit(user.id);
             if (!rateLimitResult.success) {
-                return new NextResponse("Rate limit exceeded. You can only post 3 jobs per hour.", { 
+                return new NextResponse("Rate limit exceeded. You can only post 3 jobs per hour.", {
                     status: 429,
                     headers: {
                         'X-RateLimit-Limit': '3',
