@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/lib/schemas";
 import {
   Card,
   CardContent,
@@ -45,7 +45,7 @@ export default function Dashboard({ user }: DashboardProps) {
 
 function CustomerDashboard({ displayName }: { displayName: string }) {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="space-y-8">
       {/* Welcome Section */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">
@@ -141,7 +141,7 @@ function CustomerDashboard({ displayName }: { displayName: string }) {
 
 function TradespersonDashboard({ displayName }: { displayName: string }) {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="space-y-8">
       {/* Welcome Section */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">

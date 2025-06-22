@@ -25,7 +25,7 @@ export default async function Home() {
       redirect("/onboarding");
     }
 
-    // User has a role, redirect to dashboard
+    // User has a role, redirect to dashboard for the logged-in experience
     redirect("/dashboard");
   } catch (error) {
     console.error("Error in home page:", error);

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { UserRole, JobCategory } from "@prisma/client";
+import { UserRole, JobCategory } from "@/lib/schemas";
 import { JobCard } from "@/components/jobs/JobCard";
 import { JobFilters } from "@/components/jobs/JobFilters";
 import {
@@ -175,7 +175,7 @@ export default async function JobFeedPage({ searchParams }: JobFeedPageProps) {
         ) : (
           <>
             <div className="grid gap-6 mb-8">
-              {jobs.map((job) => (
+              {jobs.map((job: any) => (
                 <JobCard key={job.id} job={job} variant="public" />
               ))}
             </div>
