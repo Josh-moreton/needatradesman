@@ -60,12 +60,6 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
       }
 
       setIsSuccess(true);
-
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push(`/jobs/${jobId}`);
-        router.refresh();
-      }, 2000);
     } catch (error) {
       console.error("Error submitting response:", error);
       // TODO: Add proper error handling with toast notifications
@@ -86,9 +80,21 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
           Your response has been sent to the customer. They will review it and
           may contact you directly.
         </p>
-        <p className="text-sm text-muted-foreground">
-          Redirecting you back to the job...
-        </p>
+        <div className="space-y-3">
+          <Button
+            onClick={() => router.push(`/messages?jobId=${jobId}`)}
+            className="w-full"
+          >
+            Start Conversation
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/jobs/${jobId}`)}
+            className="w-full"
+          >
+            Back to Job
+          </Button>
+        </div>
       </div>
     );
   }
