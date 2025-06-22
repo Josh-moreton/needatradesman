@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +24,38 @@ import {
 } from "lucide-react";
 
 export default function LandingPage() {
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If user is signed in, redirect to dashboard
+    if (isLoaded && isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [isSignedIn, isLoaded, router]);
+
+  // Don't render anything while checking auth state
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If signed in, don't render the landing page (redirect is happening)
+  if (isSignedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section - Change this gradient */}

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import LandingPage from "@/components/landing/LandingPage";
 
@@ -8,10 +8,19 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   try {
+    // First check auth state
+    const { userId } = await auth();
+
+    if (!userId) {
+      // No auth token, show landing page
+      return <LandingPage />;
+    }
+
+    // Get full user details
     const clerkUser = await currentUser();
 
     if (!clerkUser) {
-      // Show landing page for unauthenticated users
+      // Auth token exists but can't get user details, show landing page
       return <LandingPage />;
     }
 
@@ -20,16 +29,21 @@ export default async function Home() {
       where: { clerkId: clerkUser.id },
     });
 
-    if (!user || !user.role) {
-      // User needs onboarding
+    if (!user) {
+      // User authenticated but not in our DB, needs onboarding
       redirect("/onboarding");
     }
 
-    // User has a role, redirect to dashboard for the logged-in experience
+    if (!user.role) {
+      // User exists but has no role, needs onboarding
+      redirect("/onboarding");
+    }
+
+    // User is fully authenticated and has a role, redirect to dashboard
     redirect("/dashboard");
   } catch (error) {
     console.error("Error in home page:", error);
-    // Fallback to landing page on error
+    // On any error, show landing page to prevent infinite loops
     return <LandingPage />;
   }
 }
