@@ -76,10 +76,10 @@
   --ring: oklch(0.459 0.081 218.5);
   /* Chart colors using your palette */
   --chart-1: oklch(0.459 0.081 218.5); /* Teal Blue */
-  --chart-2: oklch(0.761 0.158 85.8);  /* Bright Yellow */
+  --chart-2: oklch(0.761 0.158 85.8); /* Bright Yellow */
   --chart-3: oklch(0.207 0.035 218.5); /* Dark Navy */
   --chart-4: oklch(0.246 0.031 218.5); /* Charcoal */
-  --chart-5: oklch(0.968 0.011 85.8);  /* Light Cream */
+  --chart-5: oklch(0.968 0.011 85.8); /* Light Cream */
   /* Sidebar using white/cream tones */
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.207 0.035 218.5);
@@ -122,11 +122,11 @@
   /* Yellow ring in dark mode */
   --ring: oklch(0.761 0.158 85.8);
   /* Chart colors for dark mode */
-  --chart-1: oklch(0.761 0.158 85.8);  /* Bright Yellow */
+  --chart-1: oklch(0.761 0.158 85.8); /* Bright Yellow */
   --chart-2: oklch(0.459 0.081 218.5); /* Teal Blue */
-  --chart-3: oklch(0.968 0.011 85.8);  /* Light Cream */
-  --chart-4: oklch(0.8 0.02 85.8);     /* Lighter cream */
-  --chart-5: oklch(0.35 0.04 218.5);   /* Darker border tone */
+  --chart-3: oklch(0.968 0.011 85.8); /* Light Cream */
+  --chart-4: oklch(0.8 0.02 85.8); /* Lighter cream */
+  --chart-5: oklch(0.35 0.04 218.5); /* Darker border tone */
   /* Dark sidebar */
   --sidebar: oklch(0.246 0.031 218.5);
   --sidebar-foreground: oklch(0.968 0.011 85.8);
