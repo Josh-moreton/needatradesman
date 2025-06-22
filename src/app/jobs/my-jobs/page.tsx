@@ -47,13 +47,13 @@ export default async function MyJobsPage() {
     });
 
     return (
-      <DashboardLayout>
+      <DashboardLayout userRole={user.role}>
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold">My Jobs</h1>
               <p className="text-muted-foreground mt-2">
-                Manage your job postings and view applications
+                Manage your job postings and view responses
               </p>
             </div>
             <Button asChild>

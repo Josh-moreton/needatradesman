@@ -68,8 +68,8 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
       notFound();
     }
 
-    // For tradespeople, check if they already applied
-    let hasApplied = false;
+    // For tradespeople, check if they already responded
+    let hasResponded = false;
     if (user.role === UserRole.TRADESPERSON) {
       const existingApplication = await prisma.application.findUnique({
         where: {
@@ -79,7 +79,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           },
         },
       });
-      hasApplied = !!existingApplication;
+      hasResponded = !!existingApplication;
     }
 
     const getStatusColor = (status: string) => {
@@ -239,14 +239,14 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                {hasApplied ? (
+                {hasResponded ? (
                   <div>
                     <Badge variant="secondary" className="mb-3">
-                      Application Submitted
+                      Response Submitted
                     </Badge>
                     <p className="text-muted-foreground">
-                      You have already applied to this job. The customer will
-                      review your application.
+                      You have already responded to this job. The customer will
+                      review your response.
                     </p>
                   </div>
                 ) : (
@@ -255,11 +255,11 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       Interested in this job?
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      Submit an application to show your interest and start a
+                      Submit a response to show your interest and start a
                       conversation with the customer.
                     </p>
                     <Button size="lg" asChild>
-                      <Link href={`/jobs/${job.id}/apply`}>Apply Now</Link>
+                      <Link href={`/jobs/${job.id}/apply`}>Respond Now</Link>
                     </Button>
                   </div>
                 )}
@@ -276,13 +276,10 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                   This is your job posting
                 </h3>
                 <p className="text-muted-foreground mb-4">
-                  Manage applications and communicate with interested
-                  tradespeople.
+                  Manage responses and communicate with interested tradespeople.
                 </p>
                 <Button size="lg" asChild>
-                  <Link href={`/jobs/my-jobs/${job.id}`}>
-                    Manage Applications
-                  </Link>
+                  <Link href={`/jobs/my-jobs/${job.id}`}>Manage Responses</Link>
                 </Button>
               </div>
             </CardContent>

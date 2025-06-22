@@ -105,7 +105,7 @@ export function JobCard({ job, variant = "public" }: JobCardProps) {
           )}
           {job._count && (
             <div>
-              <p className="font-medium">Applications</p>
+              <p className="font-medium">Responses</p>
               <p className="text-muted-foreground">{job._count.applications}</p>
             </div>
           )}
@@ -136,7 +136,7 @@ export function JobCard({ job, variant = "public" }: JobCardProps) {
               </Button>
               {job.status === "OPEN" && (
                 <Button size="sm" asChild>
-                  <Link href={`/jobs/${job.id}/apply`}>Apply Now</Link>
+                  <Link href={`/jobs/${job.id}/apply`}>Respond Now</Link>
                 </Button>
               )}
             </>

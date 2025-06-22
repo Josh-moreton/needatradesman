@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { UserRole } from "@prisma/client";
-import { ApplicationForm } from "@/components/applications/ApplicationForm";
+import { UserRole } from "@/lib/schemas";
+import { ResponseForm } from "@/components/applications/ResponseForm";
 import {
   Card,
   CardContent,
@@ -121,18 +121,17 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
           </CardContent>
         </Card>
 
-        {/* Application Form */}
+        {/* Response Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Apply for this Job</CardTitle>
+            <CardTitle>Respond to this Job</CardTitle>
             <CardDescription>
-              Submit your application with a message and optional quote. The
-              customer will review your application and may contact you
-              directly.
+              Submit your response with a message and optional quote. The
+              customer will review your response and may contact you directly.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ApplicationForm jobId={job.id} />
+            <ResponseForm jobId={job.id} />
           </CardContent>
         </Card>
       </div>

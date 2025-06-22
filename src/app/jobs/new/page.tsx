@@ -31,7 +31,7 @@ export default async function NewJobPage() {
     }
 
     return (
-      <DashboardLayout>
+      <DashboardLayout userRole={user.role}>
         <div className="container mx-auto px-4 py-8 max-w-2xl">
           <Card>
             <CardHeader>

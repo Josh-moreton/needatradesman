@@ -8,25 +8,47 @@
   - Prisma ORM configured with SQLite (dev) and models for User, Job, Application, Message
   - Zod schemas for type-safe validation (e.g., `createJobSchema`)
   - ShadCN UI kit and Tailwind CSS integrated for modern, accessible UI
-  - Upstash Redis and Stripe dependencies added
+  - Redis Cloud configured for caching and real-time messaging
 
 - **Core UI & Layout**
   - Modern header/navigation using ShadCN components
   - Dashboard rebuilt with left-hand sidebar (role-based navigation)
   - Sidebar and header now both in `/components/layout` for codebase consistency
   - Sidebar is context-aware, highlights current page, and is visible on all dashboard pages for authenticated users
-  - Dashboard, "Post Job", "My Jobs", and "Messages" pages all use the new sidebar layout
-  - `/messages` page scaffolded
+  - Sidebar now role-aware: customers see "Post Job", "My Jobs", "Messages"; tradespeople see "Browse Jobs", "My Responses", "Messages"
+  - Dashboard, "Post Job", "My Jobs", "Messages", and "Browse Jobs" pages all use the new sidebar layout
   - Old/obsolete sidebar code removed
   - Imports and role checks standardized
-  - Onboarding flow rebuilt with ShadCN forms
+  - Onboarding flow rebuilt with ShadCN forms and trade selection for tradespeople
   - Landing page modernized with ShadCN
 
 - **Job Posting Flow (Customer)**
   - Job creation form (`/jobs/new`) using React Hook Form + Zod + ShadCN
   - Job creation API (`/api/jobs`) with Clerk auth, role validation, and Prisma integration
   - Customer job list (`/jobs/my-jobs`) with ShadCN Card components
+  - Customer job detail page (`/jobs/my-jobs/[jobId]`) with response management
+  - Response management API (`/api/applications/[id]`) for accepting/rejecting responses
   - Reusable JobCard component for job display
+
+- **Job Feed & Response Flow (Tradesperson)**
+  - Job feed page (`/jobs`) with filtering by tradesperson's selected trades
+  - Job detail page (`/jobs/[jobId]`) with response functionality
+  - Response submission page (`/jobs/[jobId]/apply`) with ResponseForm component
+  - Trade selection during onboarding (multiple trades allowed)
+  - Job feed filters only show categories within tradesperson's selected trades
+  - Terminology changed from "apply/application" to "respond/response"
+  - Response API (`/api/applications`) with validation and duplicate prevention
+  - "My Responses" page for tradespeople to track their submissions
+
+- **Live Messaging System**
+  - Complete messaging API (`/api/messages`) with Redis integration
+  - Chat interface with conversation list and real-time message updates
+  - Message persistence in PostgreSQL database
+  - Redis caching for chat messages and conversations
+  - Rate limiting for message sending (50 messages per hour)
+  - Integration with job responses - chat buttons on response forms and job management pages
+  - Direct linking to conversations from job contexts (`/messages?jobId=x&with=y`)
+  - Real-time message publishing to Redis channels (ready for WebSocket integration)
 
 - **ESLint & Code Quality**
   - ESLint v9+ configured with correct ignores for build/output/deps
@@ -35,25 +57,14 @@
 - **Authentication & Routing**
   - Authenticated users are redirected to `/dashboard` by default (not the landing page)
   - Dashboard pages redirect unauthenticated users to sign-in, and users without a role to onboarding
+  - Tradespeople without selected trades are redirected to onboarding to complete setup
 
 ## 🟡 In Progress / Needs Attention
 
-- **Job Feed for Tradespeople**
-  - Public job feed page (`/jobs`) for tradespeople to browse jobs
-  - Filters: category, location, search, pagination
-  - Job detail page (`/jobs/[jobId]`)
-
-- **Application Flow**
-  - "Express Interest" or "Apply" button on job cards
-  - Application form (message + optional quote)
-  - API for submitting applications
-  - Customer notification on new application
-  - Application subpages/modals under "My Jobs"
-
-- **Live Chat MVP**
-  - 1:1 chat between customer and tradesperson (WebSocket/Redis or fallback)
-  - Message persistence in DB
-  - UI for `/messages/[chatId]`
+- **Enhanced Performance & Caching**
+  - Redis caching for job listings and user data
+  - Cache invalidation logic on job create/update
+  - WebSocket implementation for real-time chat (currently using Redis pub/sub foundation)
 
 - **Payments (Stripe)**
   - Integrate Stripe for escrow/hold funds
@@ -68,55 +79,41 @@
   - Customer: show active jobs, applications, quick actions
   - Tradesperson: show new jobs, applications, jobs won
 
-- **Caching & Performance**
-  - Redis caching for job listings
-  - Cache invalidation on job create/update
-
 - **Mobile Responsiveness & UI Polish**
   - Ensure all pages/components are mobile-friendly
   - Use ShadCN for all forms, lists, dialogs, alerts
 
 ## ⏭️ Next Actionable Steps
 
-### 1. Job Feed & Application Flow
+### 1. Enhanced Performance & Caching
 
-- [ ] Build `/app/jobs/page.tsx` for tradespeople job feed
-- [ ] Add filters (category, location, search)
-- [ ] Implement job detail page (`/app/jobs/[jobId]/page.tsx`)
-- [ ] Add "Apply" button and application form
-- [ ] Create API for job applications
-- [ ] Notify customer on new application
-- [ ] Implement application subpages/modals under "My Jobs"
+- [ ] Implement Redis caching for job listings and user data
+- [ ] Add cache invalidation logic on job create/update
+- [ ] Implement WebSocket for real-time chat (build on existing Redis pub/sub foundation)
 
-### 2. Live Chat MVP
-
-- [ ] Set up message model and API
-- [ ] Build `/app/messages/[chatId]/page.tsx` for chat UI
-- [ ] Integrate WebSocket/Redis for real-time updates
-- [ ] Fallback to polling if needed
-
-### 3. Payments Integration
+### 2. Payments Integration
 
 - [ ] Integrate Stripe (test mode)
 - [ ] Implement payment flow: customer pays to accept quote, funds held, payout on completion
 - [ ] Admin dashboard for payouts/disputes
 
-### 4. File Uploads (Optional)
+### 3. File Uploads (Optional)
 
 - [ ] Add file upload to job form
 - [ ] Store and display attachments
 
-### 5. Enhanced Dashboards
+### 4. Enhanced Dashboards
 
 - [ ] Add job/application stats and quick actions to dashboards
 - [ ] Show recent activity and links
 
-### 6. Caching & Performance
+### 5. Performance & Caching Optimization
 
-- [ ] Implement Redis caching for job listings
+- [ ] Implement comprehensive Redis caching strategy
 - [ ] Add cache invalidation logic
+- [ ] Optimize database queries
 
-### 7. UI & Mobile Polish
+### 6. UI & Mobile Polish
 
 - [ ] Audit all pages for mobile responsiveness
 - [ ] Ensure consistent use of ShadCN components
