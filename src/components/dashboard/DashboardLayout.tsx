@@ -33,6 +33,12 @@ const navItems = [
     roles: ["CUSTOMER"],
   },
   {
+    label: "Browse Jobs",
+    href: "/jobs",
+    icon: <Briefcase className="h-5 w-5" />,
+    roles: ["TRADESPERSON"],
+  },
+  {
     label: "Applications",
     href: "/applications",
     icon: <FileText className="h-5 w-5" />,
