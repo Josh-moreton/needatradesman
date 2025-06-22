@@ -250,8 +250,9 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setMessages((prev) => [...prev, data.message]);
+        // Do not optimistically add the message; rely on Pusher event for real-time update
+        // const data = await response.json();
+        // setMessages((prev) => [...prev, data.message]);
         // Refresh conversations to update last message
         fetchConversations();
       }
