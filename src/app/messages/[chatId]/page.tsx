@@ -11,9 +11,7 @@ interface ChatPageProps {
   }>;
 }
 
-export default async function ChatPage({
-  searchParams,
-}: ChatPageProps) {
+export default async function ChatPage({ searchParams }: ChatPageProps) {
   const user = await getCurrentUser();
 
   if (!user) {

@@ -148,42 +148,48 @@ export default async function NewJobPage() {
                     <CardTitle className="text-lg">Recent Jobs</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {recentJobs.slice(0, 3).map((job: {
-                      id: string;
-                      title: string;
-                      location: string | null;
-                      budget: number | null;
-                      _count: { applications: number };
-                      createdAt: Date;
-                    }) => (
-                      <div
-                        key={job.id}
-                        className="p-3 border rounded-lg hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm leading-tight">
-                            {job.title}
-                          </h4>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {new Date(job.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-green-600 font-medium">
-                            {job._count.applications} responses
-                          </span>
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs px-2"
+                    {recentJobs
+                      .slice(0, 3)
+                      .map(
+                        (job: {
+                          id: string;
+                          title: string;
+                          location: string | null;
+                          budget: number | null;
+                          _count: { applications: number };
+                          createdAt: Date;
+                        }) => (
+                          <div
+                            key={job.id}
+                            className="p-3 border rounded-lg hover:bg-muted/30 transition-colors"
                           >
-                            <Link href={`/jobs/my-jobs/${job.id}`}>View →</Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-medium text-sm leading-tight">
+                                {job.title}
+                              </h4>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                {new Date(job.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-green-600 font-medium">
+                                {job._count.applications} responses
+                              </span>
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs px-2"
+                              >
+                                <Link href={`/jobs/my-jobs/${job.id}`}>
+                                  View →
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      )}
                     {recentJobs.length > 3 && (
                       <Button
                         asChild

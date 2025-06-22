@@ -53,7 +53,8 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
       const res = await fetch(`/api/messages`);
       const data = await res.json();
       const exists = (data.conversations || []).some(
-        (c: { jobId: string; otherParticipant: { id: string } }) => c.jobId === jobId && c.otherParticipant.id === participantId
+        (c: { jobId: string; otherParticipant: { id: string } }) =>
+          c.jobId === jobId && c.otherParticipant.id === participantId
       );
       if (!exists) {
         await fetch("/api/messages", {

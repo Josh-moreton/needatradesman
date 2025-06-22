@@ -59,17 +59,14 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
             }
             // Create new user record
-            const createData: Record<string, unknown> = {
+            const createData = {
                 clerkId: userId,
                 email,
                 firstName,
                 lastName,
-                role
+                role,
+                ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
             };
-
-            if (trades && role === UserRole.TRADESPERSON) {
-                createData.trades = trades;
-            }
 
             const newUser = await prisma.user.create({
                 data: createData

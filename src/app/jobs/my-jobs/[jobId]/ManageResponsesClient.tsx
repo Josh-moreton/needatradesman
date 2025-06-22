@@ -158,7 +158,8 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
       const res = await fetch(`/api/messages`);
       const data = await res.json();
       const exists = (data.conversations || []).some(
-        (c: { jobId: string; otherParticipant: { id: string } }) => c.jobId === jobId && c.otherParticipant.id === participantId
+        (c: { jobId: string; otherParticipant: { id: string } }) =>
+          c.jobId === jobId && c.otherParticipant.id === participantId
       );
       if (!exists) {
         // Create conversation by sending a default message
@@ -233,7 +234,15 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={getStatusColor(application.status) as "default" | "secondary" | "destructive" | "outline"}>
+                    <Badge
+                      variant={
+                        getStatusColor(application.status) as
+                          | "default"
+                          | "secondary"
+                          | "destructive"
+                          | "outline"
+                      }
+                    >
                       {application.status}
                     </Badge>
                     {application.quote && (
