@@ -13,6 +13,12 @@
 - **Core UI & Layout**
   - Modern header/navigation using ShadCN components
   - Dashboard rebuilt with left-hand sidebar (role-based navigation)
+  - Sidebar and header now both in `/components/layout` for codebase consistency
+  - Sidebar is context-aware, highlights current page, and is visible on all dashboard pages for authenticated users
+  - Dashboard, "Post Job", "My Jobs", and "Messages" pages all use the new sidebar layout
+  - `/messages` page scaffolded
+  - Old/obsolete sidebar code removed
+  - Imports and role checks standardized
   - Onboarding flow rebuilt with ShadCN forms
   - Landing page modernized with ShadCN
 
@@ -26,6 +32,10 @@
   - ESLint v9+ configured with correct ignores for build/output/deps
   - Unused imports and warnings cleaned up
 
+- **Authentication & Routing**
+  - Authenticated users are redirected to `/dashboard` by default (not the landing page)
+  - Dashboard pages redirect unauthenticated users to sign-in, and users without a role to onboarding
+
 ## 🟡 In Progress / Needs Attention
 
 - **Job Feed for Tradespeople**
@@ -38,6 +48,7 @@
   - Application form (message + optional quote)
   - API for submitting applications
   - Customer notification on new application
+  - Application subpages/modals under "My Jobs"
 
 - **Live Chat MVP**
   - 1:1 chat between customer and tradesperson (WebSocket/Redis or fallback)
@@ -75,6 +86,7 @@
 - [ ] Add "Apply" button and application form
 - [ ] Create API for job applications
 - [ ] Notify customer on new application
+- [ ] Implement application subpages/modals under "My Jobs"
 
 ### 2. Live Chat MVP
 
