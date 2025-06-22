@@ -160,7 +160,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-blue-600" />
+                <MapPin className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Location</p>
                   <p className="text-muted-foreground">{job.location}</p>
@@ -172,7 +172,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-green-600" />
+                <DollarSign className="h-5 w-5 text-accent" />
                 <div>
                   <p className="font-medium">Budget</p>
                   <p className="text-muted-foreground">
@@ -186,7 +186,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-orange-600" />
+                <Calendar className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-medium">Posted</p>
                   <p className="text-muted-foreground">

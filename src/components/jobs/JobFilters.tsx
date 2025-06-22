@@ -31,7 +31,9 @@ export function JobFilters() {
 
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [location, setLocation] = useState(searchParams.get("location") || "");
-  const [category, setCategory] = useState(searchParams.get("category") || "all");
+  const [category, setCategory] = useState(
+    searchParams.get("category") || "all"
+  );
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -61,16 +63,19 @@ export function JobFilters() {
     router.push("/jobs");
   };
 
-  const hasActiveFilters = search || location || (category && category !== "all");
+  const hasActiveFilters =
+    search || location || (category && category !== "all");
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Search Input */}
         <div className="space-y-2">
-          <label htmlFor="search-input" className="text-sm font-medium">Search</label>
+          <label htmlFor="search-input" className="text-sm font-medium">
+            Search
+          </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               id="search-input"
               placeholder="Search jobs..."
@@ -88,7 +93,9 @@ export function JobFilters() {
 
         {/* Location Input */}
         <div className="space-y-2">
-          <label htmlFor="location-input" className="text-sm font-medium">Location</label>
+          <label htmlFor="location-input" className="text-sm font-medium">
+            Location
+          </label>
           <Input
             id="location-input"
             placeholder="Enter location..."
@@ -104,7 +111,9 @@ export function JobFilters() {
 
         {/* Category Select */}
         <div className="space-y-2">
-          <label htmlFor="category-select" className="text-sm font-medium">Category</label>
+          <label htmlFor="category-select" className="text-sm font-medium">
+            Category
+          </label>
           <Select value={category} onValueChange={setCategory}>
             <SelectTrigger id="category-select">
               <SelectValue placeholder="All categories" />
@@ -139,39 +148,41 @@ export function JobFilters() {
 
       {/* Active Filters Display */}
       {hasActiveFilters && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="flex flex-wrap gap-2">
-            <span className="text-sm text-gray-600">Active filters:</span>
+            <span className="text-sm text-muted-foreground">
+              Active filters:
+            </span>
             {search && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm rounded">
                 Search: &ldquo;{search}&rdquo;
                 <button
                   onClick={() => {
                     setSearch("");
                     handleSearch();
                   }}
-                  className="ml-1 hover:text-blue-900"
+                  className="ml-1 hover:text-primary/80"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             )}
             {location && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm rounded">
                 Location: {location}
                 <button
                   onClick={() => {
                     setLocation("");
                     handleSearch();
                   }}
-                  className="ml-1 hover:text-blue-900"
+                  className="ml-1 hover:text-primary/80"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </span>
             )}
             {category && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm rounded">
                 Category:{" "}
                 {categoryOptions.find((opt) => opt.value === category)?.label}
                 <button
@@ -179,7 +190,7 @@ export function JobFilters() {
                     setCategory("");
                     handleSearch();
                   }}
-                  className="ml-1 hover:text-blue-900"
+                  className="ml-1 hover:text-primary/80"
                 >
                   <X className="h-3 w-3" />
                 </button>

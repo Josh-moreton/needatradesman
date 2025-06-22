@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { LandingPage } from "@/components/landing/LandingPage";
+import LandingPage from "@/components/landing/LandingPage";
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";

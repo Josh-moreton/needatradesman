@@ -165,7 +165,7 @@ export default async function JobFeedPage({ searchParams }: JobFeedPageProps) {
                 resolvedSearchParams.search) && (
                 <Link
                   href="/jobs"
-                  className="text-blue-600 hover:text-blue-800 underline"
+                  className="text-primary hover:text-primary/80 underline"
                 >
                   Clear all filters
                 </Link>
@@ -189,7 +189,7 @@ export default async function JobFeedPage({ searchParams }: JobFeedPageProps) {
                       ...resolvedSearchParams,
                       page: (page - 1).toString(),
                     }).toString()}`}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 border border-border rounded-md hover:bg-accent"
                   >
                     Previous
                   </Link>
@@ -208,8 +208,8 @@ export default async function JobFeedPage({ searchParams }: JobFeedPageProps) {
                       }).toString()}`}
                       className={`px-4 py-2 border rounded-md ${
                         pageNum === page
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "border-gray-300 hover:bg-gray-50"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border hover:bg-accent"
                       }`}
                     >
                       {pageNum}
@@ -223,7 +223,7 @@ export default async function JobFeedPage({ searchParams }: JobFeedPageProps) {
                       ...resolvedSearchParams,
                       page: (page + 1).toString(),
                     }).toString()}`}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 border border-border rounded-md hover:bg-accent"
                   >
                     Next
                   </Link>
