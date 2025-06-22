@@ -27,6 +27,7 @@ export const updateUserSchema = z.object({
     firstName: z.string().min(1, 'First name is required').optional(),
     lastName: z.string().min(1, 'Last name is required').optional(),
     role: z.nativeEnum(UserRole).optional(),
+    trades: z.array(z.nativeEnum(JobCategory)).min(1, 'At least one trade must be selected').optional(),
 })
 
 // Type exports

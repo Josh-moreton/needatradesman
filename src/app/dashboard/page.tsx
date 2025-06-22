@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     }
 
     return (
-      <DashboardLayout>
+      <DashboardLayout userRole={user.role}>
         <Dashboard user={user} />
       </DashboardLayout>
     );

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { JobCategory } from "@prisma/client";
+import { JobCategory } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,7 +25,11 @@ const categoryOptions = [
   { value: JobCategory.OTHER, label: "Other" },
 ];
 
-export function JobFilters() {
+interface JobFiltersProps {
+  userTrades?: JobCategory[];
+}
+
+export function JobFilters({ userTrades }: JobFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -34,6 +38,11 @@ export function JobFilters() {
   const [category, setCategory] = useState(
     searchParams.get("category") || "all"
   );
+
+  // Filter categories based on user's trades
+  const availableCategories = userTrades
+    ? categoryOptions.filter((option) => userTrades.includes(option.value))
+    : categoryOptions;
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -120,7 +129,7 @@ export function JobFilters() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All categories</SelectItem>
-              {categoryOptions.map((option) => (
+              {availableCategories.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
-import { UserRole } from '@prisma/client'
+import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
 
 const setRoleSchema = z.object({
-    role: z.nativeEnum(UserRole)
+    role: z.nativeEnum(UserRole),
+    trades: z.array(z.nativeEnum(JobCategory)).optional()
 })
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
 
         // Parse and validate the request body
         const body = await request.json()
-        const { role } = setRoleSchema.parse(body)
+        const { role, trades } = setRoleSchema.parse(body)
 
         // Check if user already exists in our database
         const existingUser = await prisma.user.findUnique({
@@ -30,10 +31,15 @@ export async function POST(request: NextRequest) {
         })
 
         if (existingUser) {
-            // Update existing user's role
+            // Update existing user's role and trades (if provided)
+            const updateData: any = { role };
+            if (trades && role === UserRole.TRADESPERSON) {
+                updateData.trades = trades;
+            }
+
             const updatedUser = await prisma.user.update({
                 where: { clerkId: userId },
-                data: { role }
+                data: updateData
             })
 
             return NextResponse.json({
@@ -53,14 +59,20 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
             }
             // Create new user record
+            const createData: any = {
+                clerkId: userId,
+                email,
+                firstName,
+                lastName,
+                role
+            };
+
+            if (trades && role === UserRole.TRADESPERSON) {
+                createData.trades = trades;
+            }
+
             const newUser = await prisma.user.create({
-                data: {
-                    clerkId: userId,
-                    email,
-                    firstName,
-                    lastName,
-                    role
-                }
+                data: createData
             })
 
             return NextResponse.json({

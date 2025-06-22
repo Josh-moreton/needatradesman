@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
+import { UserRole } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export function Sidebar() {
+interface SidebarProps {
+  userRole: UserRole;
+}
+
+export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
 
-  const links = [
+  const customerLinks = [
     { href: "/jobs/new", label: "Post Job" },
     { href: "/jobs/my-jobs", label: "My Jobs" },
     { href: "/messages", label: "Messages" },
   ];
+
+  const tradespersonLinks = [
+    { href: "/jobs", label: "Browse Jobs" },
+    { href: "/my-responses", label: "My Responses" },
+    { href: "/messages", label: "Messages" },
+  ];
+
+  const links =
+    userRole === UserRole.CUSTOMER ? customerLinks : tradespersonLinks;
 
   return (
     <div className="hidden border-r bg-muted/40 md:block">

@@ -15,11 +15,12 @@
   - Dashboard rebuilt with left-hand sidebar (role-based navigation)
   - Sidebar and header now both in `/components/layout` for codebase consistency
   - Sidebar is context-aware, highlights current page, and is visible on all dashboard pages for authenticated users
-  - Dashboard, "Post Job", "My Jobs", and "Messages" pages all use the new sidebar layout
+  - Sidebar now role-aware: customers see "Post Job", "My Jobs", "Messages"; tradespeople see "Browse Jobs", "My Responses", "Messages"
+  - Dashboard, "Post Job", "My Jobs", "Messages", and "Browse Jobs" pages all use the new sidebar layout
   - `/messages` page scaffolded
   - Old/obsolete sidebar code removed
   - Imports and role checks standardized
-  - Onboarding flow rebuilt with ShadCN forms
+  - Onboarding flow rebuilt with ShadCN forms and trade selection for tradespeople
   - Landing page modernized with ShadCN
 
 - **Job Posting Flow (Customer)**
@@ -28,6 +29,15 @@
   - Customer job list (`/jobs/my-jobs`) with ShadCN Card components
   - Reusable JobCard component for job display
 
+- **Job Feed & Response Flow (Tradesperson)**
+  - Job feed page (`/jobs`) with filtering by tradesperson's selected trades
+  - Job detail page (`/jobs/[jobId]`) with response functionality
+  - Response submission page (`/jobs/[jobId]/apply`) with ResponseForm component
+  - Trade selection during onboarding (multiple trades allowed)
+  - Job feed filters only show categories within tradesperson's selected trades
+  - Terminology changed from "apply/application" to "respond/response"
+  - Response API (`/api/applications`) with validation and duplicate prevention
+
 - **ESLint & Code Quality**
   - ESLint v9+ configured with correct ignores for build/output/deps
   - Unused imports and warnings cleaned up
@@ -35,20 +45,14 @@
 - **Authentication & Routing**
   - Authenticated users are redirected to `/dashboard` by default (not the landing page)
   - Dashboard pages redirect unauthenticated users to sign-in, and users without a role to onboarding
+  - Tradespeople without selected trades are redirected to onboarding to complete setup
 
 ## 🟡 In Progress / Needs Attention
 
-- **Job Feed for Tradespeople**
-  - Public job feed page (`/jobs`) for tradespeople to browse jobs
-  - Filters: category, location, search, pagination
-  - Job detail page (`/jobs/[jobId]`)
-
-- **Application Flow**
-  - "Express Interest" or "Apply" button on job cards
-  - Application form (message + optional quote)
-  - API for submitting applications
-  - Customer notification on new application
-  - Application subpages/modals under "My Jobs"
+- **Enhanced Application Management**
+  - Customer job detail page to view and manage responses
+  - Response status management (accept/reject responses)
+  - "My Responses" page for tradespeople to track their submissions
 
 - **Live Chat MVP**
   - 1:1 chat between customer and tradesperson (WebSocket/Redis or fallback)
@@ -78,15 +82,12 @@
 
 ## ⏭️ Next Actionable Steps
 
-### 1. Job Feed & Application Flow
+### 1. Response Management & Customer Views
 
-- [ ] Build `/app/jobs/page.tsx` for tradespeople job feed
-- [ ] Add filters (category, location, search)
-- [ ] Implement job detail page (`/app/jobs/[jobId]/page.tsx`)
-- [ ] Add "Apply" button and application form
-- [ ] Create API for job applications
-- [ ] Notify customer on new application
-- [ ] Implement application subpages/modals under "My Jobs"
+- [ ] Build `/app/jobs/my-jobs/[jobId]/page.tsx` for customer job detail with response management
+- [ ] Create response management API endpoints (accept/reject responses)
+- [ ] Build `/app/my-responses/page.tsx` for tradespeople to track their responses
+- [ ] Implement response status updates and notifications
 
 ### 2. Live Chat MVP
 
