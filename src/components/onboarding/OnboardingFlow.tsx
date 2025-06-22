@@ -38,7 +38,13 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          router.push("/dashboard");
+          // Redirect customers directly to job posting workflow
+          // Tradespeople go to regular dashboard for job browsing
+          if (role === UserRole.CUSTOMER) {
+            router.push("/jobs/new");
+          } else {
+            router.push("/dashboard");
+          }
         } else {
           console.error("Failed to set user role");
           setIsLoading(false);

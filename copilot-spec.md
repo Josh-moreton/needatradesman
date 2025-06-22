@@ -1,4 +1,3 @@
-
 # needatradesman.co.uk – Copilot Project Specification
 
 ## 🧠 Project Overview
@@ -16,7 +15,7 @@ This platform requires authentication, job posting, messaging, and payments.
 - **Authentication**: [Clerk.dev](https://clerk.dev/)
 - **Type Safety & Validation**: [Zod](https://zod.dev/)
 - **ORM**: [Prisma](https://www.prisma.io/) + PostgreSQL (hosted on Render.com)
-- **Caching & Rate Limiting**: [Upstash Redis](https://upstash.com/)
+- **Caching & Rate Limiting**: [Redis Cloud](https://redis.com/)
 - **UI Kit**: [ShadCN](https://ui.shadcn.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Payments**: [Stripe](https://stripe.com/)
@@ -195,7 +194,7 @@ model Message {
 - Strict type safety throughout with **Zod**
 - All models defined in **Prisma**, validated with Zod
 - Respect separation of roles (enforced at API + UI levels)
-- Plan for horizontal scalability (e.g. Redis for pub/sub, Upstash limits)
+- Plan for horizontal scalability (e.g. Redis for pub/sub, Redis Cloud limits)
 
 ---
 

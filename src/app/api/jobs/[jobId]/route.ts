@@ -1,0 +1,128 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { redis, CACHE_KEYS, CACHE_TTL, invalidateJobDetailCache } from "@/lib/redis";
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ jobId: string }> }
+) {
+    try {
+        const { jobId } = await params;
+
+        if (!jobId) {
+            return new NextResponse("Job ID is required", { status: 400 });
+        }
+
+        // Try to get from cache first
+        const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
+
+        if (redis) {
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    console.log('Cache hit for job detail:', cacheKey);
+                    return NextResponse.json(cached);
+                }
+            } catch (cacheError) {
+                console.error('Cache read error:', cacheError);
+            }
+        }
+
+        // Get job from database
+        const job = await prisma.job.findUnique({
+            where: { id: jobId },
+            include: {
+                customer: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
+                applications: {
+                    include: {
+                        tradesperson: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true,
+                                email: true,
+                            },
+                        },
+                    },
+                    orderBy: { createdAt: "desc" },
+                },
+                _count: {
+                    select: {
+                        applications: true,
+                    },
+                },
+            },
+        });
+
+        if (!job) {
+            return new NextResponse("Job not found", { status: 404 });
+        }
+
+        // Cache the result
+        if (redis) {
+            try {
+                await redis.set(cacheKey, JSON.stringify(job), 'EX', CACHE_TTL.JOB_DETAIL);
+                console.log('Cached job detail:', jobId);
+            } catch (cacheError) {
+                console.error('Cache write error:', cacheError);
+            }
+        }
+
+        return NextResponse.json(job);
+    } catch (error) {
+        console.error("Error fetching job:", error);
+        return new NextResponse("Internal server error", { status: 500 });
+    }
+}
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: Promise<{ jobId: string }> }
+) {
+    try {
+        const { jobId } = await params;
+        const body = await request.json();
+
+        // Update job in database
+        const updatedJob = await prisma.job.update({
+            where: { id: jobId },
+            data: body,
+            include: {
+                customer: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        applications: true,
+                    },
+                },
+            },
+        });
+
+        // Invalidate cache
+        if (redis) {
+            try {
+                const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
+                await redis.del(cacheKey);
+                console.log('Invalidated job detail cache:', cacheKey);
+            } catch (cacheError) {
+                console.error('Cache invalidation error:', cacheError);
+            }
+        }
+
+        return NextResponse.json(updatedJob);
+    } catch (error) {
+        console.error("Error updating job:", error);
+        return new NextResponse("Internal server error", { status: 500 });
+    }
+}

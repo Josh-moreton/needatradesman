@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { z } from "zod";
+import { redis, invalidateApplicationCaches, invalidateJobDetailCache, invalidateUserStats } from "@/lib/redis";
 
 const updateResponseSchema = z.object({
     status: z.enum(["ACCEPTED", "REJECTED"]),
@@ -104,6 +105,26 @@ export async function PATCH(
                     data: { status: "REJECTED" },
                 }),
             ]);
+        }
+
+        // Invalidate relevant caches after application status update
+        if (redis) {
+            try {
+                await Promise.all([
+                    // Invalidate application caches for both customer and tradesperson
+                    invalidateApplicationCaches(user.id, UserRole.CUSTOMER),
+                    invalidateApplicationCaches(updatedResponse.tradesperson.id, UserRole.TRADESPERSON),
+                    // Invalidate job detail cache as application status changed
+                    invalidateJobDetailCache(response.jobId),
+                    // Invalidate user stats for both users
+                    invalidateUserStats(user.id, UserRole.CUSTOMER),
+                    invalidateUserStats(updatedResponse.tradesperson.id, UserRole.TRADESPERSON)
+                ]);
+                console.log('Invalidated caches after application status update');
+            } catch (cacheError) {
+                console.error('Cache invalidation error:', cacheError);
+                // Don't fail the request if cache invalidation fails
+            }
         }
 
         return NextResponse.json({ response: updatedResponse });

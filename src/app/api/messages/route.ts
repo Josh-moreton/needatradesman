@@ -126,11 +126,12 @@ export async function POST(request: NextRequest) {
 
         // Rate limiting
         if (messageRateLimit) {
-            const rateLimitResult = await messageRateLimit.limit(user.id);
-            if (!rateLimitResult.success) {
+            try {
+                await messageRateLimit.consume(user.id);
+            } catch (rejRes: any) {
                 return NextResponse.json(
                     { error: "Too many messages. Please try again later." },
-                    { status: 429 }
+                    { status: 429, headers: { 'Retry-After': String(Math.ceil(rejRes.msBeforeNext / 1000)) } }
                 );
             }
         }
