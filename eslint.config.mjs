@@ -9,7 +9,22 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-export default [
+const config = [
+  {
+    ignores: [
+      "node_modules/",
+      ".next/",
+      "dist/",
+      "out/",
+      "coverage/",
+      "public/",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "*.log",
+      ".DS_Store",
+    ],
+  },
   ...compat.extends(
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended",
@@ -28,3 +43,5 @@ export default [
     },
   },
 ];
+
+export default config;

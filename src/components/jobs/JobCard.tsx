@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Decimal } from "@prisma/client/runtime/library";
 import Link from "next/link";
 
 interface JobCardProps {

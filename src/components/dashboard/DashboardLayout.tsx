@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
-import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Briefcase,
   FileText,
   MessageSquare,
   PlusCircle,
-  Search,
-  TrendingUp,
   User,
 } from "lucide-react";
 
