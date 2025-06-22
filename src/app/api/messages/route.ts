@@ -129,10 +129,10 @@ export async function POST(request: NextRequest) {
         if (messageRateLimit) {
             try {
                 await messageRateLimit.consume(user.id);
-            } catch (rejRes: any) {
+            } catch (rejRes: unknown) {
                 return NextResponse.json(
                     { error: "Too many messages. Please try again later." },
-                    { status: 429, headers: { 'Retry-After': String(Math.ceil(rejRes.msBeforeNext / 1000)) } }
+                    { status: 429, headers: { 'Retry-After': typeof rejRes === 'object' && rejRes && 'msBeforeNext' in rejRes ? String(Math.ceil((rejRes as { msBeforeNext: number }).msBeforeNext / 1000)) : '60' } }
                 );
             }
         }

@@ -53,7 +53,7 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
       const res = await fetch(`/api/messages`);
       const data = await res.json();
       const exists = (data.conversations || []).some(
-        (c: any) => c.jobId === jobId && c.otherParticipant.id === participantId
+        (c: { jobId: string; otherParticipant: { id: string } }) => c.jobId === jobId && c.otherParticipant.id === participantId
       );
       if (!exists) {
         await fetch("/api/messages", {
@@ -67,7 +67,7 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
         });
       }
       router.push(`/messages?jobId=${jobId}&with=${participantId}`);
-    } catch (e) {
+    } catch {
       alert("Failed to start chat. Please try again.");
     } finally {
       setChatLoading(null);

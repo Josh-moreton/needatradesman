@@ -113,7 +113,7 @@ export const invalidateJobDetailCache = async (jobId: string) => {
     }
 };
 
-export const cacheUserStats = async (userId: string, role: string, data: any) => {
+export const cacheUserStats = async (userId: string, role: string, data: unknown) => {
     if (!redis) return;
 
     try {
@@ -153,7 +153,7 @@ export const invalidateUserStats = async (userId: string, role: string) => {
     }
 };
 
-export const cacheJobsList = async (key: string, data: any, ttl: number = CACHE_TTL.JOBS_LIST) => {
+export const cacheJobsList = async (key: string, data: unknown, ttl: number = CACHE_TTL.JOBS_LIST) => {
     if (!redis) return;
 
     try {

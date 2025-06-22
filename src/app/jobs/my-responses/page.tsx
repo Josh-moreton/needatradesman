@@ -43,7 +43,17 @@ export default async function MyResponsesPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {applications.map((app: any) => (
+          {applications.map((app: {
+            id: string;
+            job: {
+              id: string;
+              title: string;
+              category: string;
+              location: string;
+              status: string;
+              customer?: { firstName: string | null; lastName: string | null } | null;
+            };
+          }) => (
             <Card key={app.job.id}>
               <CardHeader>
                 <CardTitle className="text-lg">

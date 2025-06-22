@@ -158,7 +158,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
       const res = await fetch(`/api/messages`);
       const data = await res.json();
       const exists = (data.conversations || []).some(
-        (c: any) => c.jobId === jobId && c.otherParticipant.id === participantId
+        (c: { jobId: string; otherParticipant: { id: string } }) => c.jobId === jobId && c.otherParticipant.id === participantId
       );
       if (!exists) {
         // Create conversation by sending a default message
@@ -174,7 +174,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
       }
       // Navigate to messages page
       router.push(`/messages?jobId=${jobId}&with=${participantId}`);
-    } catch (e) {
+    } catch {
       alert("Failed to start chat. Please try again.");
     } finally {
       setChatLoading(null);
@@ -215,7 +215,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No responses yet</h3>
               <p className="text-muted-foreground">
-                When tradespeople respond to your job, they'll appear here.
+                When tradespeople respond to your job, they&apos;ll appear here.
               </p>
             </CardContent>
           </Card>
@@ -233,7 +233,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={getStatusColor(application.status) as any}>
+                    <Badge variant={getStatusColor(application.status) as "default" | "secondary" | "destructive" | "outline"}>
                       {application.status}
                     </Badge>
                     {application.quote && (

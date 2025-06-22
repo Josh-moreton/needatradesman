@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { MyResponsesClient } from "@/components/responses/MyResponsesClient";
-import { Decimal } from "@prisma/client/runtime/library";
 
 export const dynamic = "force-dynamic";
 

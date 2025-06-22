@@ -12,9 +12,9 @@ const compat = new FlatCompat({
 const config = [
   {
     ignores: [
-      "node_modules/",
-      ".next/",
-      "dist/",
+      "node_modules",
+      "dist",
+      ".next",
       "out/",
       "coverage/",
       "public/",

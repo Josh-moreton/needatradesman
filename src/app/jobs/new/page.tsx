@@ -148,7 +148,14 @@ export default async function NewJobPage() {
                     <CardTitle className="text-lg">Recent Jobs</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {recentJobs.slice(0, 3).map((job: any) => (
+                    {recentJobs.slice(0, 3).map((job: {
+                      id: string;
+                      title: string;
+                      location: string | null;
+                      budget: number | null;
+                      _count: { applications: number };
+                      createdAt: Date;
+                    }) => (
                       <div
                         key={job.id}
                         className="p-3 border rounded-lg hover:bg-muted/30 transition-colors"

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { redis, CACHE_KEYS, CACHE_TTL, invalidateJobDetailCache } from "@/lib/redis";
+import { redis, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 
 export async function GET(
     request: NextRequest,

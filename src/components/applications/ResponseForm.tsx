@@ -81,7 +81,7 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
       const data = await res.json();
       // Try to find a conversation for this job (with any participant)
       const exists = (data.conversations || []).some(
-        (c: any) => c.jobId === jobId
+        (c: { jobId: string }) => c.jobId === jobId
       );
       if (!exists) {
         // Create conversation by sending a default message to the job owner (customer)
@@ -89,7 +89,7 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
         // For now, just navigate
       }
       router.push(`/messages?jobId=${jobId}`);
-    } catch (e) {
+    } catch {
       alert("Failed to start chat. Please try again.");
     } finally {
       setChatLoading(false);

@@ -29,11 +29,11 @@ export async function POST(request: NextRequest) {
         if (applicationRateLimit) {
             try {
                 await applicationRateLimit.consume(user.id);
-            } catch (rejRes: any) {
+            } catch (rejRes: unknown) {
                 return new NextResponse("Rate limit exceeded. You can only submit 10 applications per hour.", {
                     status: 429,
                     headers: {
-                        'Retry-After': String(Math.ceil(rejRes.msBeforeNext / 1000)),
+                        'Retry-After': typeof rejRes === 'object' && rejRes && 'msBeforeNext' in rejRes ? String(Math.ceil((rejRes as { msBeforeNext: number }).msBeforeNext / 1000)) : '60',
                     }
                 });
             }

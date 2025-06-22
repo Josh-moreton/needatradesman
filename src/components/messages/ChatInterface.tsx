@@ -82,6 +82,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
   // Set up Pusher subscription for real-time messages
   useEffect(() => {
     if (selectedConversation) {
+      const subscribedChannels = subscribedChannelsRef.current;
       const conversationChannel = getConversationChannel(
         selectedConversation.jobId,
         [currentUserId, selectedConversation.participantId]
@@ -89,7 +90,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
 
       // Subscribe to conversation channel
       const channel = pusherClient.subscribe(conversationChannel);
-      subscribedChannelsRef.current.add(conversationChannel);
+      subscribedChannels.add(conversationChannel);
 
       // Listen for new messages
       channel.bind(
@@ -128,16 +129,17 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
       return () => {
         // Cleanup: unsubscribe from channel
         pusherClient.unsubscribe(conversationChannel);
-        subscribedChannelsRef.current.delete(conversationChannel);
+        subscribedChannels.delete(conversationChannel);
       };
     }
   }, [selectedConversation, currentUserId]);
 
   // Subscribe to user notifications channel
   useEffect(() => {
+    const subscribedChannels = subscribedChannelsRef.current;
     const userChannel = getUserChannel(currentUserId);
     const channel = pusherClient.subscribe(userChannel);
-    subscribedChannelsRef.current.add(userChannel);
+    subscribedChannels.add(userChannel);
 
     // Listen for message notifications (for conversations not currently open)
     channel.bind(
@@ -163,17 +165,18 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
 
     return () => {
       pusherClient.unsubscribe(userChannel);
-      subscribedChannelsRef.current.delete(userChannel);
+      subscribedChannels.delete(userChannel);
     };
   }, [currentUserId, selectedConversation]);
 
   // Cleanup all subscriptions on unmount
   useEffect(() => {
+    const subscribedChannels = subscribedChannelsRef.current;
     return () => {
-      subscribedChannelsRef.current.forEach((channelName) => {
+      subscribedChannels.forEach((channelName) => {
         pusherClient.unsubscribe(channelName);
       });
-      subscribedChannelsRef.current.clear();
+      subscribedChannels.clear();
     };
   }, []);
 

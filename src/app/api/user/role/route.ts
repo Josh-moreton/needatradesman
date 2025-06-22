@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
         if (existingUser) {
             // Update existing user's role and trades (if provided)
-            const updateData: any = { role };
+            const updateData: Record<string, unknown> = { role };
             if (trades && role === UserRole.TRADESPERSON) {
                 updateData.trades = trades;
             }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
             }
             // Create new user record
-            const createData: any = {
+            const createData: Record<string, unknown> = {
                 clerkId: userId,
                 email,
                 firstName,

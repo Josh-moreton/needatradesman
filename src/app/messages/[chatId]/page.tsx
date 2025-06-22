@@ -5,9 +5,6 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { ChatInterface } from "@/components/messages/ChatInterface";
 
 interface ChatPageProps {
-  params: Promise<{
-    chatId: string;
-  }>;
   searchParams: Promise<{
     jobId?: string;
     with?: string;
@@ -15,7 +12,6 @@ interface ChatPageProps {
 }
 
 export default async function ChatPage({
-  params,
   searchParams,
 }: ChatPageProps) {
   const user = await getCurrentUser();
@@ -28,7 +24,6 @@ export default async function ChatPage({
     redirect("/onboarding");
   }
 
-  const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   const { jobId, with: withUserId } = resolvedSearchParams;
 
