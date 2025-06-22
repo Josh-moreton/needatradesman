@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   SignedIn,
   SignedOut,
@@ -72,8 +73,7 @@ export default function Header() {
                           </NavigationMenuLink>
                         </li>
                         <ListItem href="/jobs/new" title="Post a Job">
-                          Create a new job posting to find skilled
-                          tradespeople.
+                          Create a new job posting to find skilled tradespeople.
                         </ListItem>
                         <ListItem href="/jobs/my-jobs" title="My Jobs">
                           Manage your posted jobs and view applications.
@@ -117,9 +117,10 @@ export default function Header() {
             </NavigationMenu>
           </div>
 
-          {/* Right Section: Auth buttons */}
+          {/* Right Section: Auth buttons and theme toggle */}
           <div className="flex items-center">
             <nav className="flex items-center space-x-2">
+              <ThemeToggle />
               <SignedOut>
                 <SignInButton mode="modal">
                   <Button variant="ghost" size="sm">
