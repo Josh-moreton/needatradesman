@@ -3,17 +3,22 @@ import { prisma } from './prisma'
 import { UserRole } from '@prisma/client'
 
 export async function getCurrentUser() {
-    const { userId } = await auth()
+    try {
+        const { userId } = await auth()
 
-    if (!userId) {
+        if (!userId) {
+            return null
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        })
+
+        return user
+    } catch (error) {
+        console.error('Error getting current user:', error)
         return null
     }
-
-    const user = await prisma.user.findUnique({
-        where: { clerkId: userId }
-    })
-
-    return user
 }
 
 export async function requireAuth() {
@@ -37,16 +42,31 @@ export async function requireRole(allowedRoles: UserRole[]) {
 }
 
 export async function needsOnboarding() {
-    const { userId } = await auth()
+    try {
+        const { userId } = await auth()
 
-    if (!userId) {
+        if (!userId) {
+            return false
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { clerkId: userId }
+        })
+
+        // User needs onboarding if they don't exist in our DB or don't have a role
+        return !user || !user.role
+    } catch (error) {
+        console.error('Error checking onboarding status:', error)
+        return true // Err on the side of requiring onboarding
+    }
+}
+
+export async function isAuthenticated() {
+    try {
+        const { userId } = await auth()
+        return !!userId
+    } catch (error) {
+        console.error('Error checking authentication:', error)
         return false
     }
-
-    const user = await prisma.user.findUnique({
-        where: { clerkId: userId }
-    })
-
-    // User needs onboarding if they don't exist in our DB or don't have a role
-    return !user || !user.role
 }
