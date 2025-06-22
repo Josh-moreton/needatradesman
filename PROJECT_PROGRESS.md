@@ -62,7 +62,7 @@
   - **User stats caching** for dashboard performance
   - **Intelligent cache invalidation** on data changes (job creation, application updates, status changes)
   - **Category-based cache clearing** for optimal performance
-  - Redis supports both Upstash and standard Redis configurations
+  - Redis supports standard Redis configurations
   - Integration with job responses - chat buttons on response forms and job management pages
   - Direct linking to conversations from job contexts (`/messages?jobId=x&with=y`)
   - Real-time message publishing to Redis channels (ready for WebSocket integration)

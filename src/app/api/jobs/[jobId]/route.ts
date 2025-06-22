@@ -67,8 +67,8 @@ export async function GET(
         // Cache the result
         if (redis) {
             try {
-                await redis.set(cacheKey, job, { ex: CACHE_TTL.JOB_DETAIL });
-                console.log('Cached job detail:', cacheKey);
+                await redis.set(cacheKey, JSON.stringify(job), 'EX', CACHE_TTL.JOB_DETAIL);
+                console.log('Cached job detail:', jobId);
             } catch (cacheError) {
                 console.error('Cache write error:', cacheError);
             }

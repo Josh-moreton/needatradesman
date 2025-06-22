@@ -27,14 +27,13 @@ export async function POST(request: NextRequest) {
 
         // Rate limiting for applications
         if (applicationRateLimit) {
-            const rateLimitResult = await applicationRateLimit.limit(user.id);
-            if (!rateLimitResult.success) {
+            try {
+                await applicationRateLimit.consume(user.id);
+            } catch (rejRes: any) {
                 return new NextResponse("Rate limit exceeded. You can only submit 10 applications per hour.", {
                     status: 429,
                     headers: {
-                        'X-RateLimit-Limit': '10',
-                        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-                        'X-RateLimit-Reset': new Date(rateLimitResult.reset).toISOString(),
+                        'Retry-After': String(Math.ceil(rejRes.msBeforeNext / 1000)),
                     }
                 });
             }
@@ -160,7 +159,7 @@ export async function GET() {
                 const cached = await redis.get(cacheKey);
                 if (cached) {
                     console.log('Cache hit for applications:', cacheKey);
-                    return NextResponse.json(cached);
+                    return NextResponse.json(JSON.parse(cached));
                 }
             } catch (cacheError) {
                 console.error('Cache read error:', cacheError);
@@ -227,7 +226,7 @@ export async function GET() {
         // Cache the result
         if (redis) {
             try {
-                await redis.set(cacheKey, applications, { ex: CACHE_TTL.APPLICATIONS });
+                await redis.set(cacheKey, JSON.stringify(applications), 'EX', CACHE_TTL.APPLICATIONS);
                 console.log('Cached applications:', cacheKey);
             } catch (cacheError) {
                 console.error('Cache write error:', cacheError);

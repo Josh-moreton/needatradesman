@@ -14,10 +14,10 @@
 ## 2. Rate Limiting ✅ COMPLETED
 
 - [x] In `src/app/api/jobs/route.ts` (POST):
-  - Import and use `jobPostingRateLimit` to check if the user can post a job.
+  - Import and use `jobPostingRateLimit` (rate-limiter-flexible) to check if the user can post a job.
   - If over limit, return 429 error.
 - [x] In `src/app/api/applications/route.ts` (POST):
-  - Import and use `applicationRateLimit` to check if the user can respond to jobs.
+  - Import and use `applicationRateLimit` (rate-limiter-flexible) to check if the user can respond to jobs.
   - If over limit, return 429 error.
 - [x] Message rate limiting also implemented (50 messages per hour)
 
@@ -60,4 +60,5 @@ const cached = await redis.get(cacheKey);
 if (cached) return NextResponse.json(JSON.parse(cached));
 
 // ...fetch from DB...
-await redis.set(cacheKey, JSON.stringify(jobs), { ex: 60 });
+await redis.set(cacheKey, JSON.stringify(jobs), 'EX', 60);
+```

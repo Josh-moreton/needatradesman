@@ -36,14 +36,13 @@ export async function POST(request: NextRequest) {
 
         // Rate limiting for job posting
         if (jobPostingRateLimit) {
-            const rateLimitResult = await jobPostingRateLimit.limit(user.id);
-            if (!rateLimitResult.success) {
+            try {
+                await jobPostingRateLimit.consume(user.id);
+            } catch (rejRes: any) {
                 return new NextResponse("Rate limit exceeded. You can only post 3 jobs per hour.", {
                     status: 429,
                     headers: {
-                        'X-RateLimit-Limit': '3',
-                        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-                        'X-RateLimit-Reset': new Date(rateLimitResult.reset).toISOString(),
+                        'Retry-After': String(Math.ceil(rejRes.msBeforeNext / 1000)),
                     }
                 });
             }
@@ -116,7 +115,7 @@ export async function GET(request: NextRequest) {
         // Try to get from cache first
         const cached = await getCachedJobsList(cacheKey);
         if (cached) {
-            return NextResponse.json(cached);
+            return NextResponse.json(typeof cached === 'string' ? JSON.parse(cached) : cached);
         }
 
         // Build where clause for database query

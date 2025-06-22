@@ -1,74 +1,45 @@
-import { Redis as UpstashRedis } from '@upstash/redis'
-import { Ratelimit } from '@upstash/ratelimit'
-import Redis from 'ioredis'
+import Redis from 'ioredis';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
 
-// Check if Redis is configured
-const isUpstashConfigured = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 const isStandardRedisConfigured = !!process.env.REDIS_URL;
 
-let redis: UpstashRedis | null = null;
-let standardRedis: Redis | null = null;
+let redis: Redis | null = null;
 
-if (isUpstashConfigured) {
-    // Use Upstash Redis
-    redis = new UpstashRedis({
-        url: process.env.UPSTASH_REDIS_REST_URL!,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
-} else if (isStandardRedisConfigured) {
-    // Use standard Redis with ioredis client
-    standardRedis = new Redis(process.env.REDIS_URL!);
-
-    // Create an Upstash-compatible wrapper for rate limiting
-    redis = {
-        async get(key: string) {
-            const result = await standardRedis!.get(key);
-            return result ? JSON.parse(result) : null;
-        },
-        async set(key: string, value: any, options?: { ex?: number }) {
-            const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-            if (options?.ex) {
-                return await standardRedis!.setex(key, options.ex, stringValue);
-            }
-            return await standardRedis!.set(key, stringValue);
-        },
-        async del(key: string) {
-            return await standardRedis!.del(key);
-        },
-        async lpush(key: string, value: string) {
-            return await standardRedis!.lpush(key, value);
-        },
-        async expire(key: string, seconds: number) {
-            return await standardRedis!.expire(key, seconds);
-        },
-        async publish(channel: string, message: string) {
-            return await standardRedis!.publish(channel, message);
-        },
-    } as any;
+if (isStandardRedisConfigured) {
+    redis = new Redis(process.env.REDIS_URL!);
 }
 
-export { redis, standardRedis };
+export { redis };
 
 // Rate limiting for job posting
-export const jobPostingRateLimit = redis ? new Ratelimit({
-    redis: redis,
-    limiter: Ratelimit.slidingWindow(3, '1 h'), // 3 jobs per hour
-    analytics: true,
-}) : null;
+export const jobPostingRateLimit = redis
+    ? new RateLimiterRedis({
+        storeClient: redis,
+        keyPrefix: 'rl:jobPosting',
+        points: 3, // 3 jobs
+        duration: 3600, // per hour
+    })
+    : null;
 
 // Rate limiting for applications
-export const applicationRateLimit = redis ? new Ratelimit({
-    redis: redis,
-    limiter: Ratelimit.slidingWindow(10, '1 h'), // 10 applications per hour
-    analytics: true,
-}) : null;
+export const applicationRateLimit = redis
+    ? new RateLimiterRedis({
+        storeClient: redis,
+        keyPrefix: 'rl:application',
+        points: 10, // 10 applications
+        duration: 3600, // per hour
+    })
+    : null;
 
 // Rate limiting for messages
-export const messageRateLimit = redis ? new Ratelimit({
-    redis: redis,
-    limiter: Ratelimit.slidingWindow(50, '1 h'), // 50 messages per hour
-    analytics: true,
-}) : null;
+export const messageRateLimit = redis
+    ? new RateLimiterRedis({
+        storeClient: redis,
+        keyPrefix: 'rl:message',
+        points: 50, // 50 messages
+        duration: 3600, // per hour
+    })
+    : null;
 
 // Cache utilities
 export const CACHE_KEYS = {
@@ -147,7 +118,7 @@ export const cacheUserStats = async (userId: string, role: string, data: any) =>
 
     try {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
-        await redis.set(cacheKey, data, { ex: CACHE_TTL.USER_STATS });
+        await redis.set(cacheKey, JSON.stringify(data), 'EX', CACHE_TTL.USER_STATS);
         console.log('Cached user stats:', cacheKey);
     } catch (error) {
         console.error('Error caching user stats:', error);
@@ -186,7 +157,7 @@ export const cacheJobsList = async (key: string, data: any, ttl: number = CACHE_
     if (!redis) return;
 
     try {
-        await redis.set(key, data, { ex: ttl });
+        await redis.set(key, JSON.stringify(data), 'EX', ttl);
         console.log('Cached jobs list:', key);
     } catch (error) {
         console.error('Error caching jobs list:', error);
