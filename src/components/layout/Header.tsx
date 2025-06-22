@@ -21,10 +21,15 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function Header() {
   const pathname = usePathname();
+  // Theme hydration fix: Only show ThemeToggle after mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -86,8 +91,9 @@ export default function Header() {
                   </NavigationMenuItem>
 
                   <NavigationMenuItem>
-                    <Link href="/dashboard" legacyBehavior passHref>
-                      <NavigationMenuLink
+                    <NavigationMenuLink asChild>
+                      <Link
+                        href="/dashboard"
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
                           pathname === "/dashboard" &&
@@ -95,13 +101,14 @@ export default function Header() {
                         )}
                       >
                         Dashboard
-                      </NavigationMenuLink>
-                    </Link>
+                      </Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
 
                   <NavigationMenuItem>
-                    <Link href="/messages" legacyBehavior passHref>
-                      <NavigationMenuLink
+                    <NavigationMenuLink asChild>
+                      <Link
+                        href="/messages"
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
                           pathname === "/messages" &&
@@ -109,8 +116,8 @@ export default function Header() {
                         )}
                       >
                         Messages
-                      </NavigationMenuLink>
-                    </Link>
+                      </Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                 </SignedIn>
               </NavigationMenuList>
@@ -120,7 +127,7 @@ export default function Header() {
           {/* Right Section: Auth buttons and theme toggle */}
           <div className="flex items-center">
             <nav className="flex items-center space-x-2">
-              <ThemeToggle />
+              {mounted && <ThemeToggle />}
               <SignedOut>
                 <SignInButton mode="modal">
                   <Button variant="ghost" size="sm">

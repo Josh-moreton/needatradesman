@@ -2,7 +2,7 @@
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 export default function ClerkThemeProvider({
   children,
@@ -10,6 +10,11 @@ export default function ClerkThemeProvider({
   children: ReactNode;
 }) {
   const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Define Clerk variables for both themes
   const light = {
@@ -53,7 +58,8 @@ export default function ClerkThemeProvider({
     spacingUnit: "1rem",
   };
 
-  const variables = resolvedTheme === "dark" ? dark : light;
+  // Only use resolved theme after mount to prevent hydration mismatch
+  const variables = mounted && resolvedTheme === "dark" ? dark : light;
 
   return <ClerkProvider appearance={{ variables }}>{children}</ClerkProvider>;
 }
