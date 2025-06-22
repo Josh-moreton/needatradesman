@@ -14,6 +14,7 @@ import { FileText, MessageSquare, Clock, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { prisma } from "@/lib/prisma";
+import { Job } from "@prisma/client";
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -148,7 +149,7 @@ export default async function NewJobPage() {
                     <CardTitle className="text-lg">Recent Jobs</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {recentJobs.slice(0, 3).map((job: any) => (
+                    {recentJobs.slice(0, 3).map((job) => (
                       <div
                         key={job.id}
                         className="p-3 border rounded-lg hover:bg-muted/30 transition-colors"
@@ -175,6 +176,8 @@ export default async function NewJobPage() {
                             <Link href={`/jobs/my-jobs/${job.id}`}>View →</Link>
                           </Button>
                         </div>
+                        {/* Example of using budget safely: */}
+                        {/* <div>Budget: {job.budget ? Number(job.budget).toLocaleString() : 'N/A'}</div> */}
                       </div>
                     ))}
                     {recentJobs.length > 3 && (

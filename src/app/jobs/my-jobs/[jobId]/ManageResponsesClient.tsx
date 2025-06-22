@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -101,6 +101,8 @@ function AcceptRejectButtons({
 
 export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [chatLoading, setChatLoading] = useState<string | null>(null);
+  const router = useRouter();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -145,6 +147,41 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
     setRefreshKey((prev) => prev + 1);
   };
 
+  // Helper to ensure a conversation exists, creating it if needed
+  const ensureConversationAndNavigate = async (
+    jobId: string,
+    participantId: string
+  ) => {
+    setChatLoading(participantId);
+    try {
+      // 1. Fetch conversations for this job
+      const res = await fetch(`/api/messages`);
+      const data = await res.json();
+      const exists = (data.conversations || []).some(
+        (c: { jobId: string; otherParticipant: { id: string } }) =>
+          c.jobId === jobId && c.otherParticipant.id === participantId
+      );
+      if (!exists) {
+        // Create conversation by sending a default message
+        await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: "Hi, let's chat about this job!",
+            receiverId: participantId,
+            jobId,
+          }),
+        });
+      }
+      // Navigate to messages page
+      router.push(`/messages?jobId=${jobId}&with=${participantId}`);
+    } catch {
+      alert("Failed to start chat. Please try again.");
+    } finally {
+      setChatLoading(null);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Back Navigation */}
@@ -179,7 +216,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No responses yet</h3>
               <p className="text-muted-foreground">
-                When tradespeople respond to your job, they'll appear here.
+                When tradespeople respond to your job, they&apos;ll appear here.
               </p>
             </CardContent>
           </Card>
@@ -197,7 +234,15 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={getStatusColor(application.status) as any}>
+                    <Badge
+                      variant={
+                        getStatusColor(application.status) as
+                          | "default"
+                          | "secondary"
+                          | "destructive"
+                          | "outline"
+                      }
+                    >
                       {application.status}
                     </Badge>
                     {application.quote && (
@@ -218,13 +263,21 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" asChild>
-                      <Link
-                        href={`/messages?jobId=${job.id}&with=${application.tradesperson.id}`}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Start Chat
-                      </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        ensureConversationAndNavigate(
+                          job.id,
+                          application.tradesperson.id
+                        )
+                      }
+                      disabled={chatLoading === application.tradesperson.id}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      {chatLoading === application.tradesperson.id
+                        ? "Starting..."
+                        : "Start Chat"}
                     </Button>
 
                     {application.status === "PENDING" && (

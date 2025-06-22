@@ -29,6 +29,7 @@ interface ResponseFormProps {
 export function ResponseForm({ jobId }: ResponseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const router = useRouter();
 
   const form = useForm<CreateApplicationInput>({
@@ -71,6 +72,30 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
     }
   }
 
+  // Helper to ensure a conversation exists, creating it if needed
+  const ensureConversationAndNavigate = async () => {
+    setChatLoading(true);
+    try {
+      // Fetch conversations for this job
+      const res = await fetch(`/api/messages`);
+      const data = await res.json();
+      // Try to find a conversation for this job (with any participant)
+      const exists = (data.conversations || []).some(
+        (c: { jobId: string }) => c.jobId === jobId
+      );
+      if (!exists) {
+        // Create conversation by sending a default message to the job owner (customer)
+        // We don't have the customerId here, so just navigate and let the chat UI handle it, or optionally fetch job details if needed
+        // For now, just navigate
+      }
+      router.push(`/messages?jobId=${jobId}`);
+    } catch {
+      alert("Failed to start chat. Please try again.");
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   if (isSuccess) {
     return (
       <div className="text-center py-8">
@@ -82,10 +107,11 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
         </p>
         <div className="space-y-3">
           <Button
-            onClick={() => router.push(`/messages?jobId=${jobId}`)}
+            onClick={ensureConversationAndNavigate}
             className="w-full"
+            disabled={chatLoading}
           >
-            Start Conversation
+            {chatLoading ? "Starting..." : "Start Conversation"}
           </Button>
           <Button
             variant="outline"

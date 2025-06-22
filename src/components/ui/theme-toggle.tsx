@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   // SSR-safe: only show icon after mount
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);

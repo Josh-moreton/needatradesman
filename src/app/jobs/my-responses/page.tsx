@@ -43,33 +43,49 @@ export default async function MyResponsesPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {applications.map((app: any) => (
-            <Card key={app.job.id}>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  <Link href={`/jobs/${app.job.id}`}>{app.job.title}</Link>
-                </CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  {app.job.category} &middot; {app.job.location}
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <div>
-                  Status: <span className="font-medium">{app.job.status}</span>
-                </div>
-                <div>
-                  Customer: {app.job.customer?.firstName}{" "}
-                  {app.job.customer?.lastName}
-                </div>
-                <Link
-                  href={`/jobs/${app.job.id}`}
-                  className="text-primary underline text-sm mt-2"
-                >
-                  View Job
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
+          {applications.map(
+            (app: {
+              id: string;
+              job: {
+                id: string;
+                title: string;
+                category: string;
+                location: string;
+                status: string;
+                customer?: {
+                  firstName: string | null;
+                  lastName: string | null;
+                } | null;
+              };
+            }) => (
+              <Card key={app.job.id}>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    <Link href={`/jobs/${app.job.id}`}>{app.job.title}</Link>
+                  </CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    {app.job.category} &middot; {app.job.location}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                  <div>
+                    Status:{" "}
+                    <span className="font-medium">{app.job.status}</span>
+                  </div>
+                  <div>
+                    Customer: {app.job.customer?.firstName}{" "}
+                    {app.job.customer?.lastName}
+                  </div>
+                  <Link
+                    href={`/jobs/${app.job.id}`}
+                    className="text-primary underline text-sm mt-2"
+                  >
+                    View Job
+                  </Link>
+                </CardContent>
+              </Card>
+            )
+          )}
         </div>
       )}
     </div>

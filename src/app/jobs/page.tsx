@@ -193,8 +193,12 @@ export default async function JobFeedPage({ searchParams }: JobFeedPageProps) {
           ) : (
             <>
               <div className="grid gap-6 mb-8">
-                {jobs.map((job: any) => (
-                  <JobCard key={job.id} job={job} variant="public" />
+                {jobs.map((job: unknown) => (
+                  <JobCard
+                    key={(job as { id: string }).id}
+                    job={job as Parameters<typeof JobCard>[0]["job"]}
+                    variant="public"
+                  />
                 ))}
               </div>
 

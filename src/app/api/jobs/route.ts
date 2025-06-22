@@ -38,11 +38,11 @@ export async function POST(request: NextRequest) {
         if (jobPostingRateLimit) {
             try {
                 await jobPostingRateLimit.consume(user.id);
-            } catch (rejRes: any) {
+            } catch (rejRes: unknown) {
                 return new NextResponse("Rate limit exceeded. You can only post 3 jobs per hour.", {
                     status: 429,
                     headers: {
-                        'Retry-After': String(Math.ceil(rejRes.msBeforeNext / 1000)),
+                        'Retry-After': typeof rejRes === 'object' && rejRes && 'msBeforeNext' in rejRes ? String(Math.ceil((rejRes as { msBeforeNext: number }).msBeforeNext / 1000)) : '60',
                     }
                 });
             }

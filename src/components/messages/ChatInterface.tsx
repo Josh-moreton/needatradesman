@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import {
+  pusherClient,
+  getConversationChannel,
+  getUserChannel,
+} from "@/lib/pusher";
 import {
   ConversationList,
   MessageList,
@@ -67,9 +72,113 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Ref to track subscribed channels for cleanup
+  const subscribedChannelsRef = useRef<Set<string>>(new Set());
+
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
   const withUserId = searchParams.get("with");
+
+  // Set up Pusher subscription for real-time messages
+  useEffect(() => {
+    if (selectedConversation) {
+      const subscribedChannels = subscribedChannelsRef.current;
+      const conversationChannel = getConversationChannel(
+        selectedConversation.jobId,
+        [currentUserId, selectedConversation.participantId]
+      );
+
+      // Subscribe to conversation channel
+      const channel = pusherClient.subscribe(conversationChannel);
+      subscribedChannels.add(conversationChannel);
+
+      // Listen for new messages
+      channel.bind(
+        "new-message",
+        (data: { message: Message; timestamp: string }) => {
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some((msg) => msg.id === data.message.id)) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { ...data.message, createdAt: new Date(data.message.createdAt) },
+            ];
+          });
+
+          // Update conversations list to reflect new last message
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.jobId === selectedConversation.jobId &&
+              conv.otherParticipant.id === selectedConversation.participantId
+                ? {
+                    ...conv,
+                    lastMessage: {
+                      content: data.message.content,
+                      createdAt: new Date(data.message.createdAt),
+                      senderId: data.message.senderId,
+                    },
+                  }
+                : conv
+            )
+          );
+        }
+      );
+
+      return () => {
+        // Cleanup: unsubscribe from channel
+        pusherClient.unsubscribe(conversationChannel);
+        subscribedChannels.delete(conversationChannel);
+      };
+    }
+  }, [selectedConversation, currentUserId]);
+
+  // Subscribe to user notifications channel
+  useEffect(() => {
+    const subscribedChannels = subscribedChannelsRef.current;
+    const userChannel = getUserChannel(currentUserId);
+    const channel = pusherClient.subscribe(userChannel);
+    subscribedChannels.add(userChannel);
+
+    // Listen for message notifications (for conversations not currently open)
+    channel.bind(
+      "message-notification",
+      (data: {
+        messageId: string;
+        senderId: string;
+        senderName: string;
+        jobTitle?: string;
+        preview: string;
+        timestamp: string;
+      }) => {
+        // Only show notification if the message is not from current conversation
+        if (
+          !selectedConversation ||
+          data.senderId !== selectedConversation.participantId
+        ) {
+          // Refresh conversations to show updated last message
+          fetchConversations();
+        }
+      }
+    );
+
+    return () => {
+      pusherClient.unsubscribe(userChannel);
+      subscribedChannels.delete(userChannel);
+    };
+  }, [currentUserId, selectedConversation]);
+
+  // Cleanup all subscriptions on unmount
+  useEffect(() => {
+    const subscribedChannels = subscribedChannelsRef.current;
+    return () => {
+      subscribedChannels.forEach((channelName) => {
+        pusherClient.unsubscribe(channelName);
+      });
+      subscribedChannels.clear();
+    };
+  }, []);
 
   // Fetch conversations on component mount
   useEffect(() => {
@@ -144,8 +253,9 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setMessages((prev) => [...prev, data.message]);
+        // Do not optimistically add the message; rely on Pusher event for real-time update
+        // const data = await response.json();
+        // setMessages((prev) => [...prev, data.message]);
         // Refresh conversations to update last message
         fetchConversations();
       }
