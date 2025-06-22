@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import {
+  pusherClient,
+  getConversationChannel,
+  getUserChannel,
+} from "@/lib/pusher";
 import {
   ConversationList,
   MessageList,
@@ -67,9 +72,110 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Ref to track subscribed channels for cleanup
+  const subscribedChannelsRef = useRef<Set<string>>(new Set());
+
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
   const withUserId = searchParams.get("with");
+
+  // Set up Pusher subscription for real-time messages
+  useEffect(() => {
+    if (selectedConversation) {
+      const conversationChannel = getConversationChannel(
+        selectedConversation.jobId,
+        [currentUserId, selectedConversation.participantId]
+      );
+
+      // Subscribe to conversation channel
+      const channel = pusherClient.subscribe(conversationChannel);
+      subscribedChannelsRef.current.add(conversationChannel);
+
+      // Listen for new messages
+      channel.bind(
+        "new-message",
+        (data: { message: Message; timestamp: string }) => {
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some((msg) => msg.id === data.message.id)) {
+              return prev;
+            }
+            return [
+              ...prev,
+              { ...data.message, createdAt: new Date(data.message.createdAt) },
+            ];
+          });
+
+          // Update conversations list to reflect new last message
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.jobId === selectedConversation.jobId &&
+              conv.otherParticipant.id === selectedConversation.participantId
+                ? {
+                    ...conv,
+                    lastMessage: {
+                      content: data.message.content,
+                      createdAt: new Date(data.message.createdAt),
+                      senderId: data.message.senderId,
+                    },
+                  }
+                : conv
+            )
+          );
+        }
+      );
+
+      return () => {
+        // Cleanup: unsubscribe from channel
+        pusherClient.unsubscribe(conversationChannel);
+        subscribedChannelsRef.current.delete(conversationChannel);
+      };
+    }
+  }, [selectedConversation, currentUserId]);
+
+  // Subscribe to user notifications channel
+  useEffect(() => {
+    const userChannel = getUserChannel(currentUserId);
+    const channel = pusherClient.subscribe(userChannel);
+    subscribedChannelsRef.current.add(userChannel);
+
+    // Listen for message notifications (for conversations not currently open)
+    channel.bind(
+      "message-notification",
+      (data: {
+        messageId: string;
+        senderId: string;
+        senderName: string;
+        jobTitle?: string;
+        preview: string;
+        timestamp: string;
+      }) => {
+        // Only show notification if the message is not from current conversation
+        if (
+          !selectedConversation ||
+          data.senderId !== selectedConversation.participantId
+        ) {
+          // Refresh conversations to show updated last message
+          fetchConversations();
+        }
+      }
+    );
+
+    return () => {
+      pusherClient.unsubscribe(userChannel);
+      subscribedChannelsRef.current.delete(userChannel);
+    };
+  }, [currentUserId, selectedConversation]);
+
+  // Cleanup all subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      subscribedChannelsRef.current.forEach((channelName) => {
+        pusherClient.unsubscribe(channelName);
+      });
+      subscribedChannelsRef.current.clear();
+    };
+  }, []);
 
   // Fetch conversations on component mount
   useEffect(() => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redis, messageRateLimit, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { pusherServer, getConversationChannel, getUserChannel } from "@/lib/pusher";
 import { z } from "zod";
 
 const sendMessageSchema = z.object({
@@ -200,6 +201,33 @@ export async function POST(request: NextRequest) {
             // Clear conversation cache
             await redis.del(CACHE_KEYS.USER_CONVERSATIONS(user.id));
             await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
+        }
+
+        // Trigger Pusher events for real-time messaging
+        try {
+            if (jobId) {
+                // Send to conversation channel (both users see the message)
+                const conversationChannel = getConversationChannel(jobId, [user.id, receiverId]);
+                await pusherServer.trigger(conversationChannel, "new-message", {
+                    message,
+                    timestamp: new Date().toISOString(),
+                });
+
+                // Send notification to receiver's personal channel
+                await pusherServer.trigger(getUserChannel(receiverId), "message-notification", {
+                    messageId: message.id,
+                    senderId: user.id,
+                    senderName: message.sender.firstName && message.sender.lastName
+                        ? `${message.sender.firstName} ${message.sender.lastName}`
+                        : message.sender.email,
+                    jobTitle: message.job?.title,
+                    preview: content.substring(0, 100),
+                    timestamp: new Date().toISOString(),
+                });
+            }
+        } catch (pusherError) {
+            console.error("Pusher error:", pusherError);
+            // Don't fail the request if Pusher fails
         }
 
         return NextResponse.json({ message });

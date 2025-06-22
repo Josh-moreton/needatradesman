@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -101,6 +101,8 @@ function AcceptRejectButtons({
 
 export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [chatLoading, setChatLoading] = useState<string | null>(null);
+  const router = useRouter();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -143,6 +145,40 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
 
   const handleStatusChange = () => {
     setRefreshKey((prev) => prev + 1);
+  };
+
+  // Helper to ensure a conversation exists, creating it if needed
+  const ensureConversationAndNavigate = async (
+    jobId: string,
+    participantId: string
+  ) => {
+    setChatLoading(participantId);
+    try {
+      // 1. Fetch conversations for this job
+      const res = await fetch(`/api/messages`);
+      const data = await res.json();
+      const exists = (data.conversations || []).some(
+        (c: any) => c.jobId === jobId && c.otherParticipant.id === participantId
+      );
+      if (!exists) {
+        // Create conversation by sending a default message
+        await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: "Hi, let's chat about this job!",
+            receiverId: participantId,
+            jobId,
+          }),
+        });
+      }
+      // Navigate to messages page
+      router.push(`/messages?jobId=${jobId}&with=${participantId}`);
+    } catch (e) {
+      alert("Failed to start chat. Please try again.");
+    } finally {
+      setChatLoading(null);
+    }
   };
 
   return (
@@ -218,13 +254,21 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" asChild>
-                      <Link
-                        href={`/messages?jobId=${job.id}&with=${application.tradesperson.id}`}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Start Chat
-                      </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        ensureConversationAndNavigate(
+                          job.id,
+                          application.tradesperson.id
+                        )
+                      }
+                      disabled={chatLoading === application.tradesperson.id}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      {chatLoading === application.tradesperson.id
+                        ? "Starting..."
+                        : "Start Chat"}
                     </Button>
 
                     {application.status === "PENDING" && (
