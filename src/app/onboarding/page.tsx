@@ -20,7 +20,7 @@ export default async function OnboardingPage() {
     }
 
     // Check session metadata for onboarding completion
-    const onboardingComplete = (sessionClaims?.metadata as ClerkMetadata)?.onboardingComplete;
+    const onboardingComplete = (sessionClaims?.publicMetadata as ClerkMetadata)?.onboardingComplete;
     
     if (onboardingComplete) {
       // User already completed onboarding according to session metadata

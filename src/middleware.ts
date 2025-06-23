@@ -35,8 +35,9 @@ export default clerkMiddleware(
         }
 
         // Check if user has completed onboarding
-        const metadata = sessionClaims?.metadata as ClerkMetadata
-        const onboarded = metadata?.onboardingComplete
+        // In Clerk, publicMetadata is available via sessionClaims
+        const publicMetadata = sessionClaims?.publicMetadata as ClerkMetadata
+        const onboarded = publicMetadata?.onboardingComplete
         
         // Debug logging in development
         if (process.env.NODE_ENV === 'development') {
@@ -44,8 +45,8 @@ export default clerkMiddleware(
                 userId, 
                 pathname, 
                 onboarded, 
-                metadata,
-                sessionClaims: sessionClaims?.metadata 
+                publicMetadata,
+                allSessionClaims: sessionClaims
             })
         }
         
