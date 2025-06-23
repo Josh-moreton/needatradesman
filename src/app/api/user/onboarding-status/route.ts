@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         const { userId } = await auth()
 

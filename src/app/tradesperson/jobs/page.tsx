@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/jobs/JobCard";
 import { JobFilters } from "@/components/jobs/JobFilters";
-import { UserRole, JobCategory } from "@/lib/schemas";
+import { UserRole } from "@/lib/schemas";
 
 interface SearchParams {
   search?: string;
@@ -15,8 +15,10 @@ interface SearchParams {
 export default async function TradesPersonJobsPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
+  // Await searchParams in Next.js 15
+  const resolvedSearchParams = await searchParams;
   const { userId } = await auth();
 
   if (!userId) {
@@ -36,33 +38,33 @@ export default async function TradesPersonJobsPage({
   const userTrades = user.trades || [];
 
   // Build query filters
-  const page = parseInt(searchParams.page || "1");
+  const page = parseInt(resolvedSearchParams.page || "1");
   const limit = 12;
   const offset = (page - 1) * limit;
 
-  const where: any = {
+  const where: Record<string, unknown> = {
     status: "OPEN",
   };
 
-  if (searchParams.search) {
+  if (resolvedSearchParams.search) {
     where.OR = [
-      { title: { contains: searchParams.search, mode: "insensitive" } },
-      { description: { contains: searchParams.search, mode: "insensitive" } },
+      { title: { contains: resolvedSearchParams.search, mode: "insensitive" } },
+      { description: { contains: resolvedSearchParams.search, mode: "insensitive" } },
     ];
   }
 
-  if (searchParams.location) {
-    where.location = { contains: searchParams.location, mode: "insensitive" };
+  if (resolvedSearchParams.location) {
+    where.location = { contains: resolvedSearchParams.location, mode: "insensitive" };
   }
 
-  if (searchParams.category && searchParams.category !== "all") {
-    where.category = searchParams.category;
+  if (resolvedSearchParams.category && resolvedSearchParams.category !== "all") {
+    where.category = resolvedSearchParams.category;
   }
 
   // If user has specific trades, filter to only show jobs in those categories
   if (
     userTrades.length > 0 &&
-    (!searchParams.category || searchParams.category === "all")
+    (!resolvedSearchParams.category || resolvedSearchParams.category === "all")
   ) {
     where.category = { in: userTrades };
   }
@@ -133,7 +135,7 @@ export default async function TradesPersonJobsPage({
                   <a
                     key={pageNum}
                     href={`?${new URLSearchParams({
-                      ...searchParams,
+                      ...resolvedSearchParams,
                       page: pageNum.toString(),
                     }).toString()}`}
                     className={`px-3 py-2 rounded-md text-sm font-medium ${

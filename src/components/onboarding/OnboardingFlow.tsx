@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useUser, useSession } from "@clerk/nextjs";
 import { UserRole, JobCategory } from "@/lib/schemas";
 import {
@@ -21,7 +20,6 @@ export default function OnboardingFlow() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
-  const router = useRouter();
   const { user } = useUser();
   const { session } = useSession();
 

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export default async function DebugOnboardingPage() {
   const user = await currentUser();
-  const { userId, sessionClaims } = await auth();
+  const { sessionClaims } = await auth();
 
   if (!user) {
     redirect("/sign-in");
