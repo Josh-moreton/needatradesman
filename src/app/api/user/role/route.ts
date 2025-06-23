@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
             // Set onboarding complete metadata in Clerk
             const client = await clerkClient()
             await client.users.updateUserMetadata(userId, {
-                publicMetadata: { 
+                publicMetadata: {
                     onboardingComplete: true,
                     role: role
                 }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
             // Set onboarding complete metadata in Clerk
             const client = await clerkClient()
             await client.users.updateUserMetadata(userId, {
-                publicMetadata: { 
+                publicMetadata: {
                     onboardingComplete: true,
                     role: role
                 }
