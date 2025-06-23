@@ -11,7 +11,8 @@ const isPublicRoute = createRouteMatcher([
     '/sign-in(.*)',
     '/sign-up(.*)',
     '/api/auth(.*)',
-    '/onboarding(.*)'
+    '/onboarding(.*)',
+    '/debug-onboarding(.*)'  // Add debug page to public routes
 ])
 
 // Add a bypass parameter to prevent infinite redirects
@@ -22,7 +23,6 @@ const hasBypassParam = (url: string) => {
 export default clerkMiddleware(
     async (auth, req) => {
         try {
-            const { userId, sessionClaims } = await auth()
             const pathname = req.nextUrl.pathname
 
             // Allow public routes without any auth checks
@@ -41,8 +41,29 @@ export default clerkMiddleware(
                 return
             }
 
+            // Get auth info - handle potential errors
+            let authResult;
+            try {
+                authResult = await auth()
+            } catch (authError) {
+                console.error('Auth error in middleware:', authError)
+                return // Let Clerk handle the error
+            }
+
+            const { userId, sessionClaims } = authResult
+
+            // Always log for debugging
+            console.log('Middleware check:', { 
+                userId: userId || 'NO_USER_ID', 
+                pathname, 
+                hasSessionClaims: !!sessionClaims,
+                sessionClaimsKeys: sessionClaims ? Object.keys(sessionClaims) : 'NO_SESSION_CLAIMS',
+                url: req.url
+            })
+
             // For all other routes, ensure user is authenticated
             if (!userId) {
+                console.log('No userId, letting Clerk redirect to sign-in')
                 return // This will trigger Clerk's default redirect to sign-in
             }
 
@@ -52,15 +73,12 @@ export default clerkMiddleware(
             const metadata = sessionClaims?.metadata as ClerkMetadata
             const onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
             
-            // Always log in production for debugging redirect loops
-            console.log('Middleware check:', { 
-                userId, 
-                pathname, 
-                onboarded, 
+            console.log('Onboarding check:', {
                 publicMetadata,
-                metadata,
-                hasSessionClaims: !!sessionClaims,
-                url: req.url
+                metadata, 
+                onboarded,
+                publicMetadataKeys: publicMetadata ? Object.keys(publicMetadata) : 'NO_PUBLIC_METADATA',
+                metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA'
             })
             
             if (!onboarded && !pathname.startsWith('/onboarding')) {
