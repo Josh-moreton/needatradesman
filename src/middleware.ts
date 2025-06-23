@@ -68,7 +68,7 @@ export default clerkMiddleware(
             }
 
             // Check if user has completed onboarding
-            // Try both possible locations for metadata and also fetch fresh user data
+            // Try both possible locations for metadata
             const publicMetadata = sessionClaims?.publicMetadata as ClerkMetadata
             const metadata = sessionClaims?.metadata as ClerkMetadata
             let onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
@@ -79,17 +79,20 @@ export default clerkMiddleware(
                 onboarded,
                 publicMetadataKeys: publicMetadata ? Object.keys(publicMetadata) : 'NO_PUBLIC_METADATA',
                 metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA',
-                allSessionClaims: sessionClaims
+                hasPublicMetadataField: 'publicMetadata' in (sessionClaims || {}),
+                hasMetadataField: 'metadata' in (sessionClaims || {})
             })
             
-            // If we don't have onboarding data in session claims, try to fetch fresh data
-            if (!onboarded && userId) {
+            // If session claims don't have metadata, it might be a timing issue
+            // Log this case but still fetch fresh data as fallback
+            if (userId && !('publicMetadata' in (sessionClaims || {}))) {
+                console.log('WARNING: Session claims missing publicMetadata field - this should be rare after session.reload() fix')
                 try {
-                    console.log('Session claims missing onboarding data, checking with Clerk API...')
+                    console.log('Fetching fresh data from Clerk API as fallback...')
                     const { clerkClient } = await import('@clerk/nextjs/server')
                     const client = await clerkClient()
                     const freshUser = await client.users.getUser(userId)
-                    const freshOnboarded = freshUser.publicMetadata?.onboardingComplete
+                    const freshOnboarded = !!freshUser.publicMetadata?.onboardingComplete
                     
                     console.log('Fresh user check:', {
                         userId,
@@ -97,12 +100,11 @@ export default clerkMiddleware(
                         freshOnboarded
                     })
                     
-                    if (freshOnboarded) {
-                        console.log('Found onboarding complete in fresh data, allowing request')
-                        onboarded = true
-                    }
+                    onboarded = freshOnboarded
                 } catch (fetchError) {
                     console.error('Error fetching fresh user data:', fetchError)
+                    // If we can't fetch fresh data, assume not onboarded for safety
+                    onboarded = false
                 }
             }
             

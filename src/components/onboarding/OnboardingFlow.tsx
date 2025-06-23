@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useSession } from "@clerk/nextjs";
 import { UserRole, JobCategory } from "@/lib/schemas";
 import {
   Card,
@@ -23,6 +23,7 @@ export default function OnboardingFlow() {
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
   const router = useRouter();
   const { user } = useUser();
+  const { session } = useSession();
 
   // Check if user has already completed onboarding but metadata hasn't propagated yet
   useEffect(() => {
@@ -56,37 +57,50 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          // Wait for Clerk metadata to propagate and then redirect
-          const checkMetadataAndRedirect = async (attempts = 0) => {
-            const maxAttempts = 10; // Maximum 5 seconds (10 * 500ms)
+          try {
+            console.log('Role API call successful, refreshing session...');
             
-            if (attempts >= maxAttempts) {
-              // Fallback: force redirect even if metadata hasn't updated
-              if (role === UserRole.CUSTOMER) {
-                window.location.href = "/jobs/new";
-              } else {
-                window.location.href = "/dashboard";
-              }
-              return;
-            }
-
-            // Reload user data to check for updated metadata
-            await user?.reload();
+            // Force refresh the session to get updated metadata immediately
+            await session?.reload();
             
-            if (user?.publicMetadata?.onboardingComplete) {
-              // Metadata has propagated, safe to redirect
-              if (role === UserRole.CUSTOMER) {
-                window.location.href = "/jobs/new";
-              } else {
-                window.location.href = "/dashboard";
-              }
+            console.log('Session refreshed, redirecting...');
+            
+            // Now redirect - the middleware should see the updated session
+            if (role === UserRole.CUSTOMER) {
+              window.location.href = "/jobs/new";
             } else {
-              // Wait and retry
-              setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
+              window.location.href = "/dashboard";
             }
-          };
+          } catch (refreshError) {
+            console.error('Error refreshing session:', refreshError);
+            // Fallback to the old retry mechanism
+            const checkMetadataAndRedirect = async (attempts = 0) => {
+              const maxAttempts = 10;
+              
+              if (attempts >= maxAttempts) {
+                if (role === UserRole.CUSTOMER) {
+                  window.location.href = "/jobs/new";
+                } else {
+                  window.location.href = "/dashboard";
+                }
+                return;
+              }
 
-          checkMetadataAndRedirect();
+              await user?.reload();
+              
+              if (user?.publicMetadata?.onboardingComplete) {
+                if (role === UserRole.CUSTOMER) {
+                  window.location.href = "/jobs/new";
+                } else {
+                  window.location.href = "/dashboard";
+                }
+              } else {
+                setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
+              }
+            };
+
+            checkMetadataAndRedirect();
+          }
         } else {
           console.error("Failed to set user role");
           setIsLoading(false);
@@ -126,29 +140,38 @@ export default function OnboardingFlow() {
       });
 
       if (response.ok) {
-        // Wait for Clerk metadata to propagate and then redirect
-        const checkMetadataAndRedirect = async (attempts = 0) => {
-          const maxAttempts = 10; // Maximum 5 seconds (10 * 500ms)
+        try {
+          console.log('Tradesperson role API call successful, refreshing session...');
           
-          if (attempts >= maxAttempts) {
-            // Fallback: force redirect even if metadata hasn't updated
-            window.location.href = "/dashboard";
-            return;
-          }
-
-          // Reload user data to check for updated metadata
-          await user?.reload();
+          // Force refresh the session to get updated metadata immediately
+          await session?.reload();
           
-          if (user?.publicMetadata?.onboardingComplete) {
-            // Metadata has propagated, safe to redirect
-            window.location.href = "/dashboard";
-          } else {
-            // Wait and retry
-            setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
-          }
-        };
+          console.log('Session refreshed, redirecting to dashboard...');
+          
+          // Now redirect - the middleware should see the updated session
+          window.location.href = "/dashboard";
+        } catch (refreshError) {
+          console.error('Error refreshing session:', refreshError);
+          // Fallback to the old retry mechanism
+          const checkMetadataAndRedirect = async (attempts = 0) => {
+            const maxAttempts = 10;
+            
+            if (attempts >= maxAttempts) {
+              window.location.href = "/dashboard";
+              return;
+            }
 
-        checkMetadataAndRedirect();
+            await user?.reload();
+            
+            if (user?.publicMetadata?.onboardingComplete) {
+              window.location.href = "/dashboard";
+            } else {
+              setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
+            }
+          };
+
+          checkMetadataAndRedirect();
+        }
       } else {
         console.error("Failed to set user role and trades");
         setIsLoading(false);
