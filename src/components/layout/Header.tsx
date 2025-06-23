@@ -27,6 +27,10 @@ export default function Header() {
   const pathname = usePathname();
   // Theme hydration fix: Only show ThemeToggle after mount
   const [mounted, setMounted] = useState(false);
+
+  // Determine user role based on current path
+  const isCustomer = pathname?.startsWith("/customer");
+  const isTradesperson = pathname?.startsWith("/tradesperson");
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -65,27 +69,79 @@ export default function Header() {
                           <NavigationMenuLink asChild>
                             <Link
                               className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                              href="/jobs"
+                              href={
+                                isTradesperson
+                                  ? "/tradesperson/jobs"
+                                  : "/customer/jobs/new"
+                              }
                             >
                               <div className="mb-2 mt-4 text-lg font-medium">
-                                Browse Jobs
+                                {isTradesperson ? "Browse Jobs" : "Post a Job"}
                               </div>
                               <p className="text-sm leading-tight text-muted-foreground">
-                                Find work opportunities in your area and apply
-                                to jobs that match your skills.
+                                {isTradesperson
+                                  ? "Find work opportunities in your area and apply to jobs that match your skills."
+                                  : "Create a new job posting to find skilled tradespeople."}
                               </p>
                             </Link>
                           </NavigationMenuLink>
                         </li>
-                        <ListItem href="/jobs/new" title="Post a Job">
-                          Create a new job posting to find skilled tradespeople.
-                        </ListItem>
-                        <ListItem href="/jobs/my-jobs" title="My Jobs">
-                          Manage your posted jobs and view applications.
-                        </ListItem>
-                        <ListItem href="/applications" title="Applications">
-                          Track your job applications and responses.
-                        </ListItem>
+                        {isCustomer ? (
+                          <>
+                            <ListItem
+                              href="/customer/jobs/new"
+                              title="Post a Job"
+                            >
+                              Create a new job posting to find skilled
+                              tradespeople.
+                            </ListItem>
+                            <ListItem
+                              href="/customer/jobs/my-jobs"
+                              title="My Jobs"
+                            >
+                              Manage your posted jobs and view applications.
+                            </ListItem>
+                            <ListItem
+                              href="/customer/messages"
+                              title="Messages"
+                            >
+                              Communicate with tradespeople.
+                            </ListItem>
+                          </>
+                        ) : isTradesperson ? (
+                          <>
+                            <ListItem
+                              href="/tradesperson/jobs"
+                              title="Browse Jobs"
+                            >
+                              Find work opportunities in your area.
+                            </ListItem>
+                            <ListItem
+                              href="/tradesperson/my-responses"
+                              title="My Responses"
+                            >
+                              Track your job applications and responses.
+                            </ListItem>
+                            <ListItem
+                              href="/tradesperson/messages"
+                              title="Messages"
+                            >
+                              Communicate with customers.
+                            </ListItem>
+                          </>
+                        ) : (
+                          <>
+                            <ListItem href="/sign-up" title="Post a Job">
+                              Sign up as a customer to post jobs.
+                            </ListItem>
+                            <ListItem href="/sign-up" title="Find Work">
+                              Sign up as a tradesperson to find work.
+                            </ListItem>
+                            <ListItem href="/sign-in" title="Sign In">
+                              Access your account.
+                            </ListItem>
+                          </>
+                        )}
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
@@ -93,10 +149,17 @@ export default function Header() {
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
                       <Link
-                        href="/dashboard"
+                        href={
+                          isCustomer
+                            ? "/customer"
+                            : isTradesperson
+                            ? "/tradesperson"
+                            : "/"
+                        }
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
-                          pathname === "/dashboard" &&
+                          ((isCustomer && pathname === "/customer") ||
+                            (isTradesperson && pathname === "/tradesperson")) &&
                             "bg-accent text-accent-foreground"
                         )}
                       >
@@ -108,10 +171,21 @@ export default function Header() {
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
                       <Link
-                        href="/messages"
+                        href={
+                          isCustomer
+                            ? "/customer/messages"
+                            : isTradesperson
+                            ? "/tradesperson/messages"
+                            : "/"
+                        }
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
-                          pathname === "/messages" &&
+                          ((isCustomer &&
+                            pathname?.startsWith("/customer/messages")) ||
+                            (isTradesperson &&
+                              pathname?.startsWith(
+                                "/tradesperson/messages"
+                              ))) &&
                             "bg-accent text-accent-foreground"
                         )}
                       >

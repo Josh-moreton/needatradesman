@@ -174,7 +174,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
         });
       }
       // Navigate to messages page
-      router.push(`/messages?jobId=${jobId}&with=${participantId}`);
+      router.push(`/customer/messages?jobId=${jobId}&with=${participantId}`);
     } catch {
       alert("Failed to start chat. Please try again.");
     } finally {
@@ -187,7 +187,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
       {/* Back Navigation */}
       <div className="mb-6">
         <Button variant="ghost" asChild>
-          <Link href="/jobs/my-jobs">
+          <Link href="/customer/jobs/my-jobs">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to My Jobs
           </Link>

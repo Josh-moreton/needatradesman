@@ -88,7 +88,7 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
         // We don't have the customerId here, so just navigate and let the chat UI handle it, or optionally fetch job details if needed
         // For now, just navigate
       }
-      router.push(`/messages?jobId=${jobId}`);
+      router.push(`/tradesperson/messages?jobId=${jobId}`);
     } catch {
       alert("Failed to start chat. Please try again.");
     } finally {

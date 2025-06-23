@@ -67,7 +67,9 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
           }),
         });
       }
-      router.push(`/messages?jobId=${jobId}&with=${participantId}`);
+      router.push(
+        `/tradesperson/messages?jobId=${jobId}&with=${participantId}`
+      );
     } catch {
       alert("Failed to start chat. Please try again.");
     } finally {
@@ -108,7 +110,7 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
         </CardHeader>
         <CardContent>
           <Button asChild>
-            <Link href="/jobs">Browse Jobs</Link>
+            <Link href="/tradesperson/jobs">Browse Jobs</Link>
           </Button>
         </CardContent>
       </Card>
@@ -123,7 +125,9 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle className="text-lg">
-                  <Link href={`/jobs/${app.job.id}`}>{app.job.title}</Link>
+                  <Link href={`/tradesperson/jobs/${app.job.id}`}>
+                    {app.job.title}
+                  </Link>
                 </CardTitle>
                 <CardDescription>
                   {app.job.location || "Location not specified"} •{" "}
@@ -151,7 +155,7 @@ export function MyResponsesClient({ applications }: MyResponsesClientProps) {
               )}
               <div className="flex gap-2 pt-2">
                 <Button size="sm" variant="outline" asChild>
-                  <Link href={`/jobs/${app.job.id}`}>
+                  <Link href={`/tradesperson/jobs/${app.job.id}`}>
                     <FileText className="h-4 w-4 mr-2" />
                     View Job
                   </Link>

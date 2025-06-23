@@ -123,7 +123,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
         {/* Back Navigation */}
         <div className="mb-6">
           <Button variant="ghost" asChild>
-            <Link href="/jobs">
+            <Link href="/tradesperson/jobs">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Jobs
             </Link>

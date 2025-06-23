@@ -37,7 +37,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
     }
 
     if (user.role !== UserRole.TRADESPERSON) {
-      redirect("/dashboard");
+      redirect("/customer");
     }
 
     // Await params before using them

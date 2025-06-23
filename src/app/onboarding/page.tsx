@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 interface ClerkMetadata {
   onboardingComplete?: boolean;
+  role?: string;
 }
 
 export default async function OnboardingPage() {
@@ -20,11 +21,17 @@ export default async function OnboardingPage() {
     }
 
     // Check session metadata for onboarding completion
-    const onboardingComplete = (sessionClaims?.publicMetadata as ClerkMetadata)?.onboardingComplete;
-    
-    if (onboardingComplete) {
+    const metadata = sessionClaims?.publicMetadata as ClerkMetadata;
+    const onboardingComplete = metadata?.onboardingComplete;
+    const userRole = metadata?.role;
+
+    if (onboardingComplete && userRole) {
       // User already completed onboarding according to session metadata
-      redirect("/dashboard");
+      if (userRole === "CUSTOMER") {
+        redirect("/customer");
+      } else if (userRole === "TRADESPERSON") {
+        redirect("/tradesperson");
+      }
     }
 
     // Check if user exists in our database and already has a role
@@ -33,8 +40,12 @@ export default async function OnboardingPage() {
     });
 
     if (user && user.role && onboardingComplete) {
-      // User already completed onboarding, redirect to dashboard
-      redirect("/dashboard");
+      // User already completed onboarding, redirect to appropriate dashboard
+      if (user.role === "CUSTOMER") {
+        redirect("/customer");
+      } else if (user.role === "TRADESPERSON") {
+        redirect("/tradesperson");
+      }
     }
 
     // User needs onboarding, show the flow

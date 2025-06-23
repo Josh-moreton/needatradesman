@@ -13,10 +13,10 @@ export async function POST(request: NextRequest) {
         }
 
         const client = await clerkClient()
-        
+
         // Force refresh the user's metadata
         const user = await client.users.getUser(userId)
-        
+
         return NextResponse.json({
             success: true,
             metadata: user.publicMetadata,

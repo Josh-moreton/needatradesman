@@ -29,16 +29,19 @@ export default function OnboardingFlow() {
   useEffect(() => {
     const checkOnboardingStatus = () => {
       if (user?.publicMetadata?.onboardingComplete) {
-        // User has completed onboarding, redirect them
-        window.location.href = "/dashboard";
+        // User has completed onboarding, redirect based on their role if available
+        const userRole = user?.publicMetadata?.role;
+        if (userRole === "CUSTOMER") {
+          window.location.href = "/customer";
+        } else if (userRole === "TRADESPERSON") {
+          window.location.href = "/tradesperson";
+        }
+        // Remove the fallback redirect to prevent infinite loop
       }
     };
 
-    // Check immediately and then after a delay to catch metadata updates
+    // Only check once when the component mounts
     checkOnboardingStatus();
-    const timeoutId = setTimeout(checkOnboardingStatus, 1000);
-    
-    return () => clearTimeout(timeoutId);
   }, [user]);
 
   const handleRoleSelect = async (role: UserRole) => {
@@ -58,41 +61,41 @@ export default function OnboardingFlow() {
 
         if (response.ok) {
           try {
-            console.log('Role API call successful, refreshing session...');
-            
+            console.log("Role API call successful, refreshing session...");
+
             // Force refresh the session to get updated metadata immediately
             await session?.reload();
-            
-            console.log('Session refreshed, redirecting...');
-            
+
+            console.log("Session refreshed, redirecting...");
+
             // Now redirect - the middleware should see the updated session
             if (role === UserRole.CUSTOMER) {
-              window.location.href = "/jobs/new";
+              window.location.href = "/customer";
             } else {
-              window.location.href = "/dashboard";
+              window.location.href = "/tradesperson";
             }
           } catch (refreshError) {
-            console.error('Error refreshing session:', refreshError);
+            console.error("Error refreshing session:", refreshError);
             // Fallback to the old retry mechanism
             const checkMetadataAndRedirect = async (attempts = 0) => {
               const maxAttempts = 10;
-              
+
               if (attempts >= maxAttempts) {
                 if (role === UserRole.CUSTOMER) {
-                  window.location.href = "/jobs/new";
+                  window.location.href = "/customer";
                 } else {
-                  window.location.href = "/dashboard";
+                  window.location.href = "/tradesperson";
                 }
                 return;
               }
 
               await user?.reload();
-              
+
               if (user?.publicMetadata?.onboardingComplete) {
                 if (role === UserRole.CUSTOMER) {
-                  window.location.href = "/jobs/new";
+                  window.location.href = "/customer";
                 } else {
-                  window.location.href = "/dashboard";
+                  window.location.href = "/tradesperson";
                 }
               } else {
                 setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
@@ -141,30 +144,32 @@ export default function OnboardingFlow() {
 
       if (response.ok) {
         try {
-          console.log('Tradesperson role API call successful, refreshing session...');
-          
+          console.log(
+            "Tradesperson role API call successful, refreshing session..."
+          );
+
           // Force refresh the session to get updated metadata immediately
           await session?.reload();
-          
-          console.log('Session refreshed, redirecting to dashboard...');
-          
-          // Now redirect - the middleware should see the updated session
-          window.location.href = "/dashboard";
+
+          console.log("Session refreshed, redirecting based on role...");
+
+          // Redirect to role-specific route
+          window.location.href = "/tradesperson";
         } catch (refreshError) {
-          console.error('Error refreshing session:', refreshError);
+          console.error("Error refreshing session:", refreshError);
           // Fallback to the old retry mechanism
           const checkMetadataAndRedirect = async (attempts = 0) => {
             const maxAttempts = 10;
-            
+
             if (attempts >= maxAttempts) {
-              window.location.href = "/dashboard";
+              window.location.href = "/tradesperson";
               return;
             }
 
             await user?.reload();
-            
+
             if (user?.publicMetadata?.onboardingComplete) {
-              window.location.href = "/dashboard";
+              window.location.href = "/tradesperson";
             } else {
               setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
             }

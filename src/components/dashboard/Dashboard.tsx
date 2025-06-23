@@ -33,7 +33,7 @@ export default function Dashboard({ user }: DashboardProps) {
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
     : "there";
 
-  // Only tradespeople should see this dashboard since customers are redirected to job posting
+  // Only tradespeople should see this dashboard since customers are redirected
   if (user.role === UserRole.TRADESPERSON) {
     return <TradespersonDashboard displayName={displayName} />;
   }
@@ -89,7 +89,7 @@ function TradespersonDashboard({ displayName }: { displayName: string }) {
           title="Find Jobs"
           description="Browse available job opportunities in your area and apply to jobs that match your skills"
           icon={<Search className="h-8 w-8" />}
-          href="/jobs"
+          href="/tradesperson/jobs"
           buttonText="Browse Jobs"
           variant="primary"
         />
@@ -98,7 +98,7 @@ function TradespersonDashboard({ displayName }: { displayName: string }) {
           title="My Applications"
           description="Track your job applications, view responses, and manage your application status"
           icon={<FileText className="h-8 w-8" />}
-          href="/applications/my-applications"
+          href="/tradesperson/my-responses"
           buttonText="View Applications"
         />
 
@@ -106,7 +106,7 @@ function TradespersonDashboard({ displayName }: { displayName: string }) {
           title="Messages"
           description="Chat with potential customers, ask questions, and negotiate project details"
           icon={<MessageSquare className="h-8 w-8" />}
-          href="/messages"
+          href="/tradesperson/messages"
           buttonText="View Messages"
         />
 
