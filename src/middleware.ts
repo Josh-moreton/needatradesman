@@ -68,18 +68,43 @@ export default clerkMiddleware(
             }
 
             // Check if user has completed onboarding
-            // Try both possible locations for metadata
+            // Try both possible locations for metadata and also fetch fresh user data
             const publicMetadata = sessionClaims?.publicMetadata as ClerkMetadata
             const metadata = sessionClaims?.metadata as ClerkMetadata
-            const onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
+            let onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
             
             console.log('Onboarding check:', {
                 publicMetadata,
                 metadata, 
                 onboarded,
                 publicMetadataKeys: publicMetadata ? Object.keys(publicMetadata) : 'NO_PUBLIC_METADATA',
-                metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA'
+                metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA',
+                allSessionClaims: sessionClaims
             })
+            
+            // If we don't have onboarding data in session claims, try to fetch fresh data
+            if (!onboarded && userId) {
+                try {
+                    console.log('Session claims missing onboarding data, checking with Clerk API...')
+                    const { clerkClient } = await import('@clerk/nextjs/server')
+                    const client = await clerkClient()
+                    const freshUser = await client.users.getUser(userId)
+                    const freshOnboarded = freshUser.publicMetadata?.onboardingComplete
+                    
+                    console.log('Fresh user check:', {
+                        userId,
+                        freshPublicMetadata: freshUser.publicMetadata,
+                        freshOnboarded
+                    })
+                    
+                    if (freshOnboarded) {
+                        console.log('Found onboarding complete in fresh data, allowing request')
+                        onboarded = true
+                    }
+                } catch (fetchError) {
+                    console.error('Error fetching fresh user data:', fetchError)
+                }
+            }
             
             if (!onboarded && !pathname.startsWith('/onboarding')) {
                 console.log('Redirecting to onboarding from:', pathname)
