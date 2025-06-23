@@ -1,50 +1,40 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-// Routes that require authentication
-const isProtectedRoute = createRouteMatcher([
-    '/dashboard(.*)',
-    '/onboarding',
-    '/jobs(.*)',
-    '/applications(.*)',
-    '/messages(.*)',
-    '/api/user(.*)'
-])
-
-// Public routes that should be accessible to everyone
+// Public routes that should be accessible to everyone (including unauthenticated users)
 const isPublicRoute = createRouteMatcher([
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
-    '/api/auth(.*)'
+    '/api/auth(.*)',
+    '/onboarding(.*)'
 ])
 
-export default clerkMiddleware(async (auth, req) => {
-    const { pathname } = req.nextUrl
+export default clerkMiddleware(
+    async (auth, req) => {
+        const { userId, sessionClaims } = await auth()
 
-    // Allow public routes without any auth checks
-    if (isPublicRoute(req)) {
-        return NextResponse.next()
-    }
-
-    // For protected routes, ensure user is authenticated
-    if (isProtectedRoute(req)) {
-        const { userId } = await auth()
-
-        if (!userId) {
-            // Redirect to sign-in for unauthenticated users
-            const signInUrl = new URL('/sign-in', req.url)
-            signInUrl.searchParams.set('redirect_url', pathname)
-            return NextResponse.redirect(signInUrl)
+        // Allow public routes without any auth checks
+        if (isPublicRoute(req)) {
+            return
         }
 
-        // User is authenticated, continue
-        return NextResponse.next()
-    }
+        // For all other routes, ensure user is authenticated
+        if (!userId) {
+            return // This will trigger Clerk's default redirect to sign-in
+        }
 
-    // For all other routes, continue without auth check
-    return NextResponse.next()
-})
+        // Check if user has completed onboarding
+        const onboarded = (sessionClaims?.metadata as any)?.onboardingComplete
+        if (!onboarded && !req.nextUrl.pathname.startsWith('/onboarding')) {
+            return NextResponse.redirect(new URL('/onboarding', req.url))
+        }
+
+        return // Allow the request to proceed
+    },
+    // Enable debug mode in development for easier troubleshooting
+    { debug: process.env.NODE_ENV === 'development' }
+)
 
 export const config = {
     matcher: [
