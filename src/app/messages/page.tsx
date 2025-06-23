@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/lib/auth";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { ChatInterface } from "@/components/messages/ChatInterface";
 
+// This page uses authentication, so it should be dynamically rendered
+export const dynamic = "force-dynamic";
+
 export default async function MessagesPage() {
   const user = await getCurrentUser();
 

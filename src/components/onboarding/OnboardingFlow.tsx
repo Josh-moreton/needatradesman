@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { UserRole, JobCategory } from "@/lib/schemas";
 import {
   Card,
@@ -21,6 +22,23 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
   const router = useRouter();
+  const { user } = useUser();
+
+  // Check if user has already completed onboarding but metadata hasn't propagated yet
+  useEffect(() => {
+    const checkOnboardingStatus = () => {
+      if (user?.publicMetadata?.onboardingComplete) {
+        // User has completed onboarding, redirect them
+        window.location.href = "/dashboard";
+      }
+    };
+
+    // Check immediately and then after a delay to catch metadata updates
+    checkOnboardingStatus();
+    const timeoutId = setTimeout(checkOnboardingStatus, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [user]);
 
   const handleRoleSelect = async (role: UserRole) => {
     setSelectedRole(role);
@@ -38,13 +56,37 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          // Redirect customers directly to job posting workflow
-          // Tradespeople go to regular dashboard for job browsing
-          if (role === UserRole.CUSTOMER) {
-            router.push("/jobs/new");
-          } else {
-            router.push("/dashboard");
-          }
+          // Wait for Clerk metadata to propagate and then redirect
+          const checkMetadataAndRedirect = async (attempts = 0) => {
+            const maxAttempts = 10; // Maximum 5 seconds (10 * 500ms)
+            
+            if (attempts >= maxAttempts) {
+              // Fallback: force redirect even if metadata hasn't updated
+              if (role === UserRole.CUSTOMER) {
+                window.location.href = "/jobs/new";
+              } else {
+                window.location.href = "/dashboard";
+              }
+              return;
+            }
+
+            // Reload user data to check for updated metadata
+            await user?.reload();
+            
+            if (user?.publicMetadata?.onboardingComplete) {
+              // Metadata has propagated, safe to redirect
+              if (role === UserRole.CUSTOMER) {
+                window.location.href = "/jobs/new";
+              } else {
+                window.location.href = "/dashboard";
+              }
+            } else {
+              // Wait and retry
+              setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
+            }
+          };
+
+          checkMetadataAndRedirect();
         } else {
           console.error("Failed to set user role");
           setIsLoading(false);
@@ -84,7 +126,29 @@ export default function OnboardingFlow() {
       });
 
       if (response.ok) {
-        router.push("/dashboard");
+        // Wait for Clerk metadata to propagate and then redirect
+        const checkMetadataAndRedirect = async (attempts = 0) => {
+          const maxAttempts = 10; // Maximum 5 seconds (10 * 500ms)
+          
+          if (attempts >= maxAttempts) {
+            // Fallback: force redirect even if metadata hasn't updated
+            window.location.href = "/dashboard";
+            return;
+          }
+
+          // Reload user data to check for updated metadata
+          await user?.reload();
+          
+          if (user?.publicMetadata?.onboardingComplete) {
+            // Metadata has propagated, safe to redirect
+            window.location.href = "/dashboard";
+          } else {
+            // Wait and retry
+            setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
+          }
+        };
+
+        checkMetadataAndRedirect();
       } else {
         console.error("Failed to set user role and trades");
         setIsLoading(false);

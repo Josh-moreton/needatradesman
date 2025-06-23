@@ -35,7 +35,20 @@ export default clerkMiddleware(
         }
 
         // Check if user has completed onboarding
-        const onboarded = (sessionClaims?.metadata as ClerkMetadata)?.onboardingComplete
+        const metadata = sessionClaims?.metadata as ClerkMetadata
+        const onboarded = metadata?.onboardingComplete
+        
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Middleware check:', { 
+                userId, 
+                pathname, 
+                onboarded, 
+                metadata,
+                sessionClaims: sessionClaims?.metadata 
+            })
+        }
+        
         if (!onboarded && !pathname.startsWith('/onboarding')) {
             return NextResponse.redirect(new URL('/onboarding', req.url))
         }
