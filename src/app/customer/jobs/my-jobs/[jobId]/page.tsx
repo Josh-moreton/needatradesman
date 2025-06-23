@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { ManageResponsesClient } from "./ManageResponsesClient";
 
 export const dynamic = "force-dynamic";
@@ -63,11 +62,7 @@ export default async function ManageResponsesPage({
       notFound();
     }
 
-    return (
-      <DashboardLayout userRole={user.role}>
-        <ManageResponsesClient job={job} />
-      </DashboardLayout>
-    );
+    return <ManageResponsesClient job={job} />;
   } catch (error) {
     console.error("Error in manage responses page:", error);
     redirect("/sign-in");

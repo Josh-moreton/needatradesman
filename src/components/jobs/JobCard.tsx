@@ -121,22 +121,28 @@ export function JobCard({ job, variant = "public" }: JobCardProps) {
           {variant === "customer" ? (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/jobs/my-jobs/${job.id}`}>View Details</Link>
+                <Link href={`/customer/jobs/my-jobs/${job.id}`}>
+                  View Details
+                </Link>
               </Button>
               {job.status === "OPEN" && (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/jobs/my-jobs/${job.id}/edit`}>Edit Job</Link>
+                  <Link href={`/customer/jobs/my-jobs/${job.id}/edit`}>
+                    Edit Job
+                  </Link>
                 </Button>
               )}
             </>
           ) : (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/jobs/${job.id}`}>View Details</Link>
+                <Link href={`/tradesperson/jobs/${job.id}`}>View Details</Link>
               </Button>
               {job.status === "OPEN" && (
                 <Button size="sm" asChild>
-                  <Link href={`/jobs/${job.id}/apply`}>Respond Now</Link>
+                  <Link href={`/tradesperson/jobs/${job.id}/apply`}>
+                    Respond Now
+                  </Link>
                 </Button>
               )}
             </>

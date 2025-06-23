@@ -13,15 +13,16 @@ export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
 
   const customerLinks = [
-    { href: "/jobs/new", label: "Post Job" },
-    { href: "/jobs/my-jobs", label: "My Jobs" },
-    { href: "/messages", label: "Messages" },
+    { href: "/customer/jobs/new", label: "Post Job" },
+    { href: "/customer/jobs/my-jobs", label: "My Jobs" },
+    { href: "/customer/messages", label: "Messages" },
   ];
 
   const tradespersonLinks = [
-    { href: "/jobs", label: "Browse Jobs" },
-    { href: "/my-responses", label: "My Responses" },
-    { href: "/messages", label: "Messages" },
+    { href: "/tradesperson", label: "Dashboard" },
+    { href: "/tradesperson/jobs", label: "Browse Jobs" },
+    { href: "/tradesperson/my-responses", label: "My Responses" },
+    { href: "/tradesperson/messages", label: "Messages" },
   ];
 
   const links =

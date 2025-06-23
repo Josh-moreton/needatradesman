@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
 interface ClerkMetadata {
-  onboardingComplete?: boolean;
+    onboardingComplete?: boolean;
 }
 
 // Public routes that should be accessible to everyone (including unauthenticated users)
@@ -13,6 +13,12 @@ const isPublicRoute = createRouteMatcher([
     '/api/auth(.*)',
     '/onboarding(.*)',
     '/debug-onboarding(.*)'  // Add debug page to public routes
+])
+
+// Routes that should be accessible to authenticated users (skip onboarding check)
+const isAuthenticatedRoute = createRouteMatcher([
+    '/customer(.*)',
+    '/tradesperson(.*)'
 ])
 
 // Add a bypass parameter to prevent infinite redirects
@@ -35,6 +41,18 @@ export default clerkMiddleware(
                 return
             }
 
+            // For authenticated routes, only check if user is signed in
+            // Let the page components handle role-based logic
+            if (isAuthenticatedRoute(req)) {
+                const { userId } = await auth()
+                if (!userId) {
+                    console.log('No userId for authenticated route, letting Clerk handle sign-in')
+                    return // Clerk will redirect to sign-in
+                }
+                console.log('Allowing authenticated route:', pathname)
+                return // Skip onboarding check, let pages handle it
+            }
+
             // Temporary bypass for debugging infinite loops
             if (hasBypassParam(req.url)) {
                 console.log('Bypassing onboarding check due to bypass parameter')
@@ -53,9 +71,9 @@ export default clerkMiddleware(
             const { userId, sessionClaims } = authResult
 
             // Always log for debugging
-            console.log('Middleware check:', { 
-                userId: userId || 'NO_USER_ID', 
-                pathname, 
+            console.log('Middleware check:', {
+                userId: userId || 'NO_USER_ID',
+                pathname,
                 hasSessionClaims: !!sessionClaims,
                 sessionClaimsKeys: sessionClaims ? Object.keys(sessionClaims) : 'NO_SESSION_CLAIMS',
                 url: req.url
@@ -72,17 +90,17 @@ export default clerkMiddleware(
             const publicMetadata = sessionClaims?.publicMetadata as ClerkMetadata
             const metadata = sessionClaims?.metadata as ClerkMetadata
             let onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
-            
+
             console.log('Onboarding check:', {
                 publicMetadata,
-                metadata, 
+                metadata,
                 onboarded,
                 publicMetadataKeys: publicMetadata ? Object.keys(publicMetadata) : 'NO_PUBLIC_METADATA',
                 metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA',
                 hasPublicMetadataField: 'publicMetadata' in (sessionClaims || {}),
                 hasMetadataField: 'metadata' in (sessionClaims || {})
             })
-            
+
             // If session claims don't have metadata, it might be a timing issue
             // Log this case but still fetch fresh data as fallback
             if (userId && !('publicMetadata' in (sessionClaims || {}))) {
@@ -93,13 +111,13 @@ export default clerkMiddleware(
                     const client = await clerkClient()
                     const freshUser = await client.users.getUser(userId)
                     const freshOnboarded = !!freshUser.publicMetadata?.onboardingComplete
-                    
+
                     console.log('Fresh user check:', {
                         userId,
                         freshPublicMetadata: freshUser.publicMetadata,
                         freshOnboarded
                     })
-                    
+
                     onboarded = freshOnboarded
                 } catch (fetchError) {
                     console.error('Error fetching fresh user data:', fetchError)
@@ -107,7 +125,7 @@ export default clerkMiddleware(
                     onboarded = false
                 }
             }
-            
+
             if (!onboarded && !pathname.startsWith('/onboarding')) {
                 console.log('Redirecting to onboarding from:', pathname)
                 return NextResponse.redirect(new URL('/onboarding', req.url))

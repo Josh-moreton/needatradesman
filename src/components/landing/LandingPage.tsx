@@ -28,9 +28,9 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // If user is signed in, redirect to dashboard
+    // If user is signed in, redirect to onboarding which will route based on role
     if (isLoaded && isSignedIn) {
-      router.push("/dashboard");
+      router.push("/onboarding");
     }
   }, [isSignedIn, isLoaded, router]);
 
@@ -50,7 +50,7 @@ export default function LandingPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-muted-foreground">Redirecting to dashboard...</p>
+          <p className="text-muted-foreground">Redirecting...</p>
         </div>
       </div>
     );

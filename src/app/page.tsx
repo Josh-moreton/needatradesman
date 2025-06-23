@@ -39,8 +39,15 @@ export default async function Home() {
       redirect("/onboarding");
     }
 
-    // User is fully authenticated and has a role, redirect to dashboard
-    redirect("/dashboard");
+    // User is fully authenticated and has a role, redirect to their role-specific page
+    if (user.role === "CUSTOMER") {
+      redirect("/customer");
+    } else if (user.role === "TRADESPERSON") {
+      redirect("/tradesperson");
+    } else {
+      // Fallback if role is set but not recognized
+      redirect("/onboarding");
+    }
   } catch (error) {
     console.error("Error in home page:", error);
     // On any error, show landing page to prevent infinite loops

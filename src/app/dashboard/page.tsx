@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/lib/schemas";
-import Dashboard from "@/components/dashboard/Dashboard";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+/**
+ * Dashboard Router - Simple role-based routing with no UI
+ * Redirects users to their appropriate dashboard based on role
+ */
+export default async function DashboardRouter() {
   try {
     const user = await getCurrentUser();
 
@@ -21,20 +23,19 @@ export default async function DashboardPage() {
       redirect("/onboarding");
     }
 
-    // For customers, redirect directly to job posting workflow
-    // This simplifies their experience as they mainly need to post jobs
+    // Route users to their appropriate dashboard
     if (user.role === UserRole.CUSTOMER) {
-      redirect("/jobs/new");
+      redirect("/customer");
     }
 
-    // For tradespeople, show the full dashboard with job browsing, stats, etc.
-    return (
-      <DashboardLayout userRole={user.role}>
-        <Dashboard user={user} />
-      </DashboardLayout>
-    );
+    if (user.role === UserRole.TRADESPERSON) {
+      redirect("/tradesperson");
+    }
+
+    // Fallback - should not reach here but safety first
+    redirect("/onboarding");
   } catch (error) {
-    console.error("Error in dashboard:", error);
+    console.error("Error in dashboard router:", error);
     redirect("/sign-in");
   }
 }

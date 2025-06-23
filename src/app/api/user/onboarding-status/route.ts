@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         const { userId } = await auth()
 
@@ -13,10 +13,10 @@ export async function POST(request: NextRequest) {
         }
 
         const client = await clerkClient()
-        
+
         // Force refresh the user's metadata
         const user = await client.users.getUser(userId)
-        
+
         return NextResponse.json({
             success: true,
             metadata: user.publicMetadata,
