@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth, currentUser, clerkClient } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
@@ -42,6 +42,12 @@ export async function POST(request: NextRequest) {
                 data: updateData
             })
 
+            // Set onboarding complete metadata in Clerk
+            const client = await clerkClient()
+            await client.users.updateUserMetadata(userId, {
+                publicMetadata: { onboardingComplete: true }
+            })
+
             return NextResponse.json({
                 success: true,
                 user: updatedUser
@@ -70,6 +76,12 @@ export async function POST(request: NextRequest) {
 
             const newUser = await prisma.user.create({
                 data: createData
+            })
+
+            // Set onboarding complete metadata in Clerk
+            const client = await clerkClient()
+            await client.users.updateUserMetadata(userId, {
+                publicMetadata: { onboardingComplete: true }
             })
 
             return NextResponse.json({
