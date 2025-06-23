@@ -49,15 +49,26 @@ export default async function TradesPersonJobsPage({
   if (resolvedSearchParams.search) {
     where.OR = [
       { title: { contains: resolvedSearchParams.search, mode: "insensitive" } },
-      { description: { contains: resolvedSearchParams.search, mode: "insensitive" } },
+      {
+        description: {
+          contains: resolvedSearchParams.search,
+          mode: "insensitive",
+        },
+      },
     ];
   }
 
   if (resolvedSearchParams.location) {
-    where.location = { contains: resolvedSearchParams.location, mode: "insensitive" };
+    where.location = {
+      contains: resolvedSearchParams.location,
+      mode: "insensitive",
+    };
   }
 
-  if (resolvedSearchParams.category && resolvedSearchParams.category !== "all") {
+  if (
+    resolvedSearchParams.category &&
+    resolvedSearchParams.category !== "all"
+  ) {
     where.category = resolvedSearchParams.category;
   }
 
