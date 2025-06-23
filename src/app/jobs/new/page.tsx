@@ -14,7 +14,6 @@ import { FileText, MessageSquare, Clock, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { prisma } from "@/lib/prisma";
-import { Job } from "@prisma/client";
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";

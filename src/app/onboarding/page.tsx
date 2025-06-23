@@ -6,6 +6,10 @@ import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
 
+interface ClerkMetadata {
+  onboardingComplete?: boolean;
+}
+
 export default async function OnboardingPage() {
   try {
     const { userId, sessionClaims } = await auth();
@@ -16,7 +20,7 @@ export default async function OnboardingPage() {
     }
 
     // Check session metadata for onboarding completion
-    const onboardingComplete = (sessionClaims?.metadata as any)?.onboardingComplete;
+    const onboardingComplete = (sessionClaims?.metadata as ClerkMetadata)?.onboardingComplete;
     
     if (onboardingComplete) {
       // User already completed onboarding according to session metadata

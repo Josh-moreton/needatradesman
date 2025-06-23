@@ -1,6 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
+interface ClerkMetadata {
+  onboardingComplete?: boolean;
+}
+
 // Public routes that should be accessible to everyone (including unauthenticated users)
 const isPublicRoute = createRouteMatcher([
     '/',
@@ -31,7 +35,7 @@ export default clerkMiddleware(
         }
 
         // Check if user has completed onboarding
-        const onboarded = (sessionClaims?.metadata as any)?.onboardingComplete
+        const onboarded = (sessionClaims?.metadata as ClerkMetadata)?.onboardingComplete
         if (!onboarded && !pathname.startsWith('/onboarding')) {
             return NextResponse.redirect(new URL('/onboarding', req.url))
         }
