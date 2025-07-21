@@ -96,18 +96,22 @@ export async function POST(request: NextRequest) {
             })
         }
     } catch (error) {
-        console.error('Error setting user role:', error)
+        console.error('Error setting user role:', error);
 
         if (error instanceof z.ZodError) {
             return NextResponse.json(
-                { error: 'Invalid role provided' },
+                { error: 'Invalid role provided', details: error.errors },
                 { status: 400 }
-            )
+            );
         }
 
+        // Show detailed error in development, generic in production
+        const isDev = process.env.NODE_ENV !== 'production';
         return NextResponse.json(
-            { error: 'Internal server error' },
+            isDev
+                ? { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) }
+                : { error: 'Internal server error' },
             { status: 500 }
-        )
+        );
     }
 }
