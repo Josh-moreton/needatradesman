@@ -40,21 +40,21 @@ export async function POST(request: NextRequest) {
             const updatedUser = await prisma.user.update({
                 where: { clerkId: userId },
                 data: updateData
-            })
+            });
 
             // Set onboarding complete metadata in Clerk
-            const client = await clerkClient()
+            const client = await clerkClient();
             await client.users.updateUserMetadata(userId, {
                 publicMetadata: {
                     onboardingComplete: true,
                     role: role
                 }
-            })
+            });
 
             return NextResponse.json({
                 success: true,
                 user: updatedUser
-            })
+            });
         } else {
             // Fetch user info from Clerk
             const clerkUser = await currentUser();
@@ -66,6 +66,35 @@ export async function POST(request: NextRequest) {
             const lastName = clerkUser.lastName || null;
             if (!email) {
                 return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
+            }
+            // Check if a user with this email already exists (unique constraint)
+            const userByEmail = await prisma.user.findUnique({ where: { email } });
+            if (userByEmail) {
+                // Update the user with the new clerkId and other info
+                const updatedUser = await prisma.user.update({
+                    where: { email },
+                    data: {
+                        clerkId: userId,
+                        firstName,
+                        lastName,
+                        role,
+                        ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
+                    }
+                });
+
+                // Set onboarding complete metadata in Clerk
+                const client = await clerkClient();
+                await client.users.updateUserMetadata(userId, {
+                    publicMetadata: {
+                        onboardingComplete: true,
+                        role: role
+                    }
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    user: updatedUser
+                });
             }
             // Create new user record
             const createData = {
@@ -79,21 +108,21 @@ export async function POST(request: NextRequest) {
 
             const newUser = await prisma.user.create({
                 data: createData
-            })
+            });
 
             // Set onboarding complete metadata in Clerk
-            const client = await clerkClient()
+            const client = await clerkClient();
             await client.users.updateUserMetadata(userId, {
                 publicMetadata: {
                     onboardingComplete: true,
                     role: role
                 }
-            })
+            });
 
             return NextResponse.json({
                 success: true,
                 user: newUser
-            })
+            });
         }
     } catch (error) {
         console.error('Error setting user role:', error);
