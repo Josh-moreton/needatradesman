@@ -105,12 +105,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Show detailed error in development, generic in production
-        const isDev = process.env.NODE_ENV !== 'production';
+        // TEMP: Always show detailed error (even in production)
         return NextResponse.json(
-            isDev
-                ? { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) }
-                : { error: 'Internal server error' },
+            { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
