@@ -22,10 +22,11 @@ model User {
   updatedAt DateTime      @updatedAt
 
   // Relationships
-  jobsPosted       Job[]         @relation("CustomerJobs")
+  jobsPosted       Job[]           @relation("CustomerJobs")
   applications     Application[]
-  messagesSent     Message[]     @relation("MessageSender")
-  messagesReceived Message[]     @relation("MessageReceiver")
+  messagesSent     Message[]       @relation("MessageSender")
+  messagesReceived Message[]       @relation("MessageReceiver")
+  quoteTemplates   QuoteTemplate[]
 
   @@map("users")
 }
@@ -88,13 +89,13 @@ model Message {
 }
 
 model QuoteTemplate {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
   userId    String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   items QuoteTemplateItem[]
 }
 
