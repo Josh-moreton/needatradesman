@@ -11,9 +11,16 @@ export const createJobSchema = z.object({
     attachments: z.array(z.string().url()).optional(),
 })
 
+export const quoteItemSchema = z.object({
+    description: z.string().min(1, 'Description is required'),
+    quantity: z.number().int().positive(),
+    unitPrice: z.number().positive(),
+})
+
 export const createApplicationSchema = z.object({
     message: z.string().min(10, 'Message must be at least 10 characters').max(500, 'Message too long'),
     quote: z.number().positive('Quote must be positive').optional(),
+    quoteItems: z.array(quoteItemSchema).optional(),
 })
 
 export const createMessageSchema = z.object({
@@ -33,6 +40,7 @@ export const updateUserSchema = z.object({
 // Type exports
 export type CreateJobInput = z.infer<typeof createJobSchema>
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>
+export type QuoteItem = z.infer<typeof quoteItemSchema>
 export type CreateMessageInput = z.infer<typeof createMessageSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 

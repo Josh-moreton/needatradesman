@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle } from "lucide-react";
+import { QuoteBuilder } from "@/components/quotes/QuoteBuilder";
 
 interface ResponseFormProps {
   jobId: string;
@@ -37,11 +38,20 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
     defaultValues: {
       message: "",
       quote: undefined,
+      quoteItems: [],
     },
   });
 
   async function onSubmit(data: CreateApplicationInput) {
     setIsSubmitting(true);
+
+    const computedQuote =
+      data.quoteItems && data.quoteItems.length > 0
+        ? data.quoteItems.reduce(
+            (sum, item) => sum + item.quantity * item.unitPrice,
+            0
+          )
+        : data.quote;
 
     try {
       const response = await fetch("/api/applications", {
@@ -51,6 +61,7 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
         },
         body: JSON.stringify({
           ...data,
+          quote: computedQuote,
           jobId,
         }),
       });
@@ -171,6 +182,21 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
               <FormDescription>
                 Provide an estimated quote in GBP for the work (optional)
               </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="quoteItems"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Quote Builder</FormLabel>
+              <FormDescription>
+                Add line items or leave empty to provide a single amount.
+              </FormDescription>
+              <QuoteBuilder value={field.value || []} onChange={field.onChange} />
               <FormMessage />
             </FormItem>
           )}

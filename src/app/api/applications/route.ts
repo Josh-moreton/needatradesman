@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
             data: {
                 message: validatedData.message,
                 quote: validatedData.quote,
+                quoteItems: validatedData.quoteItems ? JSON.stringify(validatedData.quoteItems) : undefined,
                 jobId: job.id,
                 tradespersonId: user.id,
                 status: "PENDING",

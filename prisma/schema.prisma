@@ -22,10 +22,11 @@ model User {
   updatedAt DateTime      @updatedAt
 
   // Relationships
-  jobsPosted       Job[]         @relation("CustomerJobs")
+  jobsPosted       Job[]           @relation("CustomerJobs")
   applications     Application[]
-  messagesSent     Message[]     @relation("MessageSender")
-  messagesReceived Message[]     @relation("MessageReceiver")
+  messagesSent     Message[]       @relation("MessageSender")
+  messagesReceived Message[]       @relation("MessageReceiver")
+  quoteTemplates   QuoteTemplate[]
 
   @@map("users")
 }
@@ -55,6 +56,7 @@ model Application {
   id             String            @id @default(cuid())
   message        String
   quote          Decimal?
+  quoteItems     Json?
   status         ApplicationStatus @default(PENDING)
   jobId          String
   tradespersonId String
@@ -84,6 +86,28 @@ model Message {
   job      Job? @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+model QuoteTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items QuoteTemplateItem[]
+}
+
+model QuoteTemplateItem {
+  id          String   @id @default(cuid())
+  templateId  String
+  description String
+  price       Decimal
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  template QuoteTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 // Enums
