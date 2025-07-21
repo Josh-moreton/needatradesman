@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -33,27 +33,14 @@ interface JobDetailPageProps {
 
 export default async function JobDetailPage({ params }: JobDetailPageProps) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      redirect("/sign-in");
-    }
-
-    // Get the user and validate they are a tradesperson
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await getCurrentUser();
 
     if (!user) {
-      redirect("/onboarding");
+      redirect("/sign-in");
     }
 
     if (!user.role) {
       redirect("/onboarding");
-    }
-
-    if (user.role !== UserRole.TRADESPERSON) {
-      redirect("/customer");
     }
 
     // Await params before using them
@@ -272,12 +259,28 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       conversation with the customer.
                     </p>
                     <Button size="lg" asChild>
-                      <Link href={`/tradesperson/jobs/${job.id}/apply`}>
-                        Respond Now
-                      </Link>
+                      <Link href={`/jobs/${job.id}/apply`}>Respond Now</Link>
                     </Button>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {user.role === UserRole.CUSTOMER && job.customerId === user.id && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-2">
+                  This is your job posting
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Manage responses and communicate with interested tradespeople.
+                </p>
+                <Button size="lg" asChild>
+                  <Link href={`/jobs/my-jobs/${job.id}`}>Manage Responses</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>

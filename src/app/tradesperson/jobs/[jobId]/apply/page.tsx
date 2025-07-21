@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { ResponseForm } from "@/components/applications/ResponseForm";
@@ -26,19 +26,10 @@ interface ApplyPageProps {
 
 export default async function ApplyPage({ params }: ApplyPageProps) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      redirect("/sign-in");
-    }
-
-    // Get the user and validate they are a tradesperson
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await getCurrentUser();
 
     if (!user) {
-      redirect("/onboarding");
+      redirect("/sign-in");
     }
 
     if (!user.role) {
@@ -84,7 +75,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
     });
 
     if (existingApplication) {
-      redirect(`/tradesperson/jobs/${job.id}`);
+      redirect(`/jobs/${job.id}`);
     }
 
     const getCustomerName = () => {
