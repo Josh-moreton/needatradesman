@@ -73,12 +73,18 @@ export default function OnboardingFlow() {
               window.location.href = "/tradesperson";
             }
           } catch (refreshError) {
-            console.error("Error refreshing session:", refreshError);
+            console.error(
+              "[OnboardingFlow] Error refreshing session after role set:",
+              refreshError
+            );
             // Fallback to the old retry mechanism
             const checkMetadataAndRedirect = async (attempts = 0) => {
               const maxAttempts = 10;
 
               if (attempts >= maxAttempts) {
+                console.error(
+                  `[OnboardingFlow] Max attempts reached while waiting for onboarding metadata. Role: ${role}`
+                );
                 if (role === UserRole.CUSTOMER) {
                   window.location.href = "/customer";
                 } else {
@@ -90,12 +96,18 @@ export default function OnboardingFlow() {
               await user?.reload();
 
               if (user?.publicMetadata?.onboardingComplete) {
+                console.log(
+                  `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts. Redirecting. Role: ${role}`
+                );
                 if (role === UserRole.CUSTOMER) {
                   window.location.href = "/customer";
                 } else {
                   window.location.href = "/tradesperson";
                 }
               } else {
+                console.warn(
+                  `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts}. Retrying...`
+                );
                 setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
               }
             };
@@ -103,12 +115,16 @@ export default function OnboardingFlow() {
             checkMetadataAndRedirect();
           }
         } else {
-          console.error("Failed to set user role");
+          const errorText = await response.text();
+          console.error(
+            `[OnboardingFlow] Failed to set user role. Status: ${response.status}. Response:`,
+            errorText
+          );
           setIsLoading(false);
           setSelectedRole(null);
         }
       } catch (error) {
-        console.error("Error setting user role:", error);
+        console.error("[OnboardingFlow] Error setting user role:", error);
         setIsLoading(false);
         setSelectedRole(null);
       }
@@ -125,7 +141,12 @@ export default function OnboardingFlow() {
   };
 
   const handleCompleteTradespersonOnboarding = async () => {
-    if (selectedTrades.length === 0) return;
+    if (selectedTrades.length === 0) {
+      console.warn(
+        "[OnboardingFlow] No trades selected for tradesperson onboarding."
+      );
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -143,23 +164,31 @@ export default function OnboardingFlow() {
       if (response.ok) {
         try {
           console.log(
-            "Tradesperson role API call successful, refreshing session..."
+            "[OnboardingFlow] Tradesperson role API call successful, refreshing session..."
           );
 
           // Force refresh the session to get updated metadata immediately
           await session?.reload();
 
-          console.log("Session refreshed, redirecting based on role...");
+          console.log(
+            "[OnboardingFlow] Session refreshed, redirecting based on role..."
+          );
 
           // Redirect to role-specific route
           window.location.href = "/tradesperson";
         } catch (refreshError) {
-          console.error("Error refreshing session:", refreshError);
+          console.error(
+            "[OnboardingFlow] Error refreshing session after tradesperson onboarding:",
+            refreshError
+          );
           // Fallback to the old retry mechanism
           const checkMetadataAndRedirect = async (attempts = 0) => {
             const maxAttempts = 10;
 
             if (attempts >= maxAttempts) {
+              console.error(
+                "[OnboardingFlow] Max attempts reached while waiting for onboarding metadata (tradesperson). Redirecting."
+              );
               window.location.href = "/tradesperson";
               return;
             }
@@ -167,8 +196,14 @@ export default function OnboardingFlow() {
             await user?.reload();
 
             if (user?.publicMetadata?.onboardingComplete) {
+              console.log(
+                `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts (tradesperson). Redirecting.`
+              );
               window.location.href = "/tradesperson";
             } else {
+              console.warn(
+                `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts} (tradesperson). Retrying...`
+              );
               setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
             }
           };
@@ -176,11 +211,18 @@ export default function OnboardingFlow() {
           checkMetadataAndRedirect();
         }
       } else {
-        console.error("Failed to set user role and trades");
+        const errorText = await response.text();
+        console.error(
+          `[OnboardingFlow] Failed to set user role and trades. Status: ${response.status}. Response:`,
+          errorText
+        );
         setIsLoading(false);
       }
     } catch (error) {
-      console.error("Error setting user role and trades:", error);
+      console.error(
+        "[OnboardingFlow] Error setting user role and trades:",
+        error
+      );
       setIsLoading(false);
     }
   };
