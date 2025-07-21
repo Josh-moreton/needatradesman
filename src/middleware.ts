@@ -101,9 +101,45 @@ export default clerkMiddleware(
                 hasMetadataField: 'metadata' in (sessionClaims || {})
             })
 
+            // If session claims don't have metadata, check the database as well
+            // This handles cases where Clerk metadata is out of sync with our database
+            if (!onboarded) {
+                try {
+                    console.log('Checking database for user with incomplete metadata...')
+                    const { prisma } = await import('@/lib/prisma')
+                    const dbUser = await prisma.user.findUnique({
+                        where: { clerkId: userId },
+                        select: { role: true }
+                    })
+
+                    if (dbUser && dbUser.role) {
+                        console.log('User has role in database but missing Clerk metadata - allowing access')
+                        onboarded = true // User has completed onboarding according to our database
+
+                        // Optionally, fix the metadata async (don't wait for it)
+                        import('@clerk/nextjs/server').then(async ({ clerkClient }) => {
+                            try {
+                                const client = await clerkClient()
+                                await client.users.updateUserMetadata(userId, {
+                                    publicMetadata: {
+                                        onboardingComplete: true,
+                                        role: dbUser.role
+                                    }
+                                })
+                                console.log('Fixed Clerk metadata for user:', userId)
+                            } catch (fixError) {
+                                console.error('Error fixing Clerk metadata:', fixError)
+                            }
+                        })
+                    }
+                } catch (dbError) {
+                    console.error('Error checking database for user:', dbError)
+                }
+            }
+
             // If session claims don't have metadata, it might be a timing issue
             // Log this case but still fetch fresh data as fallback
-            if (userId && !('publicMetadata' in (sessionClaims || {}))) {
+            if (userId && !onboarded && !('publicMetadata' in (sessionClaims || {}))) {
                 console.log('WARNING: Session claims missing publicMetadata field - this should be rare after session.reload() fix')
                 try {
                     console.log('Fetching fresh data from Clerk API as fallback...')

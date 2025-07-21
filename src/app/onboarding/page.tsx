@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
@@ -39,8 +39,25 @@ export default async function OnboardingPage() {
       where: { clerkId: userId },
     });
 
-    if (user && user.role && onboardingComplete) {
-      // User already completed onboarding, redirect to appropriate dashboard
+    if (user && user.role) {
+      // User exists in database with a role but onboarding metadata might be missing/out of sync
+      if (!onboardingComplete) {
+        // Try to sync the metadata
+        try {
+          const client = await clerkClient();
+          await client.users.updateUserMetadata(userId, {
+            publicMetadata: {
+              onboardingComplete: true,
+              role: user.role,
+            },
+          });
+          console.log("Synced missing onboarding metadata for user:", userId);
+        } catch (syncError) {
+          console.error("Error syncing metadata:", syncError);
+        }
+      }
+
+      // Redirect to appropriate dashboard
       if (user.role === "CUSTOMER") {
         redirect("/customer");
       } else if (user.role === "TRADESPERSON") {
