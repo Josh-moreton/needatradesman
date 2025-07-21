@@ -73,7 +73,7 @@ export function JobForm() {
       await response.json();
 
       // Redirect to job management page
-      router.push("/jobs/my-jobs");
+      router.push("/customer/jobs/my-jobs");
       router.refresh();
     } catch (error) {
       console.error("Error creating job:", error);
