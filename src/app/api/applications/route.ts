@@ -100,7 +100,6 @@ export async function POST(request: NextRequest) {
                         customerId: true,
                     },
                 },
-                quoteItems: true,
             },
         });
 
