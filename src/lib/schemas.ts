@@ -21,6 +21,8 @@ export const createApplicationSchema = z.object({
     message: z.string().min(10, 'Message must be at least 10 characters').max(500, 'Message too long'),
     quote: z.number().positive('Quote must be positive').optional(),
     quoteItems: z.array(quoteItemSchema).optional(),
+    depositPercentage: z.number().min(0, 'Deposit percentage cannot be negative').max(100, 'Deposit percentage cannot exceed 100%').default(50),
+    requiresDeposit: z.boolean().default(true),
 })
 
 export const createMessageSchema = z.object({

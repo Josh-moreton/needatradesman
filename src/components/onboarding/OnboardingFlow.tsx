@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser, useSession } from "@clerk/nextjs";
-import { UserRole, JobCategory } from "@/lib/schemas";
+import { UserRole, JobCategory } from "@prisma/client"; // Use Prisma enum instead
 import {
   Card,
   CardContent,

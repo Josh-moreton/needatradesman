@@ -38,6 +38,8 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
       message: "",
       quote: undefined,
       quoteItems: [],
+      depositPercentage: 50,
+      requiresDeposit: true,
     },
   });
 
@@ -164,7 +166,18 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
               <FormDescription>
                 Add line items or leave empty to provide a single amount.
               </FormDescription>
-              <QuoteBuilder value={field.value || []} onChange={field.onChange} />
+              <QuoteBuilder
+                value={field.value || []}
+                onChange={field.onChange}
+                depositPercentage={form.watch("depositPercentage")}
+                onDepositPercentageChange={(value) =>
+                  form.setValue("depositPercentage", value)
+                }
+                requiresDeposit={form.watch("requiresDeposit")}
+                onRequiresDepositChange={(value) =>
+                  form.setValue("requiresDeposit", value)
+                }
+              />
               <FormMessage />
             </FormItem>
           )}

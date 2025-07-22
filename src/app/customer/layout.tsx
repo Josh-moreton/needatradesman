@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import { UserRole } from "@/lib/schemas";
+import { UserRole } from "@prisma/client"; // Use Prisma enum instead
 import { redirect } from "next/navigation";
 import { SidebarCustomer } from "@/components/layout/SidebarCustomer";
 
@@ -13,14 +13,17 @@ export default async function CustomerLayout({
   // Protect customer routes
   if (!user) {
     redirect("/sign-in");
+    return;
   }
 
   if (!user.role) {
     redirect("/onboarding");
+    return;
   }
 
   if (user.role !== UserRole.CUSTOMER) {
     redirect("/tradesperson");
+    return;
   }
 
   return (
