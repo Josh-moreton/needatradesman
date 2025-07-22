@@ -44,95 +44,97 @@ export default function Dashboard({ user }: DashboardProps) {
 
 function TradespersonDashboard({ displayName }: { displayName: string }) {
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {displayName}!
-        </h1>
-        <p className="text-muted-foreground">
-          Find new opportunities and manage your applications
-        </p>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-8">
+        {/* Welcome Section */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Welcome back, {displayName}!
+          </h1>
+          <p className="text-muted-foreground">
+            Find new opportunities and manage your applications
+          </p>
+        </div>
 
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Active Applications"
-          value="5"
-          description="+2 this week"
-          icon={<FileText className="h-4 w-4" />}
-        />
-        <StatsCard
-          title="New Jobs"
-          value="23"
-          description="In your categories"
-          icon={<Briefcase className="h-4 w-4" />}
-        />
-        <StatsCard
-          title="Messages"
-          value="6"
-          description="3 unread"
-          icon={<MessageSquare className="h-4 w-4" />}
-        />
-        <StatsCard
-          title="Jobs Won"
-          value="4"
-          description="This month"
-          icon={<TrendingUp className="h-4 w-4" />}
-        />
-      </div>
+        {/* Quick Stats */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            title="Active Applications"
+            value="5"
+            description="+2 this week"
+            icon={<FileText className="h-4 w-4" />}
+          />
+          <StatsCard
+            title="New Jobs"
+            value="23"
+            description="In your categories"
+            icon={<Briefcase className="h-4 w-4" />}
+          />
+          <StatsCard
+            title="Messages"
+            value="6"
+            description="3 unread"
+            icon={<MessageSquare className="h-4 w-4" />}
+          />
+          <StatsCard
+            title="Jobs Won"
+            value="4"
+            description="This month"
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+        </div>
 
-      {/* Main Actions */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <ActionCard
-          title="Find Jobs"
-          description="Browse available job opportunities in your area and apply to jobs that match your skills"
-          icon={<Search className="h-8 w-8" />}
-          href="/tradesperson/jobs"
-          buttonText="Browse Jobs"
-          variant="primary"
-        />
+        {/* Main Actions */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <ActionCard
+            title="Find Jobs"
+            description="Browse available job opportunities in your area and apply to jobs that match your skills"
+            icon={<Search className="h-8 w-8" />}
+            href="/tradesperson/jobs"
+            buttonText="Browse Jobs"
+            variant="primary"
+          />
 
-        <ActionCard
-          title="My Applications"
-          description="Track your job applications, view responses, and manage your application status"
-          icon={<FileText className="h-8 w-8" />}
-          href="/tradesperson/my-responses"
-          buttonText="View Applications"
-        />
+          <ActionCard
+            title="My Applications"
+            description="Track your job applications, view responses, and manage your application status"
+            icon={<FileText className="h-8 w-8" />}
+            href="/tradesperson/my-responses"
+            buttonText="View Applications"
+          />
 
-        <ActionCard
-          title="Messages"
-          description="Chat with potential customers, ask questions, and negotiate project details"
-          icon={<MessageSquare className="h-8 w-8" />}
-          href="/tradesperson/messages"
-          buttonText="View Messages"
-        />
+          <ActionCard
+            title="Messages"
+            description="Chat with potential customers, ask questions, and negotiate project details"
+            icon={<MessageSquare className="h-8 w-8" />}
+            href="/tradesperson/messages"
+            buttonText="View Messages"
+          />
 
-        <ActionCard
-          title="My Profile"
-          description="Update your profile, add skills, upload portfolio images, and manage your reputation"
-          icon={<TrendingUp className="h-8 w-8" />}
-          href="/profile"
-          buttonText="Edit Profile"
-        />
+          <ActionCard
+            title="My Profile"
+            description="Update your profile, add skills, upload portfolio images, and manage your reputation"
+            icon={<TrendingUp className="h-8 w-8" />}
+            href="/profile"
+            buttonText="Edit Profile"
+          />
 
-        <ActionCard
-          title="Earnings"
-          description="View your earnings, payment history, and manage your payout preferences"
-          icon={<Clock className="h-8 w-8" />}
-          href="/earnings"
-          buttonText="View Earnings"
-        />
+          <ActionCard
+            title="Earnings"
+            description="View your earnings, payment history, and manage your payout preferences"
+            icon={<Clock className="h-8 w-8" />}
+            href="/earnings"
+            buttonText="View Earnings"
+          />
 
-        <ActionCard
-          title="Reviews"
-          description="See customer reviews and feedback to build your reputation on the platform"
-          icon={<Mail className="h-8 w-8" />}
-          href="/reviews"
-          buttonText="View Reviews"
-        />
+          <ActionCard
+            title="Reviews"
+            description="See customer reviews and feedback to build your reputation on the platform"
+            icon={<Mail className="h-8 w-8" />}
+            href="/reviews"
+            buttonText="View Reviews"
+          />
+        </div>
       </div>
     </div>
   );
