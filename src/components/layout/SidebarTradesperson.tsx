@@ -10,6 +10,7 @@ import {
   FileText,
   MessageSquare,
   Home,
+  DollarSign,
 } from "lucide-react";
 
 interface SidebarTradespersonProps {
@@ -44,6 +45,11 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
       href: "/tradesperson/messages",
       label: "Messages",
       icon: MessageSquare,
+    },
+    {
+      href: "/tradesperson/dashboard/payouts",
+      label: "Payouts",
+      icon: DollarSign, // You can change to DollarSign or another icon if preferred
     },
   ];
 
