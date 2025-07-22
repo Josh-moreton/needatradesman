@@ -80,14 +80,17 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        // Calculate the deposit amount (use parameter or default to 50%)
-        const deposit = depositAmount || Number(fullAmount) * 0.5;
+        // Use the provided deposit amount (should already be calculated)
+        const deposit = depositAmount;
 
         // Format for Stripe (amount in cents/pennies)
         const formattedDepositAmount = Math.round(deposit * 100);
 
         // Get origin for success/cancel URLs
         const origin = request.headers.get("origin") || "http://localhost:3000";
+
+        // Calculate deposit percentage for display
+        const depositPercentage = Math.round((deposit / Number(fullAmount)) * 100);
 
         // Create a Checkout Session
         const session = await stripe.checkout.sessions.create({
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest) {
                         currency: "gbp",
                         product_data: {
                             name: `Deposit for ${job.title}`,
-                            description: `50% deposit to book this job`,
+                            description: `${depositPercentage}% deposit to book this job`,
                         },
                         unit_amount: formattedDepositAmount,
                     },

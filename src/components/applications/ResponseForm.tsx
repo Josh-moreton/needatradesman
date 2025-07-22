@@ -22,6 +22,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle } from "lucide-react";
 import { QuoteBuilder } from "@/components/quotes/QuoteBuilder";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ResponseFormProps {
   jobId: string;
@@ -39,6 +47,8 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
       message: "",
       quote: undefined,
       quoteItems: [],
+      requiresDeposit: true,
+      depositPercentage: 50,
     },
   });
 
@@ -196,11 +206,77 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
               <FormDescription>
                 Add line items or leave empty to provide a single amount.
               </FormDescription>
-              <QuoteBuilder value={field.value || []} onChange={field.onChange} />
+              <QuoteBuilder
+                value={field.value || []}
+                onChange={field.onChange}
+              />
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">Deposit Requirements</h3>
+
+          <FormField
+            control={form.control}
+            name="requiresDeposit"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Require deposit payment</FormLabel>
+                  <FormDescription>
+                    Request a deposit before starting work (recommended for
+                    larger jobs)
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          {form.watch("requiresDeposit") && (
+            <FormField
+              control={form.control}
+              name="depositPercentage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Deposit Percentage</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    defaultValue={field.value?.toString() || "50"}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select deposit percentage" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="10">
+                        10% - Small upfront payment
+                      </SelectItem>
+                      <SelectItem value="25">25% - Quarter deposit</SelectItem>
+                      <SelectItem value="50">
+                        50% - Half deposit (recommended)
+                      </SelectItem>
+                      <SelectItem value="75">75% - Large deposit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Percentage of quote to request as deposit (e.g., 50% = half
+                    of total quote)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
 
         <div className="flex gap-4 pt-4">
           <Button
