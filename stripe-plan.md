@@ -177,4 +177,43 @@
 - [ ] Set up Stripe webhooks for all relevant events.
 - [ ] Add payment and payout status indicators in dashboards.
 
----
+Information:Snapshot payload:
+{
+"id":
+"evt_abc123xyz",
+"object":
+"event",
+"api_version":
+"2019-02-19",
+"created":
+1686089970,
+"data": {… 1 item},
+"livemode":
+false,
+"pending_webhooks":
+0,
+"request": {… 2 items},
+"type":
+"setup_intent.created",
+}
+
+thin payload:
+
+{
+"id":
+"evt_abc123xyz",
+"object":
+"v2.core.event",
+"type":
+"v1.billing.meter.error_report_triggered",
+"livemode":
+false,
+"created":
+"2024-09-17T06:20:52.246Z",
+"related_object": {
+"id":
+"mtr_test_123456789",
+"type":
+"billing.meter",
+"url":
+"/v1/billing/meters/mtr_test_123456789",

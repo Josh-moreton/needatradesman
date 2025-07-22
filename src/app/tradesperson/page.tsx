@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { BarChart3, Briefcase, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -17,10 +18,22 @@ export const dynamic = "force-dynamic";
 export default async function TradespersonHomePage() {
   const user = await getCurrentUser();
 
+  // Ensure user exists and has the correct role
+  if (!user) {
+    redirect("/sign-in");
+    return;
+  }
+
+  if (user.role !== "TRADESPERSON") {
+    // If user has a different role, redirect to onboarding to fix it
+    redirect("/onboarding");
+    return;
+  }
+
   // Get tradesperson stats
   const [applications, jobs] = await Promise.all([
     prisma.application.count({
-      where: { tradespersonId: user!.id },
+      where: { tradespersonId: user.id },
     }),
     prisma.job.count({
       where: {

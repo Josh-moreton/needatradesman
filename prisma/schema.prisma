@@ -11,15 +11,16 @@ datasource db {
 }
 
 model User {
-  id        String        @id @default(cuid())
-  clerkId   String        @unique
-  email     String        @unique
-  firstName String?
-  lastName  String?
-  role      UserRole
-  trades    JobCategory[] // For tradespeople - selected trade categories
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  clerkId         String        @unique
+  email           String        @unique
+  firstName       String?
+  lastName        String?
+  role            UserRole
+  trades          JobCategory[] // For tradespeople - selected trade categories
+  stripeAccountId String? // Stripe Connect account ID for tradespeople
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   // Relationships
   jobsPosted       Job[]           @relation("CustomerJobs")
@@ -32,17 +33,22 @@ model User {
 }
 
 model Job {
-  id          String      @id @default(cuid())
-  title       String
-  description String
-  category    JobCategory
-  location    String
-  budget      Decimal?
-  status      JobStatus   @default(OPEN)
-  attachments String? // Store as JSON string of file URLs
-  customerId  String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                     String      @id @default(cuid())
+  title                  String
+  description            String
+  category               JobCategory
+  location               String
+  budget                 Decimal?
+  status                 JobStatus   @default(OPEN)
+  attachments            String? // Store as JSON string of file URLs
+  customerId             String
+  depositPaid            Boolean     @default(false)
+  depositPaymentIntentId String?
+  finalPaid              Boolean     @default(false)
+  finalPaymentIntentId   String?
+  acceptedTradespersonId String?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
 
   // Relationships
   customer     User          @relation("CustomerJobs", fields: [customerId], references: [id], onDelete: Cascade)
@@ -53,15 +59,17 @@ model Job {
 }
 
 model Application {
-  id             String            @id @default(cuid())
-  message        String
-  quote          Decimal?
-  quoteItems     Json?
-  status         ApplicationStatus @default(PENDING)
-  jobId          String
-  tradespersonId String
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id                String            @id @default(cuid())
+  message           String
+  quote             Decimal?
+  quoteItems        Json?
+  requiresDeposit   Boolean           @default(true)
+  depositPercentage Int               @default(50)
+  status            ApplicationStatus @default(PENDING)
+  jobId             String
+  tradespersonId    String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   // Relationships
   job          Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)

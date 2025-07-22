@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { PlusCircle, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -17,10 +18,22 @@ export const dynamic = "force-dynamic";
 export default async function CustomerHomePage() {
   const user = await getCurrentUser();
 
+  // Ensure user exists and has the correct role
+  if (!user) {
+    redirect("/sign-in");
+    return;
+  }
+
+  if (user.role !== "CUSTOMER") {
+    // If user has a different role, redirect to onboarding to fix it
+    redirect("/onboarding");
+    return;
+  }
+
   // Get user's job stats for quick overview
   const [recentJobs, totalApplications] = await Promise.all([
     prisma.job.findMany({
-      where: { customerId: user!.id },
+      where: { customerId: user.id },
       include: {
         _count: {
           select: { applications: true },

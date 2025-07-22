@@ -13,17 +13,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MessageSquare, Clock, CheckCircle, X } from "lucide-react";
 import Link from "next/link";
+import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
 
 import { Decimal } from "@prisma/client/runtime/library";
 
 interface Job {
   id: string;
   title: string;
+  depositPaid: boolean;
   applications: Array<{
     id: string;
     message: string;
     quote: Decimal | null;
     status: string;
+    requiresDeposit: boolean;
+    depositPercentage: number;
     createdAt: Date;
     tradesperson: {
       id: string;
@@ -43,16 +47,97 @@ interface AcceptRejectButtonsProps {
   onStatusChange: () => void;
 }
 
+interface PayDepositButtonProps {
+  jobId: string;
+  tradespersonId: string;
+  applicationId: string;
+  quote: Decimal | null;
+  depositPercentage: number;
+  jobTitle: string;
+  onPaymentComplete: () => void;
+}
+
+function PayDepositButton({
+  jobId,
+  tradespersonId,
+  applicationId,
+  quote,
+  depositPercentage,
+  jobTitle,
+  onPaymentComplete,
+}: PayDepositButtonProps) {
+  const [showDepositModal, setShowDepositModal] = useState(false);
+
+  const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
+
+  const handlePaymentComplete = () => {
+    setShowDepositModal(false);
+    onPaymentComplete();
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="default"
+        onClick={() => setShowDepositModal(true)}
+      >
+        💳 Pay Deposit (£{depositAmount.toFixed(2)})
+      </Button>
+
+      <DepositPaymentModal
+        isOpen={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        jobId={jobId}
+        tradespersonId={tradespersonId}
+        jobTitle={jobTitle}
+        depositAmount={depositAmount}
+      />
+    </>
+  );
+}
+
 function AcceptRejectButtons({
   applicationId,
   onStatusChange,
 }: AcceptRejectButtonsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [applicationData, setApplicationData] = useState<any>(null);
   const router = useRouter();
+
+  // Fetch application details when accepting
+  const fetchApplicationDetails = async () => {
+    try {
+      const response = await fetch(`/api/applications/${applicationId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch application details");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      return null;
+    }
+  };
 
   const updateStatus = async (status: "ACCEPTED" | "REJECTED") => {
     setIsUpdating(true);
+
     try {
+      if (status === "ACCEPTED") {
+        // Fetch application details to check if deposit is required
+        const appData = await fetchApplicationDetails();
+        setApplicationData(appData);
+
+        if (appData?.requiresDeposit) {
+          // Show deposit modal if deposit is required
+          setShowDepositModal(true);
+          setIsUpdating(false);
+          return;
+        }
+      }
+
+      // If rejecting or no deposit required, just update the status
       const response = await fetch(`/api/applications/${applicationId}`, {
         method: "PATCH",
         headers: {
@@ -75,6 +160,29 @@ function AcceptRejectButtons({
     }
   };
 
+  // Calculate the deposit amount if we have application data
+  const depositAmount = applicationData?.quote
+    ? (applicationData.depositPercentage * Number(applicationData.quote)) / 100
+    : 0;
+
+  // Function to handle deposit payment
+  const handleDepositPayment = async () => {
+    if (!applicationData) return;
+
+    // First update the application status
+    await fetch(`/api/applications/${applicationId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "ACCEPTED" }),
+    });
+
+    setShowDepositModal(false);
+    onStatusChange();
+    router.refresh();
+  };
+
   return (
     <>
       <Button
@@ -95,6 +203,17 @@ function AcceptRejectButtons({
         <X className="h-4 w-4 mr-2" />
         {isUpdating ? "Rejecting..." : "Reject"}
       </Button>
+
+      {showDepositModal && applicationData && (
+        <DepositPaymentModal
+          isOpen={showDepositModal}
+          onClose={() => setShowDepositModal(false)}
+          jobId={applicationData.jobId}
+          tradespersonId={applicationData.tradespersonId}
+          jobTitle={applicationData.job?.title || "Job"}
+          depositAmount={depositAmount}
+        />
+      )}
     </>
   );
 }
@@ -286,6 +405,21 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                         onStatusChange={handleStatusChange}
                       />
                     )}
+
+                    {/* Show Pay Deposit button for accepted applications with unpaid deposits */}
+                    {application.status === "ACCEPTED" &&
+                      application.requiresDeposit &&
+                      !job.depositPaid && (
+                        <PayDepositButton
+                          jobId={job.id}
+                          tradespersonId={application.tradesperson.id}
+                          applicationId={application.id}
+                          quote={application.quote}
+                          depositPercentage={application.depositPercentage}
+                          jobTitle={job.title}
+                          onPaymentComplete={handleStatusChange}
+                        />
+                      )}
                   </div>
                 </div>
               </CardContent>
