@@ -1,0 +1,126 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    const { userId } = await auth();
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) return new NextResponse("User not found", { status: 404 });
+
+    // Get the template and verify ownership
+    const template = await prisma.quoteTemplate.findUnique({
+        where: { id: params.id },
+        include: { items: true },
+    });
+
+    if (!template) {
+        return new NextResponse("Template not found", { status: 404 });
+    }
+
+    if (template.userId !== user.id) {
+        return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    return NextResponse.json(template);
+}
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    const { userId } = await auth();
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) return new NextResponse("User not found", { status: 404 });
+
+    // Get the template and verify ownership
+    const template = await prisma.quoteTemplate.findUnique({
+        where: { id: params.id },
+    });
+
+    if (!template) {
+        return new NextResponse("Template not found", { status: 404 });
+    }
+
+    if (template.userId !== user.id) {
+        return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    // Delete the template (items will cascade delete due to the relation)
+    await prisma.quoteTemplate.delete({
+        where: { id: params.id },
+    });
+
+    return new NextResponse(null, { status: 204 });
+}
+
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    const { userId } = await auth();
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) return new NextResponse("User not found", { status: 404 });
+
+    // Get the template and verify ownership
+    const template = await prisma.quoteTemplate.findUnique({
+        where: { id: params.id },
+    });
+
+    if (!template) {
+        return new NextResponse("Template not found", { status: 404 });
+    }
+
+    if (template.userId !== user.id) {
+        return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    // Update the template
+    const body = await request.json();
+    const { name, items } = body;
+
+    // Update the template name if provided
+    if (name) {
+        await prisma.quoteTemplate.update({
+            where: { id: params.id },
+            data: { name },
+        });
+    }
+
+    // Update items if provided
+    if (items && Array.isArray(items)) {
+        // Delete existing items
+        await prisma.quoteTemplateItem.deleteMany({
+            where: { templateId: params.id },
+        });
+
+        // Create new items
+        await prisma.quoteTemplate.update({
+            where: { id: params.id },
+            data: {
+                items: {
+                    create: items.map((item) => ({
+                        description: item.description,
+                        price: item.unitPrice,
+                    })),
+                },
+            },
+        });
+    }
+
+    // Return updated template
+    const updatedTemplate = await prisma.quoteTemplate.findUnique({
+        where: { id: params.id },
+        include: { items: true },
+    });
+
+    return NextResponse.json(updatedTemplate);
+}

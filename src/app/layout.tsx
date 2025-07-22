@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import { ThemeProvider } from "next-themes";
 import ClerkThemeProvider from "@/components/providers/ClerkThemeProvider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
           <ClerkThemeProvider>
             <Header />
             <main className="min-h-screen">{children}</main>
+            <Toaster position="top-center" />
           </ClerkThemeProvider>
         </ThemeProvider>
       </body>

@@ -33,9 +33,10 @@ import {
 
 interface ResponseFormProps {
   jobId: string;
+  userId?: string;
 }
 
-export function ResponseForm({ jobId }: ResponseFormProps) {
+export function ResponseForm({ jobId, userId }: ResponseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
@@ -209,6 +210,8 @@ export function ResponseForm({ jobId }: ResponseFormProps) {
               <QuoteBuilder
                 value={field.value || []}
                 onChange={field.onChange}
+                userId={userId}
+                showTemplates={true}
               />
               <FormMessage />
             </FormItem>

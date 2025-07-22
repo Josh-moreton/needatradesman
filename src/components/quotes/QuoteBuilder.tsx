@@ -5,7 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormLabel } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { QuoteItem } from "@/lib/schemas";
+import { TemplateModal } from "@/components/quotes/TemplateModal";
+
+interface QuoteTemplate {
+  id: string;
+  name: string;
+  items: {
+    id: string;
+    description: string;
+    price: number;
+  }[];
+}
 
 interface QuoteBuilderProps {
   value: QuoteItem[];
@@ -14,6 +32,8 @@ interface QuoteBuilderProps {
   onDepositPercentageChange?: (value: number) => void;
   requiresDeposit?: boolean;
   onRequiresDepositChange?: (value: boolean) => void;
+  userId?: string; // Optional user ID for fetching templates
+  showTemplates?: boolean; // Whether to show template selection
 }
 
 export function QuoteBuilder({
@@ -23,12 +43,38 @@ export function QuoteBuilder({
   onDepositPercentageChange,
   requiresDeposit = true,
   onRequiresDepositChange,
+  userId,
+  showTemplates = false,
 }: QuoteBuilderProps) {
   const [items, setItems] = useState<QuoteItem[]>(value);
+  const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   useEffect(() => {
     onChange(items);
   }, [items, onChange]);
+
+  // Function to fetch templates
+  const fetchTemplates = async () => {
+    if (showTemplates && userId) {
+      setIsLoadingTemplates(true);
+      try {
+        const response = await fetch("/api/quote-templates");
+        if (!response.ok) throw new Error("Failed to fetch templates");
+        const data = await response.json();
+        setTemplates(data);
+      } catch (error) {
+        console.error("Error fetching templates:", error);
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    }
+  };
+
+  // Fetch templates if userId is provided
+  useEffect(() => {
+    fetchTemplates();
+  }, [userId, showTemplates]);
 
   const addItem = () => {
     setItems([...items, { description: "", quantity: 1, unitPrice: 0 }]);
@@ -54,8 +100,54 @@ export function QuoteBuilder({
 
   const depositAmount = requiresDeposit ? (total * depositPercentage) / 100 : 0;
 
+  // Handle template selection
+  const handleTemplateSelection = (templateId: string) => {
+    const selectedTemplate = templates.find((t) => t.id === templateId);
+    if (selectedTemplate) {
+      // Convert template items to quote items
+      const newItems = selectedTemplate.items.map((item) => ({
+        description: item.description,
+        quantity: 1,
+        unitPrice: parseFloat(item.price.toString()),
+      }));
+      setItems(newItems);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {showTemplates && (
+        <div className="mb-4">
+          <FormLabel>Quote Templates</FormLabel>
+          <div className="flex gap-2">
+            <Select
+              onValueChange={handleTemplateSelection}
+              disabled={isLoadingTemplates}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    isLoadingTemplates
+                      ? "Loading templates..."
+                      : "Select a template"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {userId && (
+              <TemplateModal userId={userId} onTemplateAdded={fetchTemplates} />
+            )}
+          </div>
+        </div>
+      )}
+
       {items.map((item, index) => (
         <div key={index} className="flex gap-2 items-end">
           <div className="flex-1">

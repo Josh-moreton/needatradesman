@@ -131,7 +131,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponseForm jobId={job.id} />
+            <ResponseForm jobId={job.id} userId={user.id} />
           </CardContent>
         </Card>
       </div>

@@ -49,7 +49,7 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
     {
       href: "/tradesperson/dashboard/payouts",
       label: "Payouts",
-      icon: DollarSign, // You can change to DollarSign or another icon if preferred
+      icon: DollarSign,
     },
   ];
 
