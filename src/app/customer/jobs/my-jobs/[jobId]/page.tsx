@@ -39,7 +39,10 @@ export default async function ManageResponsesPage({
         id: resolvedParams.jobId,
         customerId: user.id, // Ensure user owns this job
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        depositPaid: true,
         applications: {
           include: {
             tradesperson: {

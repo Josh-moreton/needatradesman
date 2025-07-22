@@ -20,11 +20,14 @@ import { Decimal } from "@prisma/client/runtime/library";
 interface Job {
   id: string;
   title: string;
+  depositPaid: boolean;
   applications: Array<{
     id: string;
     message: string;
     quote: Decimal | null;
     status: string;
+    requiresDeposit: boolean;
+    depositPercentage: number;
     createdAt: Date;
     tradesperson: {
       id: string;
@@ -42,6 +45,56 @@ interface ManageResponsesClientProps {
 interface AcceptRejectButtonsProps {
   applicationId: string;
   onStatusChange: () => void;
+}
+
+interface PayDepositButtonProps {
+  jobId: string;
+  tradespersonId: string;
+  applicationId: string;
+  quote: Decimal | null;
+  depositPercentage: number;
+  jobTitle: string;
+  onPaymentComplete: () => void;
+}
+
+function PayDepositButton({
+  jobId,
+  tradespersonId,
+  applicationId,
+  quote,
+  depositPercentage,
+  jobTitle,
+  onPaymentComplete,
+}: PayDepositButtonProps) {
+  const [showDepositModal, setShowDepositModal] = useState(false);
+
+  const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
+
+  const handlePaymentComplete = () => {
+    setShowDepositModal(false);
+    onPaymentComplete();
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="default"
+        onClick={() => setShowDepositModal(true)}
+      >
+        💳 Pay Deposit (£{depositAmount.toFixed(2)})
+      </Button>
+
+      <DepositPaymentModal
+        isOpen={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        jobId={jobId}
+        tradespersonId={tradespersonId}
+        jobTitle={jobTitle}
+        depositAmount={depositAmount}
+      />
+    </>
+  );
 }
 
 function AcceptRejectButtons({
@@ -352,6 +405,21 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                         onStatusChange={handleStatusChange}
                       />
                     )}
+
+                    {/* Show Pay Deposit button for accepted applications with unpaid deposits */}
+                    {application.status === "ACCEPTED" &&
+                      application.requiresDeposit &&
+                      !job.depositPaid && (
+                        <PayDepositButton
+                          jobId={job.id}
+                          tradespersonId={application.tradesperson.id}
+                          applicationId={application.id}
+                          quote={application.quote}
+                          depositPercentage={application.depositPercentage}
+                          jobTitle={job.title}
+                          onPaymentComplete={handleStatusChange}
+                        />
+                      )}
                   </div>
                 </div>
               </CardContent>
