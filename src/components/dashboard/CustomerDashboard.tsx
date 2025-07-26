@@ -99,7 +99,7 @@ export default function CustomerDashboard({
           title="Post a New Job"
           description="Create a new job posting and find qualified tradespeople for your project"
           icon={<PlusCircle className="h-8 w-8" />}
-          href="/customer/jobs/new"
+          href="/dashboard/jobs/new"
           buttonText="Post Job"
           variant="primary"
         />
@@ -108,7 +108,7 @@ export default function CustomerDashboard({
           title="My Jobs"
           description="View and manage your posted jobs, review applications, and hire tradespeople"
           icon={<Briefcase className="h-8 w-8" />}
-          href="/customer/jobs/my-jobs"
+          href="/dashboard/my-jobs"
           buttonText="View Jobs"
         />
 
@@ -124,7 +124,7 @@ export default function CustomerDashboard({
           title="Messages"
           description="Chat with tradespeople, ask questions, and discuss project details"
           icon={<MessageSquare className="h-8 w-8" />}
-          href="/customer/messages"
+          href="/dashboard/messages"
           buttonText="View Messages"
         />
 
@@ -156,7 +156,7 @@ export default function CustomerDashboard({
               </CardDescription>
             </div>
             <Button asChild variant="outline">
-              <Link href="/customer/jobs/my-jobs">View All</Link>
+              <Link href="/dashboard/my-jobs">View All</Link>
             </Button>
           </div>
         </CardHeader>
@@ -169,7 +169,7 @@ export default function CustomerDashboard({
                 Get started by posting your first job
               </p>
               <Button asChild>
-                <Link href="/customer/jobs/new">
+                <Link href="/dashboard/jobs/new">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Post Your First Job
                 </Link>

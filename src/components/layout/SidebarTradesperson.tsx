@@ -22,32 +22,32 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
 
   const tradespersonLinks = [
     {
-      href: "/tradesperson",
+      href: "/dashboard",
       label: "Home",
       icon: Home,
     },
     {
-      href: "/tradesperson/dashboard",
-      label: "Dashboard",
-      icon: BarChart3,
-    },
-    {
-      href: "/tradesperson/jobs",
+      href: "/dashboard/jobs",
       label: "Browse Jobs",
       icon: Briefcase,
     },
     {
-      href: "/tradesperson/my-responses",
+      href: "/dashboard/my-responses",
       label: "My Responses",
       icon: FileText,
     },
     {
-      href: "/tradesperson/messages",
+      href: "/dashboard/messages",
       label: "Messages",
       icon: MessageSquare,
     },
     {
-      href: "/tradesperson/dashboard/payouts",
+      href: "/dashboard/quote-templates",
+      label: "Quote Templates",
+      icon: BarChart3,
+    },
+    {
+      href: "/dashboard/payouts",
       label: "Payouts",
       icon: DollarSign,
     },
@@ -58,7 +58,7 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
           <Link
-            href="/tradesperson"
+            href="/dashboard"
             className="flex items-center gap-2 font-semibold"
           >
             <span className="">Tradesperson Dashboard</span>

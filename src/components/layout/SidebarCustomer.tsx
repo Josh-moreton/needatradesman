@@ -15,22 +15,22 @@ export function SidebarCustomer({ user }: SidebarCustomerProps) {
 
   const customerLinks = [
     {
-      href: "/customer",
+      href: "/dashboard",
       label: "Home",
       icon: Home,
     },
     {
-      href: "/customer/jobs/new",
+      href: "/dashboard/jobs/new",
       label: "Post Job",
       icon: PlusCircle,
     },
     {
-      href: "/customer/jobs/my-jobs",
+      href: "/dashboard/my-jobs",
       label: "My Jobs",
       icon: FileText,
     },
     {
-      href: "/customer/messages",
+      href: "/dashboard/messages",
       label: "Messages",
       icon: MessageSquare,
     },
@@ -41,7 +41,7 @@ export function SidebarCustomer({ user }: SidebarCustomerProps) {
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
           <Link
-            href="/customer"
+            href="/dashboard"
             className="flex items-center gap-2 font-semibold"
           >
             <span className="">Customer Dashboard</span>
