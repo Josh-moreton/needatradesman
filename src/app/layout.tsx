@@ -1,3 +1,4 @@
+"use client";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -16,12 +17,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Need A Tradesman - Connect with Trusted Tradespeople",
-  description:
-    "Find skilled tradespeople for your home projects. Post jobs, get quotes, and hire with confidence.",
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,13 +29,15 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
         >
           <ClerkThemeProvider>
             <Header />
-            <main className="min-h-screen">{children}</main>
+            <main className="min-h-screen">
+              {children}
+            </main>
             <Toaster position="top-center" />
           </ClerkThemeProvider>
         </ThemeProvider>
