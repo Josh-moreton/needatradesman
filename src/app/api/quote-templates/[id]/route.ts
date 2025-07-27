@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
@@ -12,9 +12,11 @@ export async function GET(
     const user = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!user) return new NextResponse("User not found", { status: 404 });
 
+    const { id } = await params;
+
     // Get the template and verify ownership
     const template = await prisma.quoteTemplate.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: { items: true },
     });
 
@@ -31,7 +33,7 @@ export async function GET(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
@@ -39,9 +41,11 @@ export async function DELETE(
     const user = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!user) return new NextResponse("User not found", { status: 404 });
 
+    const { id } = await params;
+
     // Get the template and verify ownership
     const template = await prisma.quoteTemplate.findUnique({
-        where: { id: params.id },
+        where: { id },
     });
 
     if (!template) {
@@ -54,7 +58,7 @@ export async function DELETE(
 
     // Delete the template (items will cascade delete due to the relation)
     await prisma.quoteTemplate.delete({
-        where: { id: params.id },
+        where: { id },
     });
 
     return new NextResponse(null, { status: 204 });
@@ -62,7 +66,7 @@ export async function DELETE(
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const { userId } = await auth();
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
@@ -70,9 +74,11 @@ export async function PATCH(
     const user = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!user) return new NextResponse("User not found", { status: 404 });
 
+    const { id } = await params;
+
     // Get the template and verify ownership
     const template = await prisma.quoteTemplate.findUnique({
-        where: { id: params.id },
+        where: { id },
     });
 
     if (!template) {
@@ -90,7 +96,7 @@ export async function PATCH(
     // Update the template name if provided
     if (name) {
         await prisma.quoteTemplate.update({
-            where: { id: params.id },
+            where: { id },
             data: { name },
         });
     }
@@ -99,12 +105,12 @@ export async function PATCH(
     if (items && Array.isArray(items)) {
         // Delete existing items
         await prisma.quoteTemplateItem.deleteMany({
-            where: { templateId: params.id },
+            where: { templateId: id },
         });
 
         // Create new items
         await prisma.quoteTemplate.update({
-            where: { id: params.id },
+            where: { id },
             data: {
                 items: {
                     create: items.map((item) => ({
@@ -118,7 +124,7 @@ export async function PATCH(
 
     // Return updated template
     const updatedTemplate = await prisma.quoteTemplate.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: { items: true },
     });
 
