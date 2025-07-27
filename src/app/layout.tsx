@@ -35,9 +35,7 @@ export default function RootLayout({
         >
           <ClerkThemeProvider>
             <Header />
-            <main className="min-h-screen">
-              {children}
-            </main>
+            <main className="min-h-screen">{children}</main>
             <Toaster position="top-center" />
           </ClerkThemeProvider>
         </ThemeProvider>
