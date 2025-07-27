@@ -36,7 +36,7 @@ const fadeInUp = {
     y: 0,
     filter: "blur(0px)",
     transition: {
-      duration: 0.8,
+      duration: 2, // slowed down from 0.8
       ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
     },
   },
@@ -80,7 +80,12 @@ export default function LandingPageAnimated() {
 
   // Add debug logging
   useEffect(() => {
-    console.log("LandingPageAnimated - isLoaded:", isLoaded, "isSignedIn:", isSignedIn);
+    console.log(
+      "LandingPageAnimated - isLoaded:",
+      isLoaded,
+      "isSignedIn:",
+      isSignedIn
+    );
   }, [isLoaded, isSignedIn]);
 
   if (!isLoaded) {
@@ -103,14 +108,16 @@ export default function LandingPageAnimated() {
     );
   }
 
-  console.log("LandingPageAnimated - Rendering main landing page with animations");
+  console.log(
+    "LandingPageAnimated - Rendering main landing page with animations"
+  );
 
   return (
     <div className="flex flex-col">
       {/* Hero Section - Full Screen */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-primary/30 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto">
-          <motion.div 
+          <motion.div
             className="text-center max-w-4xl mx-auto"
             variants={staggerContainer}
             initial="initial"
@@ -122,14 +129,14 @@ export default function LandingPageAnimated() {
               </Badge>
             </motion.div>
 
-            <motion.h1 
+            <motion.h1
               className="text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-8 leading-tight"
               variants={fadeInUp}
             >
               Need a <span className="text-primary">Tradesman</span>?
             </motion.h1>
 
-            <motion.p 
+            <motion.p
               className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
@@ -137,7 +144,7 @@ export default function LandingPageAnimated() {
               jobs, get competitive quotes, and hire with complete confidence.
             </motion.p>
 
-            <motion.div 
+            <motion.div
               className="flex flex-col sm:flex-row gap-6 justify-center mb-20"
               variants={fadeInUp}
             >
@@ -171,11 +178,11 @@ export default function LandingPageAnimated() {
             </motion.div>
 
             {/* Trust Indicators */}
-            <motion.div 
+            <motion.div
               className="flex flex-wrap justify-center items-center gap-12 text-base text-muted-foreground"
               variants={fadeInUp}
             >
-              <motion.div 
+              <motion.div
                 className="flex items-center gap-3"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
@@ -183,7 +190,7 @@ export default function LandingPageAnimated() {
                 <Shield className="h-6 w-6 text-primary" />
                 Verified Professionals
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="flex items-center gap-3"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
@@ -191,7 +198,7 @@ export default function LandingPageAnimated() {
                 <Star className="h-6 w-6 text-accent" />
                 5-Star Rated
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="flex items-center gap-3"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
@@ -202,9 +209,9 @@ export default function LandingPageAnimated() {
             </motion.div>
           </motion.div>
         </div>
-        
+
         {/* Scroll indicator */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -215,14 +222,15 @@ export default function LandingPageAnimated() {
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex justify-center"
           >
-            <motion.div 
+            <motion.div
               className="w-1 h-3 bg-muted-foreground/50 rounded-full mt-2"
               animate={{ y: [0, 12, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             />
           </motion.div>
         </motion.div>
-      </section>      {/* User Types Section */}
+      </section>{" "}
+      {/* User Types Section */}
       <section className="py-20 bg-card">
         <div className="container mx-auto px-4">
           <motion.div
@@ -383,7 +391,6 @@ export default function LandingPageAnimated() {
           </div>
         </div>
       </section>
-
       {/* Features Section with more Linear-style animations */}
       <section className="bg-primary/5 py-24 sm:py-32">
         <div className="container mx-auto px-4">
@@ -451,7 +458,6 @@ export default function LandingPageAnimated() {
           </div>
         </div>
       </section>
-
       {/* CTA Section */}
       <section className="py-16 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
