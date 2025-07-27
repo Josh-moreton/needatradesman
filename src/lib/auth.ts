@@ -70,3 +70,21 @@ export async function isAuthenticated() {
         return false
     }
 }
+
+export async function getAuthenticatedUserWithRedirects() {
+    const user = await getCurrentUser()
+
+    if (!user) {
+        return { user: null, redirect: '/sign-in' }
+    }
+
+    if (!user.role) {
+        return { user, redirect: '/onboarding' }
+    }
+
+    return { user, redirect: null }
+}
+
+export function validateUserRole(user: any, allowedRoles: UserRole[]): boolean {
+    return user && user.role && allowedRoles.includes(user.role)
+}

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import QuoteTemplatesClient from "@/components/quotes/QuoteTemplatesClient";
 
 export default async function QuoteTemplatesPage() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     redirect("/sign-in");
   }

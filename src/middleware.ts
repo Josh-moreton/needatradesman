@@ -18,7 +18,8 @@ const isPublicRoute = createRouteMatcher([
 // Routes that should be accessible to authenticated users (skip onboarding check)
 const isAuthenticatedRoute = createRouteMatcher([
     '/customer(.*)',
-    '/tradesperson(.*)'
+    '/tradesperson(.*)',
+    '/dashboard(.*)'
 ])
 
 // Add a bypass parameter to prevent infinite redirects

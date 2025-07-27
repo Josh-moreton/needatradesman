@@ -27,13 +27,8 @@ export default function OnboardingFlow() {
   useEffect(() => {
     const checkOnboardingStatus = () => {
       if (user?.publicMetadata?.onboardingComplete) {
-        // User has completed onboarding, redirect based on their role if available
-        const userRole = user?.publicMetadata?.role;
-        if (userRole === "CUSTOMER") {
-          window.location.href = "/customer";
-        } else if (userRole === "TRADESPERSON") {
-          window.location.href = "/tradesperson";
-        }
+        // User has completed onboarding, redirect to unified dashboard
+        window.location.href = "/dashboard";
         // Remove the fallback redirect to prevent infinite loop
       }
     };
@@ -67,11 +62,8 @@ export default function OnboardingFlow() {
             console.log("Session refreshed, redirecting...");
 
             // Now redirect - the middleware should see the updated session
-            if (role === UserRole.CUSTOMER) {
-              window.location.href = "/customer";
-            } else {
-              window.location.href = "/tradesperson";
-            }
+            // Redirect to unified dashboard regardless of role
+            window.location.href = "/dashboard";
           } catch (refreshError) {
             console.error(
               "[OnboardingFlow] Error refreshing session after role set:",
@@ -85,11 +77,8 @@ export default function OnboardingFlow() {
                 console.error(
                   `[OnboardingFlow] Max attempts reached while waiting for onboarding metadata. Role: ${role}`
                 );
-                if (role === UserRole.CUSTOMER) {
-                  window.location.href = "/customer";
-                } else {
-                  window.location.href = "/tradesperson";
-                }
+                // Redirect to unified dashboard
+                window.location.href = "/dashboard";
                 return;
               }
 
@@ -99,11 +88,8 @@ export default function OnboardingFlow() {
                 console.log(
                   `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts. Redirecting. Role: ${role}`
                 );
-                if (role === UserRole.CUSTOMER) {
-                  window.location.href = "/customer";
-                } else {
-                  window.location.href = "/tradesperson";
-                }
+                // Redirect to unified dashboard
+                window.location.href = "/dashboard";
               } else {
                 console.warn(
                   `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts}. Retrying...`
@@ -171,11 +157,11 @@ export default function OnboardingFlow() {
           await session?.reload();
 
           console.log(
-            "[OnboardingFlow] Session refreshed, redirecting based on role..."
+            "[OnboardingFlow] Session refreshed, redirecting to dashboard..."
           );
 
-          // Redirect to role-specific route
-          window.location.href = "/tradesperson";
+          // Redirect to unified dashboard
+          window.location.href = "/dashboard";
         } catch (refreshError) {
           console.error(
             "[OnboardingFlow] Error refreshing session after tradesperson onboarding:",
@@ -189,7 +175,7 @@ export default function OnboardingFlow() {
               console.error(
                 "[OnboardingFlow] Max attempts reached while waiting for onboarding metadata (tradesperson). Redirecting."
               );
-              window.location.href = "/tradesperson";
+              window.location.href = "/dashboard";
               return;
             }
 
@@ -199,7 +185,7 @@ export default function OnboardingFlow() {
               console.log(
                 `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts (tradesperson). Redirecting.`
               );
-              window.location.href = "/tradesperson";
+              window.location.href = "/dashboard";
             } else {
               console.warn(
                 `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts} (tradesperson). Retrying...`
