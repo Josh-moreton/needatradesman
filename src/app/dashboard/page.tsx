@@ -79,7 +79,7 @@ async function CustomerDashboardPage({ user }: { user: any }) {
 
   // Return the exact same content as the original customer page
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-6xl bg-background min-h-screen">
       {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight mb-2">
@@ -280,7 +280,7 @@ async function TradespersonDashboardPage({ user }: { user: any }) {
 
   // Return the exact same content as the original tradesperson page
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-6xl bg-background min-h-screen">
       {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight mb-2">

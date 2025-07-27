@@ -21,7 +21,7 @@ export default async function DashboardMessagesPage() {
 
   // Messages work the same for both customer and tradesperson roles
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 bg-background min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Messages</h1>
       <ChatInterface currentUserId={user.id} />
     </div>

@@ -226,13 +226,15 @@ export default function QuoteTemplatesClient({
                   )}
                 />
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <h3 className="font-medium">Items</h3>
 
                   {items.map((item, index) => (
-                    <div key={index} className="flex gap-2 items-end">
+                    <div key={index} className="flex gap-4 items-end">
                       <div className="flex-1">
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel className="block mb-2">
+                          Description
+                        </FormLabel>
                         <Input
                           value={item.description}
                           onChange={(e) =>
@@ -242,7 +244,7 @@ export default function QuoteTemplatesClient({
                         />
                       </div>
                       <div>
-                        <FormLabel>Qty</FormLabel>
+                        <FormLabel className="block mb-2">Qty</FormLabel>
                         <Input
                           type="number"
                           value={item.quantity}
@@ -253,7 +255,7 @@ export default function QuoteTemplatesClient({
                         />
                       </div>
                       <div>
-                        <FormLabel>Unit £</FormLabel>
+                        <FormLabel className="block mb-2">Unit £</FormLabel>
                         <Input
                           type="number"
                           value={item.unitPrice}

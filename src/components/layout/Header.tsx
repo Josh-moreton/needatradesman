@@ -36,7 +36,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       {/* This div creates the centered, max-width container with padding */}
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* This div contains the flex layout for the header items */}

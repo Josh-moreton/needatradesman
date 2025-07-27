@@ -54,12 +54,12 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
   ];
 
   return (
-    <div className="hidden border-r bg-muted/40 md:block w-64">
+    <div className="hidden border-r bg-sidebar border-sidebar md:block w-64">
       <div className="flex h-full max-h-screen flex-col gap-2">
-        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+        <div className="flex h-14 items-center border-b border-sidebar-border px-4 lg:h-[60px] lg:px-6">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 font-semibold"
+            className="flex items-center gap-2 font-semibold text-sidebar-foreground"
           >
             <span className="">Tradesperson Dashboard</span>
           </Link>
@@ -71,8 +71,10 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
                 key={href}
                 href={href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                  { "bg-muted text-primary": pathname === href }
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  {
+                    "bg-sidebar-accent text-sidebar-primary": pathname === href,
+                  }
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -82,7 +84,7 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
           </nav>
         </div>
         <div className="mt-auto p-4">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm text-sidebar-foreground">
             <div className="font-medium">
               {user.firstName} {user.lastName}
             </div>

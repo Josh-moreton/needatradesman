@@ -34,9 +34,9 @@ export default async function DashboardLayout({
     user.role === UserRole.CUSTOMER ? SidebarCustomer : SidebarTradesperson;
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-background">
       <SidebarComponent user={user} />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-background">{children}</main>
     </div>
   );
 }

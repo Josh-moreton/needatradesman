@@ -92,49 +92,63 @@
 }
 
 .dark {
-  /* Dark Navy Blue background */
-  --background: oklch(0.207 0.035 218.5);
-  /* Light Cream foreground */
-  --foreground: oklch(0.968 0.011 85.8);
-  /* Charcoal cards */
-  --card: oklch(0.246 0.031 218.5);
-  --card-foreground: oklch(0.968 0.011 85.8);
-  /* Charcoal popovers */
-  --popover: oklch(0.246 0.031 218.5);
-  --popover-foreground: oklch(0.968 0.011 85.8);
-  /* Bright Yellow/Gold primary in dark mode */
-  --primary: oklch(0.761 0.158 85.8);
-  --primary-foreground: oklch(0.207 0.035 218.5);
-  /* Teal Blue secondary in dark mode */
-  --secondary: oklch(0.459 0.081 218.5);
-  --secondary-foreground: oklch(0.968 0.011 85.8);
-  /* Slightly lighter charcoal for muted */
-  --muted: oklch(0.28 0.035 218.5);
-  --muted-foreground: oklch(0.8 0.02 85.8);
-  /* Teal Blue accent in dark mode */
+  /* Enterprise Dark Mode - Proper Visual Hierarchy */
+
+  /* Main viewport - darkest background for content focus */
+  --background: oklch(0.16 0.02 218.5); /* Very dark navy - main content area */
+  --foreground: oklch(0.95 0.01 85.8); /* Crisp white text */
+
+  /* Cards - slightly lighter than background for layering */
+  --card: oklch(0.19 0.025 218.5); /* Slightly lighter than background */
+  --card-foreground: oklch(0.95 0.01 85.8);
+
+  /* Popovers - same as cards */
+  --popover: oklch(0.19 0.025 218.5);
+  --popover-foreground: oklch(0.95 0.01 85.8);
+
+  /* Primary - bright accent color */
+  --primary: oklch(0.761 0.158 85.8); /* Keep the bright yellow/gold */
+  --primary-foreground: oklch(0.16 0.02 218.5);
+
+  /* Secondary - teal for variety */
+  --secondary: oklch(0.459 0.081 218.5); /* Teal blue */
+  --secondary-foreground: oklch(0.95 0.01 85.8);
+
+  /* Muted areas - intermediate tone */
+  --muted: oklch(
+    0.22 0.03 218.5
+  ); /* Lighter than cards for muted backgrounds */
+  --muted-foreground: oklch(0.7 0.015 85.8); /* Softer text */
+
+  /* Accent - use teal */
   --accent: oklch(0.459 0.081 218.5);
-  --accent-foreground: oklch(0.968 0.011 85.8);
-  /* Keep destructive red */
-  --destructive: oklch(0.704 0.191 22.216);
-  /* Subtle dark borders */
-  --border: oklch(0.35 0.04 218.5);
-  --input: oklch(0.35 0.04 218.5);
-  /* Yellow ring in dark mode */
+  --accent-foreground: oklch(0.95 0.01 85.8);
+
+  /* Destructive - keep red but adjust for dark mode */
+  --destructive: oklch(0.65 0.18 25);
+
+  /* Borders and inputs - subtle but visible */
+  --border: oklch(0.3 0.04 218.5); /* Visible borders */
+  --input: oklch(0.3 0.04 218.5); /* Input borders */
+
+  /* Focus ring - bright yellow */
   --ring: oklch(0.761 0.158 85.8);
+
   /* Chart colors for dark mode */
   --chart-1: oklch(0.761 0.158 85.8); /* Bright Yellow */
   --chart-2: oklch(0.459 0.081 218.5); /* Teal Blue */
-  --chart-3: oklch(0.968 0.011 85.8); /* Light Cream */
-  --chart-4: oklch(0.8 0.02 85.8); /* Lighter cream */
-  --chart-5: oklch(0.35 0.04 218.5); /* Darker border tone */
-  /* Dark sidebar */
-  --sidebar: oklch(0.246 0.031 218.5);
-  --sidebar-foreground: oklch(0.968 0.011 85.8);
-  --sidebar-primary: oklch(0.761 0.158 85.8);
-  --sidebar-primary-foreground: oklch(0.207 0.035 218.5);
-  --sidebar-accent: oklch(0.459 0.081 218.5);
-  --sidebar-accent-foreground: oklch(0.968 0.011 85.8);
-  --sidebar-border: oklch(0.35 0.04 218.5);
+  --chart-3: oklch(0.95 0.01 85.8); /* Light text */
+  --chart-4: oklch(0.7 0.015 85.8); /* Muted text */
+  --chart-5: oklch(0.3 0.04 218.5); /* Border tone */
+
+  /* Sidebar - darker than main for professional hierarchy */
+  --sidebar: oklch(0.12 0.015 218.5); /* Darker than main background */
+  --sidebar-foreground: oklch(0.85 0.01 85.8); /* Slightly dimmer text */
+  --sidebar-primary: oklch(0.761 0.158 85.8); /* Yellow for active items */
+  --sidebar-primary-foreground: oklch(0.12 0.015 218.5);
+  --sidebar-accent: oklch(0.18 0.02 218.5); /* Subtle hover state */
+  --sidebar-accent-foreground: oklch(0.9 0.01 85.8);
+  --sidebar-border: oklch(0.25 0.03 218.5); /* Subtle sidebar borders */
   --sidebar-ring: oklch(0.761 0.158 85.8);
 }
 

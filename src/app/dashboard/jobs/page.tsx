@@ -127,7 +127,7 @@ async function TradespersonJobsView({
   const totalPages = Math.ceil(totalJobs / limit);
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6 bg-background min-h-screen">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Available Jobs</h1>
         <p className="text-muted-foreground">
