@@ -1,5 +1,36 @@
 # Testing the Stripe Integration
 
+## Running Production with Stripe Test Keys (Proof of Concept)
+
+You can deploy your production server using Stripe's sandbox (test) environment to validate your integration before switching to live keys.
+
+### Steps
+
+1. **Get Stripe test API keys**
+   - Go to Stripe Dashboard → Developers → API keys
+   - Use the keys that start with `pk_test_` and `sk_test_`
+
+2. **Set your production environment variables to use test keys**
+
+   ```
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_PUBLISHABLE_KEY=pk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...   # from Stripe CLI or Dashboard (test mode)
+   ```
+
+3. **Deploy your app with these test keys**
+   - Your production server will use Stripe's sandbox environment
+   - All payments, onboarding, and webhooks will work as in test mode
+
+4. **Test using Stripe test cards and accounts**
+   - Use the test card numbers (e.g., `4242 4242 4242 4242`)
+   - All Stripe features will behave as in development, but on your live server
+
+5. **When ready, switch to live keys**
+   - Replace the test keys in your `.env` with the live keys from Stripe Dashboard
+
+**Note:** Never use real customer data or expect real payouts in test mode. All transactions are simulated.
+
 ## Prerequisites
 
 - Stripe CLI installed
