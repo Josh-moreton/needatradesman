@@ -115,10 +115,10 @@ export default function LandingPageAnimated() {
   return (
     <div className="flex flex-col">
       {/* Hero Section - Full Screen */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-primary/30 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-primary/30 min-h-screen flex items-center justify-center px-2 sm:px-4 lg:px-8">
         <div className="container mx-auto">
           <motion.div
-            className="text-center max-w-4xl mx-auto"
+            className="text-center max-w-4xl mx-auto px-2 sm:px-0"
             variants={staggerContainer}
             initial="initial"
             animate="animate"
@@ -130,14 +130,14 @@ export default function LandingPageAnimated() {
             </motion.div>
 
             <motion.h1
-              className="text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-8 leading-tight"
+              className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-8 leading-tight break-words"
               variants={fadeInUp}
             >
               Need a <span className="text-primary">Tradesman</span>?
             </motion.h1>
 
             <motion.p
-              className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed"
+              className="text-base sm:text-xl md:text-2xl text-muted-foreground mb-8 sm:mb-12 max-w-xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
               Connect with trusted, verified tradespeople in your area. Post
@@ -145,7 +145,7 @@ export default function LandingPageAnimated() {
             </motion.p>
 
             <motion.div
-              className="flex flex-col sm:flex-row gap-6 justify-center mb-20"
+              className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-12 sm:mb-20 w-full items-center"
               variants={fadeInUp}
             >
               <SignUpButton mode="modal">
@@ -153,8 +153,12 @@ export default function LandingPageAnimated() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ duration: 0.2 }}
+                  className="w-full sm:w-auto"
                 >
-                  <Button size="lg" className="px-10 py-4 text-xl">
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto px-6 py-3 sm:px-10 sm:py-4 text-lg sm:text-xl inline-flex items-center mb-3 sm:mb-0"
+                  >
                     Get Started <ArrowRight className="ml-3 h-6 w-6" />
                   </Button>
                 </motion.div>
@@ -165,11 +169,12 @@ export default function LandingPageAnimated() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ duration: 0.2 }}
+                  className="w-full sm:w-auto"
                 >
                   <Button
                     variant="outline"
                     size="lg"
-                    className="px-10 py-4 text-xl"
+                    className="w-full sm:w-auto px-6 py-3 sm:px-10 sm:py-4 text-lg sm:text-xl"
                   >
                     Sign In
                   </Button>
@@ -179,7 +184,7 @@ export default function LandingPageAnimated() {
 
             {/* Trust Indicators */}
             <motion.div
-              className="flex flex-wrap justify-center items-center gap-12 text-base text-muted-foreground"
+              className="flex flex-wrap justify-center items-center gap-6 sm:gap-12 text-sm sm:text-base text-muted-foreground mt-8 sm:mt-12 pb-8 sm:pb-0"
               variants={fadeInUp}
             >
               <motion.div
