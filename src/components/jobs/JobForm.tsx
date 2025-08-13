@@ -31,6 +31,8 @@ const categoryOptions = [
   { value: JobCategory.PLUMBING, label: "Plumbing" },
   { value: JobCategory.ELECTRICAL, label: "Electrical" },
   { value: JobCategory.CARPENTRY, label: "Carpentry" },
+  { value: JobCategory.BRICKLAYING, label: "Bricklaying" },
+  { value: JobCategory.PLASTERING, label: "Plastering" },
   { value: JobCategory.PAINTING, label: "Painting" },
   { value: JobCategory.LANDSCAPING, label: "Landscaping" },
   { value: JobCategory.CLEANING, label: "Cleaning" },
