@@ -44,3 +44,9 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# bug hunt reports
+bug-hunt-report.json
+browser-bug-hunt-report.json
+github-issues.json
+browser-github-issues.json
