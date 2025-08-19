@@ -28,7 +28,7 @@ export default async function DashboardMyJobsPage() {
     return;
   }
 
-  // Get customer's jobs
+  // Get customer&apos;s jobs
   const jobs = await prisma.job.findMany({
     where: { customerId: user.id },
     include: {
@@ -59,7 +59,7 @@ export default async function DashboardMyJobsPage() {
       {jobs.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-lg text-muted-foreground mb-4">
-            You haven't posted any jobs yet
+            You haven&apos;t posted any jobs yet
           </p>
           <Button asChild>
             <Link href="/dashboard/jobs/new">

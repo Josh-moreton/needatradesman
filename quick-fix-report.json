@@ -1,0 +1,46 @@
+{
+  "summary": {
+    "totalFixes": 7,
+    "successful": 6,
+    "failed": 1,
+    "duration": "11225ms",
+    "timestamp": "2025-08-19T17:06:41.597Z"
+  },
+  "fixes": [
+    {
+      "description": "Failed to generate Prisma client: Error: request to https://binaries.prisma.sh/all_commits/717184b7b35ea05dfa71a3236b7af656013e1e49/debian-openssl-3.0.x/schema-engine.gz.sha256 failed, reason: getaddrinfo ENOTFOUND binaries.prisma.sh\n",
+      "success": false,
+      "timestamp": "2025-08-19T17:06:34.819Z"
+    },
+    {
+      "description": "Added Prisma client fallback for development",
+      "success": true,
+      "timestamp": "2025-08-19T17:06:34.819Z"
+    },
+    {
+      "description": "Created missing /jobs page component",
+      "success": true,
+      "timestamp": "2025-08-19T17:06:34.820Z"
+    },
+    {
+      "description": "Created .env.local from .env.example",
+      "success": true,
+      "timestamp": "2025-08-19T17:06:34.820Z"
+    },
+    {
+      "description": "Fixed unescaped entities in src/app/customer/jobs/[jobId]/page.tsx",
+      "success": true,
+      "timestamp": "2025-08-19T17:06:41.596Z"
+    },
+    {
+      "description": "Fixed unescaped entities in src/app/dashboard/my-jobs/page.tsx",
+      "success": true,
+      "timestamp": "2025-08-19T17:06:41.596Z"
+    },
+    {
+      "description": "Fixed unescaped entities in src/components/quotes/QuoteTemplatesClient.tsx",
+      "success": true,
+      "timestamp": "2025-08-19T17:06:41.596Z"
+    }
+  ]
+}

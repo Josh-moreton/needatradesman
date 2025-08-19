@@ -158,7 +158,7 @@ export default function QuoteTemplatesClient({
         {loading ? (
           <p>Loading templates...</p>
         ) : templates.length === 0 ? (
-          <p>You don't have any templates yet. Create your first one below.</p>
+          <p>You don&apos;t have any templates yet. Create your first one below.</p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {templates.map((template) => (

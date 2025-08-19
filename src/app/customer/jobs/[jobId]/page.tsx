@@ -221,7 +221,7 @@ export default async function JobDetailPage({
                   No applications yet
                 </h3>
                 <p className="text-muted-foreground">
-                  When tradespeople respond to your job, they'll appear here.
+                  When tradespeople respond to your job, they&apos;ll appear here.
                 </p>
               </div>
             ) : (
