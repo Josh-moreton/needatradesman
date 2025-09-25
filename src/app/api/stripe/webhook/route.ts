@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
                     }
                 }
 
-                // Handle final payment (will be implemented in step 5)
-                else if (applicationType === "final") {
+                // Handle final payment
+                else if (applicationType === "final_payment") {
                     await prisma.job.update({
                         where: { id: jobId },
                         data: {
@@ -90,6 +90,38 @@ export async function POST(request: NextRequest) {
                             finalPaymentIntentId: session.payment_intent as string,
                         },
                     });
+
+                    // Initiate transfer to tradesperson if job is completed
+                    const job = await prisma.job.findUnique({
+                        where: { id: jobId },
+                        include: {
+                            applications: {
+                                where: { status: "ACCEPTED" },
+                                include: { tradesperson: true }
+                            }
+                        }
+                    });
+
+                    if (job && job.status === "COMPLETED" && job.applications[0]?.tradesperson.stripeAccountId) {
+                        try {
+                            const transferAmount = session.metadata?.finalAmount;
+                            if (transferAmount) {
+                                const transfer = await stripe.transfers.create({
+                                    amount: Math.round(Number(transferAmount) * 100),
+                                    currency: "gbp",
+                                    destination: job.applications[0].tradesperson.stripeAccountId,
+                                    metadata: {
+                                        jobId: jobId,
+                                        applicationId: applicationId || "",
+                                        type: "final_payment_transfer"
+                                    }
+                                });
+                                console.log(`Final payment transfer initiated: ${transfer.id}`);
+                            }
+                        } catch (transferError) {
+                            console.error("Failed to initiate final payment transfer:", transferError);
+                        }
+                    }
                 }
 
                 break;
@@ -106,6 +138,24 @@ export async function POST(request: NextRequest) {
                 if (user) {
                     console.log(`Account updated for user ${user.id}`);
                     // You could store additional account details if needed
+                }
+
+                break;
+            }
+
+            case "transfer.paid": {
+                const transfer = event.data.object as Stripe.Transfer;
+                
+                // Update job payout status if this is a job completion transfer
+                if (transfer.metadata?.type === "job_completion_payout" && transfer.metadata?.jobId) {
+                    await prisma.job.update({
+                        where: { id: transfer.metadata.jobId },
+                        data: {
+                            payoutReleased: true,
+                            payoutTransferId: transfer.id,
+                        }
+                    });
+                    console.log(`Payout completed for job ${transfer.metadata.jobId}: ${transfer.id}`);
                 }
 
                 break;
