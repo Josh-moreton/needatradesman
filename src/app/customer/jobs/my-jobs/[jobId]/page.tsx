@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { ManageResponsesClient } from "./ManageResponsesClient";
 import { createLogger } from '@/lib/logger';
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const logger = createLogger('customer-manage-job');
 const metadataLogger = createLogger('customer-manage-job-metadata');
@@ -102,7 +103,11 @@ export default async function ManageResponsesPage({
       notFound();
     }
 
-    return <ManageResponsesClient job={job} />;
+    return (
+      <ErrorBoundary>
+        <ManageResponsesClient job={job} />
+      </ErrorBoundary>
+    );
   } catch (error) {
     logger.error({ error }, "Error in manage responses page");
     redirect("/sign-in");
