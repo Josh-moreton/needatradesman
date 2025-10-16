@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle } from "lucide-react";
 import { QuoteBuilder } from "@/components/quotes/QuoteBuilder";
+import { toast } from "sonner";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('application-form');
@@ -76,6 +77,7 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
       }
 
       setIsSuccess(true);
+      toast.success("Application submitted successfully!");
 
       // Redirect after a short delay
       setTimeout(() => {
@@ -84,10 +86,27 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
       }, 2000);
     } catch (error) {
       logger.error({ error }, "Error submitting application");
-      // TODO: Add proper error handling with toast notifications
-      alert(
-        error instanceof Error ? error.message : "Failed to submit application"
-      );
+      
+      // Handle different error types
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (errorMessage.includes("validation")) {
+          toast.error("Validation error. Please check your input and try again.");
+        } else if (errorMessage.includes("rate limit")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else if (errorMessage.includes("unauthorized") || errorMessage.includes("authentication")) {
+          toast.error("Authentication error. Please sign in and try again.");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+      
+      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
