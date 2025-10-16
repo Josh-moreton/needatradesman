@@ -8,6 +8,7 @@ import { ManageResponsesClient } from "./ManageResponsesClient";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('customer-manage-job');
+const metadataLogger = createLogger('customer-manage-job-metadata');
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export async function generateMetadata({
       description: `Manage applications and responses for: ${job.description.substring(0, 100)}`,
     };
   } catch (error) {
-    console.error("Error generating metadata:", error);
+    metadataLogger.error({ error }, "Error generating metadata");
     return {
       title: "Manage Responses",
     };

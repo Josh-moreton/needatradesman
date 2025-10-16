@@ -224,9 +224,9 @@ export async function POST(request: NextRequest) {
                 await redis.del(CACHE_KEYS.USER_CONVERSATIONS(user.id));
                 await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
 
-                console.log('Message cached and published successfully');
+                logger.debug('Message cached and published successfully');
             } catch (cacheError) {
-                console.error('Redis operations error in message creation:', cacheError);
+                logger.error({ error: cacheError }, 'Redis operations error in message creation');
                 // Continue - message was saved to database, Redis is optional
             }
         }

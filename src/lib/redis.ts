@@ -216,7 +216,7 @@ export async function safeRedisGet<T>(key: string): Promise<T | null> {
     try {
         return await redis.get<T>(key);
     } catch (error) {
-        console.error('Redis GET error:', error);
+        logger.error({ error, key }, 'Redis GET error');
         return null;
     }
 }
@@ -242,7 +242,7 @@ export async function safeRedisSet(
         }
         return true;
     } catch (error) {
-        console.error('Redis SET error:', error);
+        logger.error({ error, key }, 'Redis SET error');
         return false;
     }
 }
@@ -262,7 +262,7 @@ export async function safeRedisDel(...keys: string[]): Promise<boolean> {
         }
         return true;
     } catch (error) {
-        console.error('Redis DEL error:', error);
+        logger.error({ error, keys }, 'Redis DEL error');
         return false;
     }
 }
@@ -279,7 +279,7 @@ export async function safeRedisLpush(key: string, ...values: (string | number)[]
         await redis.lpush(key, ...values);
         return true;
     } catch (error) {
-        console.error('Redis LPUSH error:', error);
+        logger.error({ error, key }, 'Redis LPUSH error');
         return false;
     }
 }
@@ -296,7 +296,7 @@ export async function safeRedisExpire(key: string, seconds: number): Promise<boo
         await redis.expire(key, seconds);
         return true;
     } catch (error) {
-        console.error('Redis EXPIRE error:', error);
+        logger.error({ error, key, seconds }, 'Redis EXPIRE error');
         return false;
     }
 }
@@ -313,7 +313,7 @@ export async function safeRedisPublish(channel: string, message: string): Promis
         await redis.publish(channel, message);
         return true;
     } catch (error) {
-        console.error('Redis PUBLISH error:', error);
+        logger.error({ error, channel }, 'Redis PUBLISH error');
         return false;
     }
 }
@@ -331,7 +331,7 @@ export async function isRedisHealthy(): Promise<boolean> {
         await redis.del(testKey);
         return result === 'ok';
     } catch (error) {
-        console.error('Redis health check failed:', error);
+        logger.error({ error }, 'Redis health check failed');
         return false;
     }
 }

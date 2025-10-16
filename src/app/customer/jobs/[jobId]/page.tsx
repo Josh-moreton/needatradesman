@@ -23,6 +23,7 @@ import Link from "next/link";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('customer-job-detail');
+const metadataLogger = createLogger('customer-job-detail-metadata');
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export async function generateMetadata({
       },
     };
   } catch (error) {
-    console.error("Error generating metadata:", error);
+    metadataLogger.error({ error }, "Error generating metadata");
     return {
       title: "Job Details",
     };
