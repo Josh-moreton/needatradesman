@@ -87,12 +87,12 @@ export default clerkMiddleware(
             }
 
             // 6. Handle onboarding redirects
-            if (!onboarded && !pathname.startsWith('/onboarding')) {
+            if (!onboarded && !isOnboardingRoute(req)) {
                 logger.debug({ from: pathname }, 'Redirecting to onboarding')
                 return NextResponse.redirect(new URL('/onboarding', req.url))
             }
 
-            if (onboarded && pathname.startsWith('/onboarding')) {
+            if (onboarded && isOnboardingRoute(req)) {
                 logger.debug({ from: pathname }, 'User already onboarded, redirecting to dashboard')
                 return NextResponse.redirect(new URL('/dashboard', req.url))
             }
