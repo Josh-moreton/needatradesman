@@ -1,86 +1,86 @@
 name: SonarCloud Scan and Sync Issues
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    push:
+        branches: [main]
+    workflow_dispatch:
 
 permissions:
-  contents: read
-  pull-requests: write
-  issues: write
+    contents: read
+    pull-requests: write
+    issues: write
 
 jobs:
-  sonarcloud:
-    name: Run SonarCloud and Sync
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
+    sonarcloud:
+        name: Run SonarCloud and Sync
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.18.3
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10.18.3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "pnpm"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
+            - name: Lint
+              run: pnpm lint
 
-      - name: Type check
-        run: pnpm type-check
+            - name: Type check
+              run: pnpm type-check
 
-      # Optional: If you add test coverage later, uncomment this
-      # - name: Run tests with coverage
-      #   run: pnpm test:coverage
+            # Optional: If you add test coverage later, uncomment this
+            # - name: Run tests with coverage
+            #   run: pnpm test:coverage
 
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: sonar-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            sonar-${{ runner.os }}-
+            - name: Cache SonarCloud packages
+              uses: actions/cache@v4
+              with:
+                  path: ~/.sonar/cache
+                  key: sonar-${{ runner.os }}-${{ github.sha }}
+                  restore-keys: |
+                      sonar-${{ runner.os }}-
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: SonarCloud Scan
+              uses: SonarSource/sonarqube-scan-action@v6
+              env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python for sync
-        if: ${{ success() }}
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
+            - name: Set up Python for sync
+              if: ${{ success() }}
+              uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12"
 
-      - name: Install sync deps
-        if: ${{ success() }}
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+            - name: Install sync deps
+              if: ${{ success() }}
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install requests
 
-      - name: SonarCloud → GitHub Issues
-        if: ${{ success() }}
-        env:
-          SONAR_HOST_URL: https://sonarcloud.io
-          SONAR_ORGANIZATION: josh-moreton
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          python scripts/sonar_to_github_issues.py \
-            --project-key "Josh-moreton_needatradesman" \
-            --severity "CRITICAL,MAJOR,MINOR" \
-            --types "BUG,VULNERABILITY,CODE_SMELL" \
-            --group-by file
+            - name: SonarCloud → GitHub Issues
+              if: ${{ success() }}
+              env:
+                  SONAR_HOST_URL: https://sonarcloud.io
+                  SONAR_ORGANIZATION: josh-moreton
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                  GITHUB_TOKEN: ${{ github.token }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+              run: |
+                  python scripts/sonar_to_github_issues.py \
+                    --project-key "Josh-moreton_needatradesman" \
+                    --severity "CRITICAL,MAJOR,MINOR" \
+                    --types "BUG,VULNERABILITY,CODE_SMELL" \
+                    --group-by file
