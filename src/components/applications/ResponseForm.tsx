@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('response-form');
@@ -86,12 +87,30 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
       }
 
       setIsSuccess(true);
+      toast.success("Response submitted successfully!");
     } catch (error) {
       logger.error({ error }, "Error submitting response");
-      // TODO: Add proper error handling with toast notifications
-      alert(
-        error instanceof Error ? error.message : "Failed to submit response"
-      );
+      
+      // Handle different error types
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (errorMessage.includes("validation")) {
+          toast.error("Validation error. Please check your input and try again.");
+        } else if (errorMessage.includes("rate limit")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else if (errorMessage.includes("unauthorized") || errorMessage.includes("authentication")) {
+          toast.error("Authentication error. Please sign in and try again.");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+      
+      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -114,8 +133,9 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
         // For now, just navigate
       }
       router.push(`/tradesperson/messages?jobId=${jobId}`);
-    } catch {
-      alert("Failed to start chat. Please try again.");
+    } catch (error) {
+      logger.error({ error }, "Error starting chat");
+      toast.error("Failed to start chat. Please try again.");
     } finally {
       setChatLoading(false);
     }

@@ -65,6 +65,15 @@ export const messageRateLimit = redis
     })
     : null;
 
+export const webhookRateLimit = redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(100, '1 m'), // 100 requests per minute
+        prefix: 'rl:webhook',
+        analytics: true,
+    })
+    : null;
+
 // Cache utilities
 export const CACHE_KEYS = {
     JOBS_LIST: (filters?: string) => `jobs:list:${filters || 'all'}`,
@@ -332,6 +341,79 @@ export async function isRedisHealthy(): Promise<boolean> {
         return result === 'ok';
     } catch (error) {
         logger.error({ error }, 'Redis health check failed');
+        return false;
+    }
+}
+
+// Webhook security and idempotency helpers
+const WEBHOOK_FAILURE_THRESHOLD = 10;
+const WEBHOOK_FAILURE_WINDOW = 300; // 5 minutes
+
+/**
+ * Track webhook signature verification failures
+ * @param identifier - IP address or other identifier
+ * @returns The current failure count
+ */
+export async function trackWebhookFailure(identifier: string): Promise<number> {
+    if (!redis) return 0;
+
+    try {
+        const key = `webhook:failures:${identifier}`;
+        const failures = await redis.incr(key);
+
+        // Set expiry on first increment
+        if (failures === 1) {
+            await redis.expire(key, WEBHOOK_FAILURE_WINDOW);
+        }
+
+        return failures;
+    } catch (error) {
+        logger.error({ error, identifier }, 'Error tracking webhook failure');
+        return 0;
+    }
+}
+
+/**
+ * Check if webhook failure threshold has been exceeded
+ * @param failureCount - Number of failures
+ * @returns true if threshold exceeded
+ */
+export function isWebhookFailureThresholdExceeded(failureCount: number): boolean {
+    return failureCount > WEBHOOK_FAILURE_THRESHOLD;
+}
+
+/**
+ * Check if a webhook event has already been processed
+ * @param eventId - The Stripe event ID
+ * @returns true if already processed, false otherwise
+ */
+export async function isWebhookProcessed(eventId: string): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        const eventKey = `webhook:processed:${eventId}`;
+        const result = await redis.get<string>(eventKey);
+        return result !== null;
+    } catch (error) {
+        logger.error({ error, eventId }, 'Error checking webhook processed status');
+        return false;
+    }
+}
+
+/**
+ * Mark a webhook event as processed
+ * @param eventId - The Stripe event ID
+ * @param ttlSeconds - Time to live in seconds (default: 24 hours)
+ * @returns true if successful, false otherwise
+ */
+export async function markWebhookProcessed(eventId: string, ttlSeconds: number = 86400): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        const eventKey = `webhook:processed:${eventId}`;
+        await redis.set(eventKey, '1', { ex: ttlSeconds });
+        logger.debug({ eventId, ttlSeconds }, 'Marked webhook as processed');
+        return true;
+    } catch (error) {
+        logger.error({ error, eventId }, 'Error marking webhook as processed');
         return false;
     }
 }

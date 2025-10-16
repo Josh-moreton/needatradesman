@@ -1,6 +1,42 @@
 import { z } from 'zod'
 import { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType } from '@prisma/client'
 
+// Allowed domains for attachment URLs (can be overridden via environment variable)
+const getAllowedDomains = (): string[] => {
+    const envDomains = process.env.NEXT_PUBLIC_ALLOWED_ATTACHMENT_DOMAINS;
+    if (envDomains) {
+        return envDomains.split(',').map(d => d.trim());
+    }
+    // Default allowed domains - update these to match your S3/CDN configuration
+    return [
+        's3.amazonaws.com',
+        'cloudfront.net',
+        'r2.cloudflarestorage.com',
+        'storage.googleapis.com',
+    ];
+};
+
+// Attachment validation schema
+export const attachmentSchema = z.object({
+    url: z.string().url('Invalid URL format').refine((url) => {
+        // Whitelist allowed domains to prevent XSS via malicious URLs
+        const allowedDomains = getAllowedDomains();
+        try {
+            const urlObj = new URL(url);
+            // Check if the hostname ends with any of the allowed domains
+            return allowedDomains.some(domain => 
+                urlObj.hostname.endsWith(domain) || urlObj.hostname === domain
+            );
+        } catch {
+            return false;
+        }
+    }, {
+        message: "Attachment URL must be from an allowed domain"
+    }),
+    filename: z.string().min(1, 'Filename is required').max(255, 'Filename too long'),
+    size: z.number().positive('File size must be positive').max(10 * 1024 * 1024, 'File size must not exceed 10MB'),
+});
+
 // Zod schemas for validation
 export const createJobSchema = z.object({
     title: z.string().min(1, 'Title is required').max(100, 'Title too long'),
@@ -8,7 +44,7 @@ export const createJobSchema = z.object({
     category: z.nativeEnum(JobCategory),
     location: z.string().min(1, 'Location is required'),
     budget: z.number().positive('Budget must be positive').optional(),
-    attachments: z.array(z.string().url()).optional(),
+    attachments: z.array(attachmentSchema).max(5, 'Maximum 5 attachments allowed').optional(),
 })
 
 export const quoteItemSchema = z.object({
@@ -40,6 +76,7 @@ export const updateUserSchema = z.object({
 })
 
 // Type exports
+export type Attachment = z.infer<typeof attachmentSchema>
 export type CreateJobInput = z.infer<typeof createJobSchema>
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>
 export type QuoteItem = z.infer<typeof quoteItemSchema>
