@@ -214,7 +214,6 @@ export default function Header() {
               </SignedOut>
               <SignedIn>
                 <UserButton
-                  afterSignOutUrl="/"
                   appearance={{
                     elements: {
                       avatarBox: "h-8 w-8",
