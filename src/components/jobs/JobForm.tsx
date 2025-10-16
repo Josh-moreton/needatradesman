@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('job-form');
@@ -76,14 +77,34 @@ export function JobForm() {
       }
 
       await response.json();
+      toast.success("Job posted successfully!");
 
       // Redirect to job management page
       router.push("/customer/jobs/my-jobs");
       router.refresh();
     } catch (error) {
       logger.error({ error }, "Error creating job");
-      // TODO: Add proper error handling with toast notifications
-      alert(error instanceof Error ? error.message : "Failed to create job");
+      
+      // Handle different error types
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (errorMessage.includes("validation")) {
+          toast.error("Validation error. Please check your input and try again.");
+        } else if (errorMessage.includes("rate limit")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else if (errorMessage.includes("unauthorized") || errorMessage.includes("authentication")) {
+          toast.error("Authentication error. Please sign in and try again.");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
+      
+      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
