@@ -50,24 +50,6 @@ const staggerContainer = {
   },
 };
 
-const slideInFromRight = {
-  initial: {
-    opacity: 0,
-    x: 60,
-    scale: 0.95,
-  },
-  animate: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    transition: {
-      duration: 0.7,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-      delay: 0.2,
-    },
-  },
-};
-
 export default function LandingPageAnimated() {
   const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();

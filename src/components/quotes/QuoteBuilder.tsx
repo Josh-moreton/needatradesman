@@ -74,6 +74,7 @@ export function QuoteBuilder({
   // Fetch templates if userId is provided
   useEffect(() => {
     fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, showTemplates]);
 
   const addItem = () => {
@@ -142,7 +143,7 @@ export function QuoteBuilder({
               </SelectContent>
             </Select>
             {userId && (
-              <TemplateModal userId={userId} onTemplateAdded={fetchTemplates} />
+              <TemplateModal onTemplateAdded={fetchTemplates} />
             )}
           </div>
         </div>

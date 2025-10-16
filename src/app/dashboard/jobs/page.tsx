@@ -1,7 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
+import { UserRole, JobCategory } from "@prisma/client";
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { JobCard } from "@/components/jobs/JobCard";
 import { JobFilters } from "@/components/jobs/JobFilters";
@@ -47,7 +46,7 @@ async function TradespersonJobsView({
   user,
   searchParams,
 }: {
-  user: any;
+  user: { trades?: JobCategory[] };
   searchParams: Promise<SearchParams>;
 }) {
   const resolvedSearchParams = await searchParams;

@@ -2,8 +2,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import CustomerDashboard from "@/components/dashboard/CustomerDashboard";
-import TradespersonDashboard from "@/components/dashboard/TradespersonDashboard";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,7 +49,7 @@ export default async function DashboardPage() {
 }
 
 // Customer Dashboard Server Component
-async function CustomerDashboardPage({ user }: { user: any }) {
+async function CustomerDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get user's job stats for quick overview - matching original customer page
   const [recentJobs, totalApplications] = await Promise.all([
     prisma.job.findMany({
@@ -255,7 +253,7 @@ async function CustomerDashboardPage({ user }: { user: any }) {
 }
 
 // Tradesperson Dashboard Server Component
-async function TradespersonDashboardPage({ user }: { user: any }) {
+async function TradespersonDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get tradesperson stats - matching original tradesperson page
   const [applications, jobs] = await Promise.all([
     prisma.application.count({
