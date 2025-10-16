@@ -1,0 +1,4 @@
+version: STSv1
+mode: enforce
+mx: *.yourmailhost.tld
+max_age: 86400
