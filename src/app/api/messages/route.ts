@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
                     const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
 
                     return NextResponse.json(
-                        { error: `Too many messages. You can only send ${limit} messages per hour. ${remaining} remaining.` },
+                        { error: `Too many messages. You can only send ${limit} messages per 5 minutes. ${remaining} remaining.` },
                         {
                             status: 429,
                             headers: {

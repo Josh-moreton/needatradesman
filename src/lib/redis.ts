@@ -59,7 +59,7 @@ export const applicationRateLimit = redis
 export const messageRateLimit = redis
     ? new Ratelimit({
         redis,
-        limiter: Ratelimit.slidingWindow(50, '1 h'), // 50 requests per hour
+        limiter: Ratelimit.slidingWindow(100, '5 m'), // 100 requests per 5 minutes
         prefix: 'rl:message',
         analytics: true,
     })
