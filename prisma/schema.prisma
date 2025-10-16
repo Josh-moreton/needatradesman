@@ -33,28 +33,28 @@ model User {
 }
 
 model Job {
-  id                     String      @id @default(cuid())
-  title                  String
-  description            String
-  category               JobCategory
-  location               String
-  budget                 Decimal?
-  status                 JobStatus   @default(OPEN)
-  attachments            String? // Store as JSON string of file URLs
-  customerId             String
-  depositPaid            Boolean     @default(false)
-  depositPaymentIntentId String?
-  finalPaid              Boolean     @default(false)
-  finalPaymentIntentId   String?
-  acceptedTradespersonId String?
-  customerConfirmedComplete    Boolean   @default(false)
-  tradespersonConfirmedComplete Boolean   @default(false)
-  customerCompletedAt          DateTime?
-  tradespersonCompletedAt      DateTime?
-  payoutReleased               Boolean   @default(false)
-  payoutTransferId             String?
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
+  id                            String      @id @default(cuid())
+  title                         String
+  description                   String
+  category                      JobCategory
+  location                      String
+  budget                        Decimal?
+  status                        JobStatus   @default(OPEN)
+  attachments                   String? // Store as JSON string of file URLs
+  customerId                    String
+  depositPaid                   Boolean     @default(false)
+  depositPaymentIntentId        String?     @unique // Ensure each payment intent is used only once
+  finalPaid                     Boolean     @default(false)
+  finalPaymentIntentId          String?     @unique // Ensure each payment intent is used only once
+  acceptedTradespersonId        String?
+  customerConfirmedComplete     Boolean     @default(false)
+  tradespersonConfirmedComplete Boolean     @default(false)
+  customerCompletedAt           DateTime?
+  tradespersonCompletedAt       DateTime?
+  payoutReleased                Boolean     @default(false)
+  payoutTransferId              String?
+  createdAt                     DateTime    @default(now())
+  updatedAt                     DateTime    @updatedAt
 
   // Relationships
   customer     User          @relation("CustomerJobs", fields: [customerId], references: [id], onDelete: Cascade)
