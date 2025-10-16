@@ -254,10 +254,10 @@ function ActionCard({
 
 function JobCard({ job }: { job: Job }) {
   const statusColors = {
-    OPEN: "bg-green-100 text-green-800",
-    IN_PROGRESS: "bg-blue-100 text-blue-800",
-    COMPLETED: "bg-gray-100 text-gray-800",
-    CANCELLED: "bg-red-100 text-red-800",
+    OPEN: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+    IN_PROGRESS: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+    COMPLETED: "bg-muted text-muted-foreground",
+    CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
   };
 
   const formatDate = (date: Date) => {
@@ -287,7 +287,7 @@ function JobCard({ job }: { job: Job }) {
         </div>
       </div>
       <Button asChild variant="ghost" size="sm">
-        <Link href={`/jobs/my-jobs/${job.id}`}>View</Link>
+        <Link href={`/customer/jobs/my-jobs/${job.id}`}>View</Link>
       </Button>
     </div>
   );

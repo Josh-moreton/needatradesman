@@ -1,6 +1,4 @@
 import { getCurrentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
-import { redirect } from "next/navigation";
 import {
   Card,
   CardContent,

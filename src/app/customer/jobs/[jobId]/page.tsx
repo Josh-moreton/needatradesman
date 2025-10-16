@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
@@ -84,9 +83,10 @@ export default async function JobDetailPage({
       notFound();
     }
 
-    const formatBudget = (budget: any) => {
+    const formatBudget = (budget: { toNumber?: () => number } | number | null | undefined) => {
       if (!budget) return "Budget not specified";
-      return `£${Number(budget).toFixed(2)}`;
+      const amount = typeof budget === 'object' && budget.toNumber ? budget.toNumber() : Number(budget);
+      return `£${amount.toFixed(2)}`;
     };
 
     const formatDate = (date: Date) => {
@@ -176,7 +176,7 @@ export default async function JobDetailPage({
                 </CardDescription>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <Badge variant={getStatusColor(job.status) as any}>
+                <Badge variant={getStatusColor(job.status) as "default" | "secondary" | "destructive" | "outline" | null | undefined}>
                   {job.status.replace("_", " ")}
                 </Badge>
                 {job.depositPaid && (
@@ -221,7 +221,7 @@ export default async function JobDetailPage({
                   No applications yet
                 </h3>
                 <p className="text-muted-foreground">
-                  When tradespeople respond to your job, they'll appear here.
+                  When tradespeople respond to your job, they&apos;ll appear here.
                 </p>
               </div>
             ) : (

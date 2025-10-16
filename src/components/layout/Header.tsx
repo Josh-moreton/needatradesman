@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Logo } from "@/components/ui/logo";
 import {
   SignedIn,
   SignedOut,
@@ -44,14 +45,11 @@ export default function Header() {
           {/* Left Section: Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="hidden items-center md:flex">
-                <span className="text-xl font-bold">NeedA</span>
-                <Badge variant="default" className="ml-1 text-xs">
-                  Tradesman
-                </Badge>
+              <div className="hidden md:flex">
+                <Logo variant="auto" size="md" priority />
               </div>
-              <div className="flex items-center md:hidden">
-                <span className="font-bold">NAT</span>
+              <div className="flex md:hidden">
+                <Logo variant="auto" size="sm" priority />
               </div>
             </Link>
           </div>
@@ -214,7 +212,6 @@ export default function Header() {
               </SignedOut>
               <SignedIn>
                 <UserButton
-                  afterSignOutUrl="/"
                   appearance={{
                     elements: {
                       avatarBox: "h-8 w-8",

@@ -61,7 +61,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
     }
 
     if (job.status !== "OPEN") {
-      redirect(`/jobs/${job.id}`);
+      redirect(`/tradesperson/jobs/${job.id}`);
     }
 
     // Check if already applied
@@ -75,7 +75,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
     });
 
     if (existingApplication) {
-      redirect(`/jobs/${job.id}`);
+      redirect(`/tradesperson/jobs/${job.id}`);
     }
 
     const getCustomerName = () => {
@@ -96,7 +96,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
         {/* Back Navigation */}
         <div className="mb-6">
           <Button variant="ghost" asChild>
-            <Link href={`/jobs/${job.id}`}>
+            <Link href={`/tradesperson/jobs/${job.id}`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Job
             </Link>

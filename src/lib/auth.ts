@@ -85,6 +85,6 @@ export async function getAuthenticatedUserWithRedirects() {
     return { user, redirect: null }
 }
 
-export function validateUserRole(user: any, allowedRoles: UserRole[]): boolean {
-    return user && user.role && allowedRoles.includes(user.role)
+export function validateUserRole(user: { role?: UserRole } | null, allowedRoles: UserRole[]): boolean {
+    return !!user && !!user.role && allowedRoles.includes(user.role)
 }

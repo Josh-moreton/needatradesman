@@ -50,7 +50,6 @@ interface AcceptRejectButtonsProps {
 interface PayDepositButtonProps {
   jobId: string;
   tradespersonId: string;
-  applicationId: string;
   quote: Decimal | null;
   depositPercentage: number;
   jobTitle: string;
@@ -60,7 +59,6 @@ interface PayDepositButtonProps {
 function PayDepositButton({
   jobId,
   tradespersonId,
-  applicationId,
   quote,
   depositPercentage,
   jobTitle,
@@ -70,8 +68,9 @@ function PayDepositButton({
 
   const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
 
-  const handlePaymentComplete = () => {
+  const handleClose = () => {
     setShowDepositModal(false);
+    // Call the callback when modal closes (payment may have completed)
     onPaymentComplete();
   };
 
@@ -87,7 +86,7 @@ function PayDepositButton({
 
       <DepositPaymentModal
         isOpen={showDepositModal}
-        onClose={() => setShowDepositModal(false)}
+        onClose={handleClose}
         jobId={jobId}
         tradespersonId={tradespersonId}
         jobTitle={jobTitle}
@@ -103,7 +102,14 @@ function AcceptRejectButtons({
 }: AcceptRejectButtonsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
-  const [applicationData, setApplicationData] = useState<any>(null);
+  const [applicationData, setApplicationData] = useState<{
+    id: string;
+    requiresDeposit: boolean;
+    depositPercentage: number;
+    quote: Decimal | null;
+    tradesperson: { id: string };
+    job: { id: string; title: string };
+  } | null>(null);
   const router = useRouter();
 
   // Fetch application details when accepting
@@ -165,24 +171,6 @@ function AcceptRejectButtons({
     ? (applicationData.depositPercentage * Number(applicationData.quote)) / 100
     : 0;
 
-  // Function to handle deposit payment
-  const handleDepositPayment = async () => {
-    if (!applicationData) return;
-
-    // First update the application status
-    await fetch(`/api/applications/${applicationId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: "ACCEPTED" }),
-    });
-
-    setShowDepositModal(false);
-    onStatusChange();
-    router.refresh();
-  };
-
   return (
     <>
       <Button
@@ -208,9 +196,9 @@ function AcceptRejectButtons({
         <DepositPaymentModal
           isOpen={showDepositModal}
           onClose={() => setShowDepositModal(false)}
-          jobId={applicationData.jobId}
-          tradespersonId={applicationData.tradespersonId}
-          jobTitle={applicationData.job?.title || "Job"}
+          jobId={applicationData.job.id}
+          tradespersonId={applicationData.tradesperson.id}
+          jobTitle={applicationData.job.title || "Job"}
           depositAmount={depositAmount}
         />
       )}
@@ -413,7 +401,6 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                         <PayDepositButton
                           jobId={job.id}
                           tradespersonId={application.tradesperson.id}
-                          applicationId={application.id}
                           quote={application.quote}
                           depositPercentage={application.depositPercentage}
                           jobTitle={job.title}

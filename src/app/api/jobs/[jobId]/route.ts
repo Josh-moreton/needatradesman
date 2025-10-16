@@ -18,10 +18,10 @@ export async function GET(
 
         if (redis) {
             try {
-                const cached = await redis.get(cacheKey);
+                const cached = await redis.get<string>(cacheKey);
                 if (cached) {
                     console.log('Cache hit for job detail:', cacheKey);
-                    return NextResponse.json(cached);
+                    return NextResponse.json(JSON.parse(cached));
                 }
             } catch (cacheError) {
                 console.error('Cache read error:', cacheError);
@@ -67,7 +67,7 @@ export async function GET(
         // Cache the result
         if (redis) {
             try {
-                await redis.set(cacheKey, JSON.stringify(job), 'EX', CACHE_TTL.JOB_DETAIL);
+                await redis.set(cacheKey, JSON.stringify(job), { ex: CACHE_TTL.JOB_DETAIL });
                 console.log('Cached job detail:', jobId);
             } catch (cacheError) {
                 console.error('Cache write error:', cacheError);

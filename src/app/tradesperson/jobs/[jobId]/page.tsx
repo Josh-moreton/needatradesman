@@ -259,7 +259,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                       conversation with the customer.
                     </p>
                     <Button size="lg" asChild>
-                      <Link href={`/jobs/${job.id}/apply`}>Respond Now</Link>
+                      <Link href={`/customer/jobs/my-jobs/${job.id}`}>Manage Responses</Link>
                     </Button>
                   </div>
                 )}

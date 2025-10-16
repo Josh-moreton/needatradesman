@@ -2,8 +2,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import CustomerDashboard from "@/components/dashboard/CustomerDashboard";
-import TradespersonDashboard from "@/components/dashboard/TradespersonDashboard";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,7 +49,7 @@ export default async function DashboardPage() {
 }
 
 // Customer Dashboard Server Component
-async function CustomerDashboardPage({ user }: { user: any }) {
+async function CustomerDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get user's job stats for quick overview - matching original customer page
   const [recentJobs, totalApplications] = await Promise.all([
     prisma.job.findMany({
@@ -220,10 +218,10 @@ async function CustomerDashboardPage({ user }: { user: any }) {
                           job.status === "OPEN"
                             ? "bg-green-100 text-green-800"
                             : job.status === "IN_PROGRESS"
-                            ? "bg-blue-100 text-blue-800"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                             : job.status === "COMPLETED"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-red-100 text-red-800"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                         }`}
                       >
                         {job.status.toLowerCase()}
@@ -242,7 +240,7 @@ async function CustomerDashboardPage({ user }: { user: any }) {
                     </div>
                   </div>
                   <Button asChild variant="ghost" size="sm">
-                    <Link href={`/jobs/my-jobs/${job.id}`}>View</Link>
+                    <Link href={`/customer/jobs/my-jobs/${job.id}`}>View</Link>
                   </Button>
                 </div>
               ))}
@@ -255,7 +253,7 @@ async function CustomerDashboardPage({ user }: { user: any }) {
 }
 
 // Tradesperson Dashboard Server Component
-async function TradespersonDashboardPage({ user }: { user: any }) {
+async function TradespersonDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get tradesperson stats - matching original tradesperson page
   const [applications, jobs] = await Promise.all([
     prisma.application.count({

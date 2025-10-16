@@ -34,17 +34,32 @@ export async function POST(request: NextRequest) {
             return new NextResponse("Only customers can create jobs", { status: 403 });
         }
 
-        // Rate limiting for job posting
+        // Rate limiting for job posting (use clerkId to avoid reuse of internal IDs)
         if (jobPostingRateLimit) {
             try {
-                await jobPostingRateLimit.consume(user.id);
-            } catch (rejRes: unknown) {
-                return new NextResponse("Rate limit exceeded. You can only post 3 jobs per hour.", {
-                    status: 429,
-                    headers: {
-                        'Retry-After': typeof rejRes === 'object' && rejRes && 'msBeforeNext' in rejRes ? String(Math.ceil((rejRes as { msBeforeNext: number }).msBeforeNext / 1000)) : '60',
-                    }
-                });
+                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(user.clerkId);
+
+                if (!success) {
+                    const resetDate = new Date(reset);
+                    const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
+
+                    return new NextResponse(
+                        `Rate limit exceeded. You can only post ${limit} jobs per hour. ${remaining} remaining.`,
+                        {
+                            status: 429,
+                            headers: {
+                                'X-RateLimit-Limit': String(limit),
+                                'X-RateLimit-Remaining': String(remaining),
+                                'X-RateLimit-Reset': String(reset),
+                                'Retry-After': String(retryAfter),
+                            }
+                        }
+                    );
+                }
+            } catch (error) {
+                // This is a Redis connection error - log it and continue
+                console.error('Rate limiter error (likely Redis connection issue):', error);
+                // Allow the request to proceed if rate limiting fails due to connection issues
             }
         }
 

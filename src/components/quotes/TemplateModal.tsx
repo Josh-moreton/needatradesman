@@ -18,7 +18,6 @@ import { QuoteItem } from "@/lib/schemas";
 import { toast } from "sonner";
 
 interface TemplateModalProps {
-  userId: string;
   onTemplateAdded: () => void;
 }
 
@@ -32,7 +31,7 @@ interface QuoteTemplate {
   }[];
 }
 
-export function TemplateModal({ userId, onTemplateAdded }: TemplateModalProps) {
+export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
