@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { createLogger } from "@/lib/logger";
+import { isWebhookProcessed, markWebhookProcessed } from "@/lib/redis";
 
 const logger = createLogger('stripe-webhook');
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -31,7 +32,35 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
         }
 
-        logger.info({ eventType: event.type }, "Stripe event received");
+        logger.info({ eventType: event.type, eventId: event.id }, "Stripe event received");
+
+        // Check if event already processed (using Redis as primary check)
+        const redisProcessed = await isWebhookProcessed(event.id);
+        
+        if (redisProcessed) {
+            logger.info({ eventId: event.id, eventType: event.type }, 'Webhook event already processed (Redis check)');
+            return NextResponse.json({ 
+                received: true, 
+                skipped: true,
+                reason: 'already_processed'
+            });
+        }
+
+        // Fallback to database check if Redis is unavailable
+        const dbProcessed = await prisma.webhookEvent.findUnique({
+            where: { id: event.id }
+        });
+
+        if (dbProcessed) {
+            logger.info({ eventId: event.id, eventType: event.type }, 'Webhook event already processed (Database check)');
+            // Also update Redis cache for future checks
+            await markWebhookProcessed(event.id);
+            return NextResponse.json({ 
+                received: true, 
+                skipped: true,
+                reason: 'already_processed'
+            });
+        }
 
         // Handle specific event types
         switch (event.type) {
@@ -176,6 +205,24 @@ export async function POST(request: NextRequest) {
 
             default:
                 logger.debug({ eventType: event.type }, "Unhandled Stripe event type");
+        }
+
+        // Mark event as processed (24h TTL in Redis)
+        await markWebhookProcessed(event.id);
+
+        // Store in database as fallback
+        try {
+            await prisma.webhookEvent.create({
+                data: {
+                    id: event.id,
+                    processed: true,
+                }
+            });
+            logger.debug({ eventId: event.id }, 'Webhook event stored in database');
+        } catch (dbError) {
+            // Ignore duplicate key errors (race condition where same event was stored)
+            // This is expected and handled by idempotency check
+            logger.debug({ eventId: event.id, error: dbError }, 'Database storage skipped (likely duplicate)');
         }
 
         return NextResponse.json({ received: true });

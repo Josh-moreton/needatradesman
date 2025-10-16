@@ -335,3 +335,39 @@ export async function isRedisHealthy(): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Check if a webhook event has already been processed
+ * @param eventId - The Stripe event ID
+ * @returns true if already processed, false otherwise
+ */
+export async function isWebhookProcessed(eventId: string): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        const eventKey = `webhook:processed:${eventId}`;
+        const result = await redis.get<string>(eventKey);
+        return result !== null;
+    } catch (error) {
+        logger.error({ error, eventId }, 'Error checking webhook processed status');
+        return false;
+    }
+}
+
+/**
+ * Mark a webhook event as processed
+ * @param eventId - The Stripe event ID
+ * @param ttlSeconds - Time to live in seconds (default: 24 hours)
+ * @returns true if successful, false otherwise
+ */
+export async function markWebhookProcessed(eventId: string, ttlSeconds: number = 86400): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        const eventKey = `webhook:processed:${eventId}`;
+        await redis.set(eventKey, '1', { ex: ttlSeconds });
+        logger.debug({ eventId, ttlSeconds }, 'Marked webhook as processed');
+        return true;
+    } catch (error) {
+        logger.error({ error, eventId }, 'Error marking webhook as processed');
+        return false;
+    }
+}

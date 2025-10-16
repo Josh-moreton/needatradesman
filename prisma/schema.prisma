@@ -132,6 +132,15 @@ model QuoteTemplateItem {
   template QuoteTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
+model WebhookEvent {
+  id        String   @id // Stripe event ID
+  processed Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([id, processed])
+  @@map("webhook_events")
+}
+
 // Enums
 enum UserRole {
   CUSTOMER
