@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
                             });
 
                             if (currentJob?.depositPaid) {
-                                console.error(`Job ${jobId} already has deposit paid - duplicate payment attempt blocked`);
+                                console.error(`[RACE CONDITION BLOCKED] Job ${jobId} already has deposit paid. Attempted by tradesperson ${tradespersonId}, session ${session.id}`);
                                 throw new Error('Job already has accepted tradesperson');
                             }
 
@@ -91,25 +91,45 @@ export async function POST(request: NextRequest) {
                             }
                         });
 
-                        console.log(`Deposit payment processed successfully for job ${jobId}`);
+                        console.log(`[SUCCESS] Deposit payment processed for job ${jobId}, tradesperson ${tradespersonId}, session ${session.id}`);
                     } catch (transactionError) {
-                        console.error("Transaction failed for deposit payment:", transactionError);
+                        console.error(`[ERROR] Transaction failed for deposit payment - job ${jobId}, tradesperson ${tradespersonId}:`, transactionError);
                         // Transaction will rollback automatically
-                        // Consider alerting admin here
+                        // Consider alerting admin here for non-race-condition errors
                     }
                 }
 
-                // Handle final payment
+                // Handle final payment with atomic transaction
                 else if (applicationType === "final_payment") {
-                    await prisma.job.update({
-                        where: { id: jobId },
-                        data: {
-                            finalPaid: true,
-                            finalPaymentIntentId: session.payment_intent as string,
-                        },
-                    });
+                    try {
+                        await prisma.$transaction(async (tx) => {
+                            // 1. Check if job already has final payment (prevent race condition)
+                            const currentJob = await tx.job.findUnique({
+                                where: { id: jobId },
+                                select: { finalPaid: true, finalPaymentIntentId: true }
+                            });
 
-                    console.log(`Final payment processed for job ${jobId}`);
+                            if (currentJob?.finalPaid) {
+                                console.error(`[RACE CONDITION BLOCKED] Job ${jobId} already has final payment paid. Session ${session.id}`);
+                                throw new Error('Job already has final payment processed');
+                            }
+
+                            // 2. Update job with final payment information atomically
+                            await tx.job.update({
+                                where: { id: jobId },
+                                data: {
+                                    finalPaid: true,
+                                    finalPaymentIntentId: session.payment_intent as string,
+                                },
+                            });
+                        });
+
+                        console.log(`[SUCCESS] Final payment processed for job ${jobId}, session ${session.id}`);
+                    } catch (transactionError) {
+                        console.error(`[ERROR] Transaction failed for final payment - job ${jobId}:`, transactionError);
+                        // Transaction will rollback automatically
+                        // Consider alerting admin here for non-race-condition errors
+                    }
                 }
 
                 break;
