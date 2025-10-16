@@ -43,43 +43,64 @@ export async function POST(request: NextRequest) {
 
                 const { jobId, tradespersonId, applicationType, applicationId } = session.metadata;
 
-                // Handle deposit payment
+                // Handle deposit payment with atomic transaction
                 if (applicationType === "deposit") {
-                    // Update job status and store payment information
-                    await prisma.job.update({
-                        where: { id: jobId },
-                        data: {
-                            status: "IN_PROGRESS",
-                            depositPaid: true,
-                            depositPaymentIntentId: session.payment_intent as string,
-                            acceptedTradespersonId: tradespersonId,
-                        },
-                    });
+                    try {
+                        await prisma.$transaction(async (tx) => {
+                            // 1. Check if job already has accepted tradesperson (prevent race condition)
+                            const currentJob = await tx.job.findUnique({
+                                where: { id: jobId },
+                                select: { depositPaid: true, acceptedTradespersonId: true }
+                            });
 
-                    // Update application status
-                    if (applicationId) {
-                        await prisma.application.update({
-                            where: { id: applicationId },
-                            data: {
-                                status: "ACCEPTED",
-                            },
+                            if (currentJob?.depositPaid) {
+                                console.error(`Job ${jobId} already has deposit paid - duplicate payment attempt blocked`);
+                                throw new Error('Job already has accepted tradesperson');
+                            }
+
+                            // 2. Update job status and store payment information atomically
+                            await tx.job.update({
+                                where: { id: jobId },
+                                data: {
+                                    status: "IN_PROGRESS",
+                                    depositPaid: true,
+                                    depositPaymentIntentId: session.payment_intent as string,
+                                    acceptedTradespersonId: tradespersonId,
+                                },
+                            });
+
+                            // 3. Update application status
+                            if (applicationId) {
+                                await tx.application.update({
+                                    where: { id: applicationId },
+                                    data: {
+                                        status: "ACCEPTED",
+                                    },
+                                });
+
+                                // 4. Reject all other applications for this job
+                                await tx.application.updateMany({
+                                    where: {
+                                        jobId: jobId,
+                                        id: { not: applicationId },
+                                    },
+                                    data: {
+                                        status: "REJECTED",
+                                    },
+                                });
+                            }
                         });
 
-                        // Reject all other applications for this job
-                        await prisma.application.updateMany({
-                            where: {
-                                jobId: jobId,
-                                id: { not: applicationId },
-                            },
-                            data: {
-                                status: "REJECTED",
-                            },
-                        });
+                        console.log(`Deposit payment processed successfully for job ${jobId}`);
+                    } catch (transactionError) {
+                        console.error("Transaction failed for deposit payment:", transactionError);
+                        // Transaction will rollback automatically
+                        // Consider alerting admin here
                     }
                 }
 
-                // Handle final payment (will be implemented in step 5)
-                else if (applicationType === "final") {
+                // Handle final payment
+                else if (applicationType === "final_payment") {
                     await prisma.job.update({
                         where: { id: jobId },
                         data: {
@@ -87,6 +108,8 @@ export async function POST(request: NextRequest) {
                             finalPaymentIntentId: session.payment_intent as string,
                         },
                     });
+
+                    console.log(`Final payment processed for job ${jobId}`);
                 }
 
                 break;
@@ -107,6 +130,9 @@ export async function POST(request: NextRequest) {
 
                 break;
             }
+
+            default:
+                console.log(`Unhandled event type: ${event.type}`);
         }
 
         return NextResponse.json({ received: true });

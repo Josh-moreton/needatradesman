@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
-import { prisma } from "@/lib/prisma"; // adjust import as needed
-import { auth } from "@clerk/nextjs/server"; // or your auth system
 
 export async function POST(request: NextRequest) {
     try {
@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
                 type: "express",
                 email: user.email,
                 capabilities: {
+                    card_payments: { requested: true },
                     transfers: { requested: true },
                 },
                 settings: {

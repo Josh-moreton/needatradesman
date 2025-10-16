@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 
 export async function GET() {
     const { userId } = await auth();

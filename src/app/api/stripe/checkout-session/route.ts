@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
@@ -58,6 +58,30 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
+        // CRITICAL: Verify Stripe Connect account is ready to accept charges
+        let account;
+        try {
+            account = await stripe.accounts.retrieve(tradesperson.stripeAccountId);
+        } catch (error) {
+            console.error("Failed to retrieve Stripe account:", error);
+            return NextResponse.json({
+                error: "Unable to verify tradesperson payment account"
+            }, { status: 500 });
+        }
+
+        // Check account is fully onboarded and can accept payments
+        if (!account.charges_enabled) {
+            return NextResponse.json({
+                error: "Tradesperson payment account is not yet verified. Please ask them to complete their payout setup."
+            }, { status: 400 });
+        }
+
+        if (!account.details_submitted) {
+            return NextResponse.json({
+                error: "Tradesperson has not completed their account setup"
+            }, { status: 400 });
+        }
+
         // Determine the application
         if (job.applications.length === 0) {
             return NextResponse.json({
@@ -88,7 +112,10 @@ export async function POST(request: NextRequest) {
         // Calculate deposit percentage for display
         const depositPercentage = Math.round((deposit / Number(fullAmount)) * 100);
 
-        // Create a Checkout Session
+        // Calculate platform fee (10% of deposit)
+        const platformFee = calculatePlatformFee(deposit);
+
+        // Create a Checkout Session with Stripe Connect
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -105,11 +132,18 @@ export async function POST(request: NextRequest) {
                     quantity: 1,
                 },
             ],
+            payment_intent_data: {
+                application_fee_amount: platformFee,
+                transfer_data: {
+                    destination: tradesperson.stripeAccountId,
+                },
+            },
             metadata: {
                 jobId: job.id,
                 tradespersonId: tradespersonId,
                 applicationType: "deposit",
                 applicationId: application.id,
+                platformFee: platformFee.toString(),
             },
             success_url: `${origin}/customer/jobs/${jobId}?payment_success=true`,
             cancel_url: `${origin}/customer/jobs/${jobId}?payment_cancelled=true`,
