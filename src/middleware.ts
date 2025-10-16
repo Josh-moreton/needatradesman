@@ -1,146 +1,172 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-interface ClerkMetadata {
-    onboardingComplete?: boolean;
+interface PublicMetadata {
+    onboardingComplete?: boolean
 }
 
-// Public routes that should be accessible to everyone (including unauthenticated users)
+// Public routes accessible to everyone (including unauthenticated users)
 const isPublicRoute = createRouteMatcher([
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
-    '/api/auth(.*)',
-    '/onboarding(.*)',
-    '/debug-onboarding(.*)'  // Add debug page to public routes
+    '/api/webhooks(.*)', // Webhooks must be public for external services
 ])
 
-// Routes that should be accessible to authenticated users (skip onboarding check)
-const isAuthenticatedRoute = createRouteMatcher([
-    '/customer(.*)',
-    '/tradesperson(.*)',
-    '/dashboard(.*)'
-])
+// Onboarding routes
+const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)'])
 
-// Add a bypass parameter to prevent infinite redirects
-const hasBypassParam = (url: string) => {
-    return url.includes('bypass_onboarding=true')
+/**
+ * Logs middleware errors in a structured format
+ * Only logs in development or when critical errors occur
+ */
+function logMiddlewareError(error: unknown, context: { pathname: string; userId?: string }) {
+    const errorInfo = {
+        timestamp: new Date().toISOString(),
+        pathname: context.pathname,
+        userId: context.userId || 'unauthenticated',
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error && process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    }
+
+    // Always log errors to console in development
+    if (process.env.NODE_ENV === 'development') {
+        console.error('[Middleware Error]', errorInfo)
+    } else {
+        // In production, only log critical info (no stack traces)
+        console.error('[Middleware Error]', {
+            timestamp: errorInfo.timestamp,
+            pathname: errorInfo.pathname,
+            errorType: errorInfo.errorType,
+            errorMessage: errorInfo.errorMessage,
+        })
+    }
+
+    // NOTE: Integrate with production error tracking service (e.g., Sentry) when available
+    // Example: Sentry.captureException(error, { contexts: { middleware: errorInfo } })
+}
+
+/**
+ * Logs critical middleware events for monitoring
+ * Only logs significant events, not every request
+ */
+function logCriticalEvent(event: string, context: Record<string, unknown>) {
+    if (process.env.NODE_ENV === 'development') {
+        console.info('[Middleware Event]', event, context)
+    }
+    // In production, consider using a proper logging service
+    // e.g., logger.info(event, context)
+}
+
+/**
+ * Handles onboarding redirects based on user's onboarding status
+ * Returns a redirect response if needed, undefined otherwise
+ */
+function handleOnboardingRedirect(
+    onboarded: boolean | undefined,
+    pathname: string,
+    req: { url: string }
+): NextResponse | undefined {
+    // Redirect to onboarding if not complete
+    if (!onboarded && !isOnboardingRoute({ nextUrl: { pathname } } as never)) {
+        return NextResponse.redirect(new URL('/onboarding', req.url))
+    }
+
+    // Redirect from onboarding if already complete
+    if (onboarded && isOnboardingRoute({ nextUrl: { pathname } } as never)) {
+        return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
+    return undefined
 }
 
 export default clerkMiddleware(
     async (auth, req) => {
-        try {
-            const pathname = req.nextUrl.pathname
+        const pathname = req.nextUrl.pathname
 
-            // Allow public routes without any auth checks
+        try {
+            // 1. Allow public routes without any checks
             if (isPublicRoute(req)) {
                 return
             }
 
-            // Skip onboarding check for API routes
+            // 2. Attempt to get authentication info
+            let userId: string | null
+            let sessionClaims: Record<string, unknown> | null
+
+            try {
+                const authResult = await auth()
+                userId = authResult.userId
+                sessionClaims = authResult.sessionClaims
+            } catch (authError) {
+                // Auth errors are critical - they indicate Clerk API issues
+                logMiddlewareError(authError, { pathname })
+                logCriticalEvent('auth_failure', {
+                    pathname,
+                    error: authError instanceof Error ? authError.message : 'Unknown auth error'
+                })
+
+                // Allow Clerk to handle authentication errors gracefully
+                // by letting the request proceed (Clerk will redirect to sign-in)
+                return
+            }
+
+            // 3. Require authentication for all other routes
+            if (!userId) {
+                // This is expected behavior, not an error - user just isn't signed in
+                return // Clerk will redirect to sign-in
+            }
+
+            // 4. Skip onboarding check for API routes (except webhooks which are public)
             if (pathname.startsWith('/api/')) {
                 return
             }
 
-            // For authenticated routes, only check if user is signed in
-            // Let the page components handle role-based logic
-            if (isAuthenticatedRoute(req)) {
-                const { userId } = await auth()
-                if (!userId) {
-                    console.log('No userId for authenticated route, letting Clerk handle sign-in')
-                    return // Clerk will redirect to sign-in
-                }
-                console.log('Allowing authenticated route:', pathname)
-                return // Skip onboarding check, let pages handle it
-            }
+            // 5. Check onboarding status from session claims
+            // Validate that sessionClaims exists before accessing nested properties
+            if (!sessionClaims) {
+                logCriticalEvent('missing_session_claims', {
+                    pathname,
+                    userId,
+                    message: 'Session claims unexpectedly missing for authenticated user'
+                })
 
-            // Temporary bypass for debugging infinite loops
-            if (hasBypassParam(req.url)) {
-                console.log('Bypassing onboarding check due to bypass parameter')
+                // Safely assume not onboarded if claims are missing
+                // This prevents users from bypassing onboarding
+                if (!isOnboardingRoute(req)) {
+                    return NextResponse.redirect(new URL('/onboarding', req.url))
+                }
                 return
             }
 
-            // Get auth info - handle potential errors
-            let authResult;
-            try {
-                authResult = await auth()
-            } catch (authError) {
-                console.error('Auth error in middleware:', authError)
-                return // Let Clerk handle the error
+            const publicMetadata = sessionClaims.publicMetadata as PublicMetadata | undefined
+            const onboarded = publicMetadata?.onboardingComplete
+
+            // 6-7. Handle onboarding redirects
+            const redirectResponse = handleOnboardingRedirect(onboarded, pathname, req)
+            if (redirectResponse) {
+                return redirectResponse
             }
 
-            const { userId, sessionClaims } = authResult
+            // Request is allowed to proceed
+            return
 
-            // Always log for debugging
-            console.log('Middleware check:', {
-                userId: userId || 'NO_USER_ID',
+        } catch (unexpectedError) {
+            // Catch any unexpected errors in our middleware logic
+            logMiddlewareError(unexpectedError, { pathname, userId: 'unknown' })
+            logCriticalEvent('unexpected_middleware_error', {
                 pathname,
-                hasSessionClaims: !!sessionClaims,
-                sessionClaimsKeys: sessionClaims ? Object.keys(sessionClaims) : 'NO_SESSION_CLAIMS',
-                url: req.url
+                error: unexpectedError instanceof Error ? unexpectedError.message : 'Unknown error'
             })
 
-            // For all other routes, ensure user is authenticated
-            if (!userId) {
-                console.log('No userId, letting Clerk redirect to sign-in')
-                return // This will trigger Clerk's default redirect to sign-in
-            }
-
-            // Check if user has completed onboarding
-            // Try both possible locations for metadata
-            const publicMetadata = sessionClaims?.publicMetadata as ClerkMetadata
-            const metadata = sessionClaims?.metadata as ClerkMetadata
-            let onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
-
-            console.log('Onboarding check:', {
-                publicMetadata,
-                metadata,
-                onboarded,
-                publicMetadataKeys: publicMetadata ? Object.keys(publicMetadata) : 'NO_PUBLIC_METADATA',
-                metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA',
-                hasPublicMetadataField: 'publicMetadata' in (sessionClaims || {}),
-                hasMetadataField: 'metadata' in (sessionClaims || {})
-            })
-
-            // If session claims don't have metadata, it might be a timing issue
-            // Log this case but still fetch fresh data as fallback
-            if (userId && !('publicMetadata' in (sessionClaims || {}))) {
-                console.log('WARNING: Session claims missing publicMetadata field - this should be rare after session.reload() fix')
-                try {
-                    console.log('Fetching fresh data from Clerk API as fallback...')
-                    const { clerkClient } = await import('@clerk/nextjs/server')
-                    const client = await clerkClient()
-                    const freshUser = await client.users.getUser(userId)
-                    const freshOnboarded = !!freshUser.publicMetadata?.onboardingComplete
-
-                    console.log('Fresh user check:', {
-                        userId,
-                        freshPublicMetadata: freshUser.publicMetadata,
-                        freshOnboarded
-                    })
-
-                    onboarded = freshOnboarded
-                } catch (fetchError) {
-                    console.error('Error fetching fresh user data:', fetchError)
-                    // If we can't fetch fresh data, assume not onboarded for safety
-                    onboarded = false
-                }
-            }
-
-            if (!onboarded && !pathname.startsWith('/onboarding')) {
-                console.log('Redirecting to onboarding from:', pathname)
-                return NextResponse.redirect(new URL('/onboarding', req.url))
-            }
-
-            console.log('Allowing request to:', pathname)
-            return // Allow the request to proceed
-        } catch (error) {
-            console.error('Middleware error:', error)
-            return // Allow the request to proceed on error
+            // On unexpected errors, fail open but log the issue
+            // This prevents middleware bugs from breaking the entire app
+            // Better to allow the request and handle security at the page level
+            // than to show users a broken site
+            return
         }
-    },
-    // Enable debug mode in development for easier troubleshooting
-    { debug: process.env.NODE_ENV === 'development' }
+    }
 )
 
 export const config = {

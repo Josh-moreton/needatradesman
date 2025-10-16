@@ -199,3 +199,136 @@ export const getCachedJobsList = async (key: string) => {
     }
     return null;
 };
+
+// Safe wrapper functions for Redis operations
+// These provide consistent error handling and logging for all Redis operations
+
+/**
+ * Safely get a value from Redis
+ * @param key - The Redis key
+ * @returns The value or null if error or not found
+ */
+export async function safeRedisGet<T>(key: string): Promise<T | null> {
+    if (!redis) return null;
+    try {
+        return await redis.get<T>(key);
+    } catch (error) {
+        console.error('Redis GET error:', error);
+        return null;
+    }
+}
+
+/**
+ * Safely set a value in Redis with expiry
+ * @param key - The Redis key
+ * @param value - The value to set
+ * @param expirySeconds - Expiry time in seconds (optional)
+ * @returns true if successful, false otherwise
+ */
+export async function safeRedisSet(
+    key: string,
+    value: string | number | boolean | object,
+    expirySeconds?: number
+): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        if (expirySeconds !== undefined) {
+            await redis.set(key, value, { ex: expirySeconds });
+        } else {
+            await redis.set(key, value);
+        }
+        return true;
+    } catch (error) {
+        console.error('Redis SET error:', error);
+        return false;
+    }
+}
+
+/**
+ * Safely delete one or more keys from Redis
+ * @param keys - The Redis key(s) to delete
+ * @returns true if successful, false otherwise
+ */
+export async function safeRedisDel(...keys: string[]): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        if (keys.length === 1) {
+            await redis.del(keys[0]);
+        } else {
+            await Promise.all(keys.map(key => redis!.del(key)));
+        }
+        return true;
+    } catch (error) {
+        console.error('Redis DEL error:', error);
+        return false;
+    }
+}
+
+/**
+ * Safely push values to a Redis list
+ * @param key - The Redis key
+ * @param values - The values to push
+ * @returns true if successful, false otherwise
+ */
+export async function safeRedisLpush(key: string, ...values: (string | number)[]): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        await redis.lpush(key, ...values);
+        return true;
+    } catch (error) {
+        console.error('Redis LPUSH error:', error);
+        return false;
+    }
+}
+
+/**
+ * Safely set expiry on a Redis key
+ * @param key - The Redis key
+ * @param seconds - Expiry time in seconds
+ * @returns true if successful, false otherwise
+ */
+export async function safeRedisExpire(key: string, seconds: number): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        await redis.expire(key, seconds);
+        return true;
+    } catch (error) {
+        console.error('Redis EXPIRE error:', error);
+        return false;
+    }
+}
+
+/**
+ * Safely publish a message to a Redis channel
+ * @param channel - The channel name
+ * @param message - The message to publish
+ * @returns true if successful, false otherwise
+ */
+export async function safeRedisPublish(channel: string, message: string): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        await redis.publish(channel, message);
+        return true;
+    } catch (error) {
+        console.error('Redis PUBLISH error:', error);
+        return false;
+    }
+}
+
+/**
+ * Check if Redis is connected and healthy
+ * @returns true if connected, false otherwise
+ */
+export async function isRedisHealthy(): Promise<boolean> {
+    if (!redis) return false;
+    try {
+        const testKey = `health:check:${Date.now()}`;
+        await redis.set(testKey, 'ok', { ex: 5 });
+        const result = await redis.get<string>(testKey);
+        await redis.del(testKey);
+        return result === 'ok';
+    } catch (error) {
+        console.error('Redis health check failed:', error);
+        return false;
+    }
+}
