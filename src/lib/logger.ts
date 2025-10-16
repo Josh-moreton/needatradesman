@@ -11,7 +11,7 @@ const logLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
 // which are incompatible with Next.js Turbopack mode
 export const logger = pino({
   level: logLevel,
-  
+
   // Use simple browser-compatible formatting
   browser: {
     asObject: true,
