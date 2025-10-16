@@ -159,7 +159,6 @@ async function initiatePayoutToTradesperson(job: any, application: any) {
     await prisma.job.update({
         where: { id: job.id },
         data: {
-            payoutReleased: true,
             payoutTransferId: transfer.id
         }
     });
