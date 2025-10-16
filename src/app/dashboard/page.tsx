@@ -240,7 +240,7 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
                     </div>
                   </div>
                   <Button asChild variant="ghost" size="sm">
-                    <Link href={`/jobs/my-jobs/${job.id}`}>View</Link>
+                    <Link href={`/customer/jobs/my-jobs/${job.id}`}>View</Link>
                   </Button>
                 </div>
               ))}
