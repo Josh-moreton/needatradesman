@@ -2,6 +2,8 @@
 
 we use pnpm.
 
+pnpm lint && pnpm type-check before committing.
+
 This project is a Next.js 15 (App Router) marketplace connecting customers and tradespeople. It uses React 19, TypeScript, Prisma (PostgreSQL), Clerk auth, Redis (ioredis + rate-limiter-flexible), Pusher (chat/notifications), and Stripe (payments). Keep edits small, typed, and aligned with established patterns below.
 
 ## Architecture essentials
