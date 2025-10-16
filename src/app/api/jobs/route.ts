@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
 import { createLogger } from "@/lib/logger";
+import { validateSearchQuery } from "@/lib/utils";
 import {
     redis,
     jobPostingRateLimit,
@@ -115,10 +116,32 @@ export async function GET(request: NextRequest) {
         // Get all open jobs for public viewing (tradespeople)
         const { searchParams } = new URL(request.url);
         const category = searchParams.get("category");
-        const location = searchParams.get("location");
-        const search = searchParams.get("search");
+        const rawLocation = searchParams.get("location");
+        const rawSearch = searchParams.get("search");
         const page = parseInt(searchParams.get("page") || "1");
         const limit = 12; // jobs per page
+
+        // Validate and sanitize search query
+        let search: string | null = null;
+        try {
+            search = validateSearchQuery(rawSearch);
+        } catch (error) {
+            if (error instanceof Error) {
+                return new NextResponse(error.message, { status: 400 });
+            }
+            return new NextResponse("Invalid search query", { status: 400 });
+        }
+
+        // Validate and sanitize location query
+        let location: string | null = null;
+        try {
+            location = validateSearchQuery(rawLocation);
+        } catch (error) {
+            if (error instanceof Error) {
+                return new NextResponse(error.message, { status: 400 });
+            }
+            return new NextResponse("Invalid location query", { status: 400 });
+        }
 
         // Create more comprehensive cache key based on all filters
         const filterParts = [
