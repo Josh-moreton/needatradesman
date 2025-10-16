@@ -21,6 +21,9 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger('tradesperson-job-detail');
 
 // This page uses authentication and dynamic params, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -288,7 +291,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
       </div>
     );
   } catch (error) {
-    console.error("Error in job detail page:", error);
+    logger.error({ error }, "Error in job detail page");
     redirect("/sign-in");
   }
 }

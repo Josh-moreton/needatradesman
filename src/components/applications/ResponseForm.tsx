@@ -30,6 +30,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('response-form');
 
 interface ResponseFormProps {
   jobId: string;
@@ -84,7 +87,7 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
 
       setIsSuccess(true);
     } catch (error) {
-      console.error("Error submitting response:", error);
+      logger.error({ error }, "Error submitting response");
       // TODO: Add proper error handling with toast notifications
       alert(
         error instanceof Error ? error.message : "Failed to submit response"

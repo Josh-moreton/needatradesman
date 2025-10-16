@@ -13,6 +13,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('final-payment-modal');
 
 interface FinalPaymentModalProps {
   isOpen: boolean;
@@ -59,7 +62,7 @@ export function FinalPaymentModal({
         setLoading(false);
       }
     } catch (error) {
-      console.error("Payment error:", error);
+      logger.error({ error }, "Payment error");
       toast.error("Something went wrong. Please try again.");
       setLoading(false);
     }

@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/select";
 import { QuoteItem } from "@/lib/schemas";
 import { TemplateModal } from "@/components/quotes/TemplateModal";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('quote-builder');
 
 interface QuoteTemplate {
   id: string;
@@ -64,7 +67,7 @@ export function QuoteBuilder({
         const data = await response.json();
         setTemplates(data);
       } catch (error) {
-        console.error("Error fetching templates:", error);
+        logger.error({ error }, "Error fetching templates");
       } finally {
         setIsLoadingTemplates(false);
       }

@@ -26,6 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('job-form');
 
 const categoryOptions = [
   { value: JobCategory.PLUMBING, label: "Plumbing" },
@@ -78,7 +81,7 @@ export function JobForm() {
       router.push("/customer/jobs/my-jobs");
       router.refresh();
     } catch (error) {
-      console.error("Error creating job:", error);
+      logger.error({ error }, "Error creating job");
       // TODO: Add proper error handling with toast notifications
       alert(error instanceof Error ? error.message : "Failed to create job");
     } finally {

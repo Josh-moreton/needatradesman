@@ -16,6 +16,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { QuoteItem, quoteItemSchema } from "@/lib/schemas";
 import { toast } from "sonner";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('quote-templates-client');
 
 // Template creation form schema
 const templateFormSchema = z.object({
@@ -60,7 +63,7 @@ export default function QuoteTemplatesClient() {
         const data = await response.json();
         setTemplates(data);
       } catch (error) {
-        console.error("Error fetching templates:", error);
+        logger.error({ error }, "Error fetching templates");
         toast.error("Failed to load templates");
       } finally {
         setLoading(false);
@@ -119,7 +122,7 @@ export default function QuoteTemplatesClient() {
       form.reset();
       toast.success("Template created successfully");
     } catch (error) {
-      console.error("Error creating template:", error);
+      logger.error({ error }, "Error creating template");
       toast.error("Failed to create template");
       setCreating(false);
     }
@@ -139,7 +142,7 @@ export default function QuoteTemplatesClient() {
       setTemplates(templates.filter((t) => t.id !== id));
       toast.success("Template deleted successfully");
     } catch (error) {
-      console.error("Error deleting template:", error);
+      logger.error({ error }, "Error deleting template");
       toast.error("Failed to delete template");
     }
   };

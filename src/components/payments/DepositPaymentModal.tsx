@@ -11,6 +11,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('deposit-payment-modal');
 
 interface DepositPaymentModalProps {
   isOpen: boolean;
@@ -62,7 +65,7 @@ export function DepositPaymentModal({
         throw new Error("No checkout URL returned");
       }
     } catch (err) {
-      console.error("Payment error:", err);
+      logger.error({ error: err }, "Payment error");
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
     }

@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('job-completion-card');
 
 interface JobCompletionCardProps {
   jobId: string;
@@ -58,7 +61,7 @@ export function JobCompletionCard({
         toast.error(data.error || "Failed to confirm completion");
       }
     } catch (error) {
-      console.error("Error confirming completion:", error);
+      logger.error({ error }, "Error confirming completion");
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);

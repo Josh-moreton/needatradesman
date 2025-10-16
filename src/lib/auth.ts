@@ -1,6 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from './prisma'
 import { UserRole } from '@prisma/client'
+import { createLogger } from './logger'
+
+const logger = createLogger('auth');
 
 export async function getCurrentUser() {
     try {
@@ -16,7 +19,7 @@ export async function getCurrentUser() {
 
         return user
     } catch (error) {
-        console.error('Error getting current user:', error)
+        logger.error({ error }, 'Error getting current user')
         return null
     }
 }
@@ -56,7 +59,7 @@ export async function needsOnboarding() {
         // User needs onboarding if they don't exist in our DB or don't have a role
         return !user || !user.role
     } catch (error) {
-        console.error('Error checking onboarding status:', error)
+        logger.error({ error }, 'Error checking onboarding status')
         return true // Err on the side of requiring onboarding
     }
 }
@@ -66,7 +69,7 @@ export async function isAuthenticated() {
         const { userId } = await auth()
         return !!userId
     } catch (error) {
-        console.error('Error checking authentication:', error)
+        logger.error({ error }, 'Error checking authentication')
         return false
     }
 }

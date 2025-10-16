@@ -14,6 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("tradesperson-apply");
 
 // This page uses authentication and dynamic params, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -137,7 +140,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
       </div>
     );
   } catch (error) {
-    console.error("Error in apply page:", error);
+    logger.error({ error }, "Error in apply page");
     redirect("/sign-in");
   }
 }
