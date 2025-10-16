@@ -7,21 +7,15 @@ const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug');
 
 // Configure Pino logger
+// Note: pino-pretty transport is disabled because it uses worker threads
+// which are incompatible with Next.js Turbopack mode
 export const logger = pino({
   level: logLevel,
-  
-  // In production, use JSON formatting for log aggregation
-  // In development, use pretty printing for readability
-  ...(!isProduction && {
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss',
-        ignore: 'pid,hostname',
-      },
-    },
-  }),
+
+  // Use simple browser-compatible formatting
+  browser: {
+    asObject: true,
+  },
 
   // Redact sensitive data in production
   ...(isProduction && {
