@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   createApplicationSchema,
   type CreateApplicationInput,
@@ -73,6 +74,7 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
       }
 
       setIsSuccess(true);
+      toast.success("Application submitted successfully!");
 
       // Redirect after a short delay
       setTimeout(() => {
@@ -81,10 +83,39 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
       }, 2000);
     } catch (error) {
       console.error("Error submitting application:", error);
-      // TODO: Add proper error handling with toast notifications
-      alert(
-        error instanceof Error ? error.message : "Failed to submit application"
-      );
+      
+      // Handle different error types with specific messages
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        // Rate limit errors
+        if (errorMessage.includes("rate limit")) {
+          toast.error("Too many applications. Please wait before submitting again.");
+        }
+        // Authentication errors
+        else if (errorMessage.includes("unauthorized") || errorMessage.includes("not found")) {
+          toast.error("Authentication error. Please sign in again.");
+        }
+        // Validation errors
+        else if (errorMessage.includes("invalid") || errorMessage.includes("required")) {
+          toast.error("Please check your application details and try again.");
+        }
+        // Already applied
+        else if (errorMessage.includes("already applied")) {
+          toast.error("You have already applied to this job.");
+        }
+        // Job status errors
+        else if (errorMessage.includes("no longer accepting")) {
+          toast.error("This job is no longer accepting applications.");
+        }
+        // Generic error from server
+        else {
+          toast.error(error.message);
+        }
+      } else {
+        // Network or unknown errors
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

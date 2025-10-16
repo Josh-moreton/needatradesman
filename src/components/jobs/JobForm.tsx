@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { createJobSchema, type CreateJobInput } from "@/lib/schemas";
 import { JobCategory } from "@prisma/client";
 
@@ -74,13 +75,42 @@ export function JobForm() {
 
       await response.json();
 
+      toast.success("Job posted successfully!");
+      
       // Redirect to job management page
       router.push("/customer/jobs/my-jobs");
       router.refresh();
     } catch (error) {
       console.error("Error creating job:", error);
-      // TODO: Add proper error handling with toast notifications
-      alert(error instanceof Error ? error.message : "Failed to create job");
+      
+      // Handle different error types with specific messages
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        // Rate limit errors
+        if (errorMessage.includes("rate limit")) {
+          toast.error("Too many job postings. Please wait before posting again.");
+        }
+        // Authentication errors
+        else if (errorMessage.includes("unauthorized") || errorMessage.includes("not found")) {
+          toast.error("Authentication error. Please sign in again.");
+        }
+        // Permission errors
+        else if (errorMessage.includes("only customers")) {
+          toast.error("Only customers can create jobs. Please check your account type.");
+        }
+        // Validation errors
+        else if (errorMessage.includes("invalid") || errorMessage.includes("required")) {
+          toast.error("Please check your job details and try again.");
+        }
+        // Generic error from server
+        else {
+          toast.error(error.message);
+        }
+      } else {
+        // Network or unknown errors
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

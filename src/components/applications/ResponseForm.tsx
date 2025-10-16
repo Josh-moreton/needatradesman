@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   createApplicationSchema,
   type CreateApplicationInput,
@@ -83,12 +84,42 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
       }
 
       setIsSuccess(true);
+      toast.success("Response submitted successfully!");
     } catch (error) {
       console.error("Error submitting response:", error);
-      // TODO: Add proper error handling with toast notifications
-      alert(
-        error instanceof Error ? error.message : "Failed to submit response"
-      );
+      
+      // Handle different error types with specific messages
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        
+        // Rate limit errors
+        if (errorMessage.includes("rate limit")) {
+          toast.error("Too many responses. Please wait before submitting again.");
+        }
+        // Authentication errors
+        else if (errorMessage.includes("unauthorized") || errorMessage.includes("not found")) {
+          toast.error("Authentication error. Please sign in again.");
+        }
+        // Validation errors
+        else if (errorMessage.includes("invalid") || errorMessage.includes("required")) {
+          toast.error("Please check your response details and try again.");
+        }
+        // Already applied
+        else if (errorMessage.includes("already applied")) {
+          toast.error("You have already responded to this job.");
+        }
+        // Job status errors
+        else if (errorMessage.includes("no longer accepting")) {
+          toast.error("This job is no longer accepting responses.");
+        }
+        // Generic error from server
+        else {
+          toast.error(error.message);
+        }
+      } else {
+        // Network or unknown errors
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +143,7 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
       }
       router.push(`/tradesperson/messages?jobId=${jobId}`);
     } catch {
-      alert("Failed to start chat. Please try again.");
+      toast.error("Failed to start chat. Please try again.");
     } finally {
       setChatLoading(false);
     }
