@@ -121,13 +121,28 @@ export async function POST(
 async function initiatePayoutToTradesperson(job: any, application: any) {
     const tradesperson = application.tradesperson;
     
-    // Calculate the amount to transfer (could be deposit amount or full quote)
-    const transferAmount = application.quote || job.budget;
-    
-    if (!transferAmount) {
-        throw new Error("No amount to transfer");
+    // Calculate the amount to transfer: only transfer funds actually received from the customer
+    // Fetch all successful payment intents for this job
+    const paymentIntents = await stripe.paymentIntents.list({
+        customer: job.customerStripeId,
+        limit: 100, // adjust as needed
+    });
+
+    // Filter payment intents related to this job (assuming job.id is stored in metadata)
+    const jobPaymentIntents = paymentIntents.data.filter(
+        (pi) => pi.status === "succeeded" && pi.metadata && pi.metadata.jobId === job.id
+    );
+
+    // Sum the amount received for this job
+    const totalReceived = jobPaymentIntents.reduce((sum, pi) => sum + (pi.amount_received || 0), 0);
+
+    if (!totalReceived || totalReceived <= 0) {
+        throw new Error("No funds received from customer for this job");
     }
 
+    // Only transfer up to the quoted amount (in cents)
+    const quoteAmountCents = Math.round(Number(application.quote || job.budget) * 100);
+    const transferAmount = Math.min(totalReceived, quoteAmountCents);
     // Create a transfer to the tradesperson's Connect account
     const transfer = await stripe.transfers.create({
         amount: Math.round(Number(transferAmount) * 100), // Convert to cents
