@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createApplicationSchema, UserRole } from "@/lib/schemas";
 import { applicationRateLimit, redis, CACHE_KEYS, CACHE_TTL, invalidateApplicationCaches, invalidateJobCaches, invalidateUserStats } from "@/lib/redis";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger('applications-api');
 
 export async function POST(request: NextRequest) {
     try {
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
                 }
             } catch (error) {
                 // This is a Redis connection error - log it and continue
-                console.error('Rate limiter error (likely Redis connection issue):', error);
+                logger.error({ error }, 'Rate limiter error (likely Redis connection issue)');
                 // Allow the request to proceed if rate limiting fails due to connection issues
             }
         }
@@ -131,16 +134,16 @@ export async function POST(request: NextRequest) {
                     invalidateUserStats(user.id, UserRole.TRADESPERSON),
                     invalidateUserStats(application.job.customerId, UserRole.CUSTOMER)
                 ]);
-                console.log('Invalidated caches after application creation');
+                logger.debug('Invalidated caches after application creation');
             } catch (cacheError) {
-                console.error('Cache invalidation error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache invalidation error');
                 // Don't fail the request if cache invalidation fails
             }
         }
 
         return NextResponse.json(application, { status: 201 });
     } catch (error) {
-        console.error("Error creating application:", error);
+        logger.error({ error }, 'Error creating application');
 
         if (error instanceof Error && error.name === "ZodError") {
             return new NextResponse("Invalid request data", { status: 400 });
@@ -174,7 +177,7 @@ export async function GET() {
             try {
                 const cached = await redis.get<string>(cacheKey);
                 if (cached) {
-                    console.log('Cache hit for applications:', cacheKey);
+                    logger.debug({ cacheKey }, 'Cache hit for applications');
                     return NextResponse.json(JSON.parse(cached));
                 }
             } catch (cacheError) {
@@ -243,7 +246,7 @@ export async function GET() {
         if (redis) {
             try {
                 await redis.set(cacheKey, JSON.stringify(applications), { ex: CACHE_TTL.APPLICATIONS });
-                console.log('Cached applications:', cacheKey);
+                logger.debug({ cacheKey }, 'Cached applications');
             } catch (cacheError) {
                 console.error('Cache write error:', cacheError);
             }

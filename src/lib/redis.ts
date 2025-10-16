@@ -1,5 +1,8 @@
 import { Redis } from '@upstash/redis';
 import { Ratelimit } from '@upstash/ratelimit';
+import { createLogger } from './logger';
+
+const logger = createLogger('redis');
 
 // Check if Redis is configured (Upstash provides these via Vercel integration)
 const isRedisConfigured = !!process.env.REDIS_URL || (!!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN);
@@ -8,7 +11,7 @@ let redis: Redis | null = null;
 
 if (isRedisConfigured) {
     try {
-        console.log('Initializing Upstash Redis...');
+        logger.info('Initializing Upstash Redis...');
 
         // Upstash Redis can be initialized in two ways:
         // 1. Using REDIS_URL (if using standard Upstash Redis)
@@ -22,13 +25,13 @@ if (isRedisConfigured) {
             });
         }
 
-        console.log('Upstash Redis initialized successfully');
+        logger.info('Upstash Redis initialized successfully');
     } catch (error) {
-        console.error('Failed to initialize Upstash Redis:', error);
+        logger.error({ error }, 'Failed to initialize Upstash Redis');
         redis = null;
     }
 } else {
-    console.warn('Redis not configured - Redis features disabled (no REDIS_URL or KV credentials found)');
+    logger.warn('Redis not configured - Redis features disabled (no REDIS_URL or KV credentials found)');
 }
 
 export { redis };
@@ -104,9 +107,9 @@ export const invalidateJobCaches = async () => {
         // Delete all common cache keys
         await Promise.all(commonCacheKeys.map(key => redis!.del(key)));
 
-        console.log('Invalidated job list caches:', commonCacheKeys.length, 'keys');
+        logger.debug({ keyCount: commonCacheKeys.length }, 'Invalidated job list caches');
     } catch (error) {
-        console.error('Error invalidating job caches:', error);
+        logger.error({ error }, 'Error invalidating job caches');
     }
 };
 
@@ -116,9 +119,9 @@ export const invalidateApplicationCaches = async (userId: string, role: string) 
     try {
         const cacheKey = CACHE_KEYS.USER_APPLICATIONS(userId, role);
         await redis.del(cacheKey);
-        console.log('Invalidated application cache for user:', userId);
+        logger.debug({ userId }, 'Invalidated application cache');
     } catch (error) {
-        console.error('Error invalidating application cache:', error);
+        logger.error({ error }, 'Error invalidating application cache');
     }
 };
 
@@ -128,9 +131,9 @@ export const invalidateJobDetailCache = async (jobId: string) => {
     try {
         const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
         await redis.del(cacheKey);
-        console.log('Invalidated job detail cache:', jobId);
+        logger.debug({ jobId }, 'Invalidated job detail cache');
     } catch (error) {
-        console.error('Error invalidating job detail cache:', error);
+        logger.error({ error }, 'Error invalidating job detail cache');
     }
 };
 
@@ -140,9 +143,9 @@ export const cacheUserStats = async (userId: string, role: string, data: unknown
     try {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
         await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL.USER_STATS });
-        console.log('Cached user stats:', cacheKey);
+        logger.debug({ cacheKey }, 'Cached user stats');
     } catch (error) {
-        console.error('Error caching user stats:', error);
+        logger.error({ error }, 'Error caching user stats');
     }
 };
 
@@ -153,11 +156,11 @@ export const getCachedUserStats = async (userId: string, role: string) => {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
         const cached = await redis.get<string>(cacheKey);
         if (cached) {
-            console.log('Cache hit for user stats:', cacheKey);
+            logger.debug({ cacheKey }, 'Cache hit for user stats');
             return cached;
         }
     } catch (error) {
-        console.error('Error getting cached user stats:', error);
+        logger.error({ error }, 'Error getting cached user stats');
     }
     return null;
 };
@@ -168,9 +171,9 @@ export const invalidateUserStats = async (userId: string, role: string) => {
     try {
         const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
         await redis.del(cacheKey);
-        console.log('Invalidated user stats cache:', userId);
+        logger.debug({ userId }, 'Invalidated user stats cache');
     } catch (error) {
-        console.error('Error invalidating user stats cache:', error);
+        logger.error({ error }, 'Error invalidating user stats cache');
     }
 };
 
@@ -179,9 +182,9 @@ export const cacheJobsList = async (key: string, data: unknown, ttl: number = CA
 
     try {
         await redis.set(key, JSON.stringify(data), { ex: ttl });
-        console.log('Cached jobs list:', key);
+        logger.debug({ key }, 'Cached jobs list');
     } catch (error) {
-        console.error('Error caching jobs list:', error);
+        logger.error({ error }, 'Error caching jobs list');
     }
 };
 
@@ -191,11 +194,11 @@ export const getCachedJobsList = async (key: string) => {
     try {
         const cached = await redis.get<string>(key);
         if (cached) {
-            console.log('Cache hit for jobs list:', key);
+            logger.debug({ key }, 'Cache hit for jobs list');
             return cached;
         }
     } catch (error) {
-        console.error('Error getting cached jobs list:', error);
+        logger.error({ error }, 'Error getting cached jobs list');
     }
     return null;
 };

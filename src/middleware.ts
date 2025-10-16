@@ -1,5 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { createLogger } from './lib/logger'
+
+const logger = createLogger('middleware')
 
 interface ClerkMetadata {
     onboardingComplete?: boolean;
@@ -47,16 +50,16 @@ export default clerkMiddleware(
             if (isAuthenticatedRoute(req)) {
                 const { userId } = await auth()
                 if (!userId) {
-                    console.log('No userId for authenticated route, letting Clerk handle sign-in')
+                    logger.debug('No userId for authenticated route, letting Clerk handle sign-in')
                     return // Clerk will redirect to sign-in
                 }
-                console.log('Allowing authenticated route:', pathname)
+                logger.debug({ pathname }, 'Allowing authenticated route')
                 return // Skip onboarding check, let pages handle it
             }
 
             // Temporary bypass for debugging infinite loops
             if (hasBypassParam(req.url)) {
-                console.log('Bypassing onboarding check due to bypass parameter')
+                logger.debug('Bypassing onboarding check due to bypass parameter')
                 return
             }
 
@@ -65,24 +68,24 @@ export default clerkMiddleware(
             try {
                 authResult = await auth()
             } catch (authError) {
-                console.error('Auth error in middleware:', authError)
+                logger.error({ error: authError }, 'Auth error in middleware')
                 return // Let Clerk handle the error
             }
 
             const { userId, sessionClaims } = authResult
 
             // Always log for debugging
-            console.log('Middleware check:', {
+            logger.debug({
                 userId: userId || 'NO_USER_ID',
                 pathname,
                 hasSessionClaims: !!sessionClaims,
                 sessionClaimsKeys: sessionClaims ? Object.keys(sessionClaims) : 'NO_SESSION_CLAIMS',
                 url: req.url
-            })
+            }, 'Middleware check')
 
             // For all other routes, ensure user is authenticated
             if (!userId) {
-                console.log('No userId, letting Clerk redirect to sign-in')
+                logger.debug('No userId, letting Clerk redirect to sign-in')
                 return // This will trigger Clerk's default redirect to sign-in
             }
 
@@ -92,7 +95,7 @@ export default clerkMiddleware(
             const metadata = sessionClaims?.metadata as ClerkMetadata
             let onboarded = publicMetadata?.onboardingComplete || metadata?.onboardingComplete
 
-            console.log('Onboarding check:', {
+            logger.debug({
                 publicMetadata,
                 metadata,
                 onboarded,
@@ -100,42 +103,42 @@ export default clerkMiddleware(
                 metadataKeys: metadata ? Object.keys(metadata) : 'NO_METADATA',
                 hasPublicMetadataField: 'publicMetadata' in (sessionClaims || {}),
                 hasMetadataField: 'metadata' in (sessionClaims || {})
-            })
+            }, 'Onboarding check')
 
             // If session claims don't have metadata, it might be a timing issue
             // Log this case but still fetch fresh data as fallback
             if (userId && !('publicMetadata' in (sessionClaims || {}))) {
-                console.log('WARNING: Session claims missing publicMetadata field - this should be rare after session.reload() fix')
+                logger.warn('Session claims missing publicMetadata field - this should be rare after session.reload() fix')
                 try {
-                    console.log('Fetching fresh data from Clerk API as fallback...')
+                    logger.debug('Fetching fresh data from Clerk API as fallback...')
                     const { clerkClient } = await import('@clerk/nextjs/server')
                     const client = await clerkClient()
                     const freshUser = await client.users.getUser(userId)
                     const freshOnboarded = !!freshUser.publicMetadata?.onboardingComplete
 
-                    console.log('Fresh user check:', {
+                    logger.debug({
                         userId,
                         freshPublicMetadata: freshUser.publicMetadata,
                         freshOnboarded
-                    })
+                    }, 'Fresh user check')
 
                     onboarded = freshOnboarded
                 } catch (fetchError) {
-                    console.error('Error fetching fresh user data:', fetchError)
+                    logger.error({ error: fetchError }, 'Error fetching fresh user data')
                     // If we can't fetch fresh data, assume not onboarded for safety
                     onboarded = false
                 }
             }
 
             if (!onboarded && !pathname.startsWith('/onboarding')) {
-                console.log('Redirecting to onboarding from:', pathname)
+                logger.debug({ from: pathname }, 'Redirecting to onboarding')
                 return NextResponse.redirect(new URL('/onboarding', req.url))
             }
 
-            console.log('Allowing request to:', pathname)
+            logger.debug({ pathname }, 'Allowing request')
             return // Allow the request to proceed
         } catch (error) {
-            console.error('Middleware error:', error)
+            logger.error({ error }, 'Middleware error')
             return // Allow the request to proceed on error
         }
     },

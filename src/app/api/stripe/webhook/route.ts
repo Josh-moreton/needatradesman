@@ -3,7 +3,9 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { createLogger } from "@/lib/logger";
 
+const logger = createLogger('stripe-webhook');
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
@@ -12,7 +14,7 @@ export async function POST(request: NextRequest) {
         const headersList = await headers();
         const signature = headersList.get("stripe-signature");
         if (!signature) {
-            console.error("Missing stripe-signature header");
+            logger.error("Missing stripe-signature header");
             return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
         }
 
@@ -25,11 +27,11 @@ export async function POST(request: NextRequest) {
                 webhookSecret
             );
         } catch (err) {
-            console.error(`⚠️ Webhook signature verification failed: ${err}`);
+            logger.error({ error: err }, "Webhook signature verification failed");
             return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
         }
 
-        console.log(`Event received: ${event.type}`);
+        logger.info({ eventType: event.type }, "Stripe event received");
 
         // Handle specific event types
         switch (event.type) {
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
                 const session = event.data.object as Stripe.Checkout.Session;
 
                 if (!session.metadata || !session.metadata.jobId || !session.metadata.tradespersonId) {
-                    console.error("Missing metadata in checkout session");
+                    logger.error("Missing metadata in checkout session");
                     break;
                 }
 
@@ -54,7 +56,11 @@ export async function POST(request: NextRequest) {
                             });
 
                             if (currentJob?.depositPaid) {
-                                console.error(`[RACE CONDITION BLOCKED] Job ${jobId} already has deposit paid. Attempted by tradesperson ${tradespersonId}, session ${session.id}`);
+                                logger.error({ 
+                                    jobId, 
+                                    tradespersonId, 
+                                    sessionId: session.id 
+                                }, "Race condition blocked - job already has deposit paid");
                                 throw new Error('Job already has accepted tradesperson');
                             }
 
@@ -91,9 +97,17 @@ export async function POST(request: NextRequest) {
                             }
                         });
 
-                        console.log(`[SUCCESS] Deposit payment processed for job ${jobId}, tradesperson ${tradespersonId}, session ${session.id}`);
+                        logger.info({ 
+                            jobId, 
+                            tradespersonId, 
+                            sessionId: session.id 
+                        }, "Deposit payment processed successfully");
                     } catch (transactionError) {
-                        console.error(`[ERROR] Transaction failed for deposit payment - job ${jobId}, tradesperson ${tradespersonId}:`, transactionError);
+                        logger.error({ 
+                            jobId, 
+                            tradespersonId, 
+                            error: transactionError 
+                        }, "Transaction failed for deposit payment");
                         // Transaction will rollback automatically
                         // Consider alerting admin here for non-race-condition errors
                     }
@@ -110,7 +124,10 @@ export async function POST(request: NextRequest) {
                             });
 
                             if (currentJob?.finalPaid) {
-                                console.error(`[RACE CONDITION BLOCKED] Job ${jobId} already has final payment paid. Session ${session.id}`);
+                                logger.error({ 
+                                    jobId, 
+                                    sessionId: session.id 
+                                }, "Race condition blocked - job already has final payment paid");
                                 throw new Error('Job already has final payment processed');
                             }
 
@@ -124,9 +141,15 @@ export async function POST(request: NextRequest) {
                             });
                         });
 
-                        console.log(`[SUCCESS] Final payment processed for job ${jobId}, session ${session.id}`);
+                        logger.info({ 
+                            jobId, 
+                            sessionId: session.id 
+                        }, "Final payment processed successfully");
                     } catch (transactionError) {
-                        console.error(`[ERROR] Transaction failed for final payment - job ${jobId}:`, transactionError);
+                        logger.error({ 
+                            jobId, 
+                            error: transactionError 
+                        }, "Transaction failed for final payment");
                         // Transaction will rollback automatically
                         // Consider alerting admin here for non-race-condition errors
                     }
@@ -144,7 +167,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 if (user) {
-                    console.log(`Account updated for user ${user.id}`);
+                    logger.info({ userId: user.id }, "Stripe account updated for user");
                     // You could store additional account details if needed
                 }
 
@@ -152,12 +175,12 @@ export async function POST(request: NextRequest) {
             }
 
             default:
-                console.log(`Unhandled event type: ${event.type}`);
+                logger.debug({ eventType: event.type }, "Unhandled Stripe event type");
         }
 
         return NextResponse.json({ received: true });
     } catch (error) {
-        console.error("Webhook error:", error);
+        logger.error({ error }, "Webhook handler failed");
         return NextResponse.json(
             { error: "Webhook handler failed" },
             { status: 500 }
