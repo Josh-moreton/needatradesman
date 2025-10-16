@@ -14,6 +14,7 @@
 The branch implements several Stripe features but **fails to address the core Critical Issue #27** from the bug hunting report. Multiple security and functional gaps exist.
 
 ### Quick Verdict
+
 - ✅ Stripe Connect onboarding implemented
 - ✅ Job completion workflow added
 - ✅ Final payment flow added
@@ -30,10 +31,12 @@ The branch implements several Stripe features but **fails to address the core Cr
 ## 🔴 CRITICAL ISSUES (Must Fix Before Merge)
 
 ### 1. ❌ **PLATFORM FEES NOT IMPLEMENTED** (Issue #27)
+
 **Severity:** 🔴 CRITICAL  
 **Status:** NOT FIXED
 
-#### What Was Expected:
+#### What Was Expected
+
 ```typescript
 // In checkout-session/route.ts
 const session = await stripe.checkout.sessions.create({
@@ -47,7 +50,8 @@ const session = await stripe.checkout.sessions.create({
 });
 ```
 
-#### What Actually Exists:
+#### What Actually Exists
+
 ```typescript
 // src/app/api/stripe/checkout-session/route.ts:100-118
 const session = await stripe.checkout.sessions.create({
@@ -64,11 +68,13 @@ const session = await stripe.checkout.sessions.create({
 ```
 
 **Impact:**
+
 - 💰 **ZERO PLATFORM REVENUE** - All money goes directly to tradesperson
 - Platform cannot sustain itself financially
 - No commission structure
 
 **Evidence:** `grep` search returned NO matches for:
+
 - `application_fee`
 - `transfer_data`
 - `platform.*fee`
@@ -76,10 +82,12 @@ const session = await stripe.checkout.sessions.create({
 ---
 
 ### 2. ❌ **NO STRIPE ACCOUNT VERIFICATION BEFORE CHARGING** (Issue #27)
+
 **Severity:** 🔴 CRITICAL  
 **Status:** NOT FIXED
 
-#### What Was Expected:
+#### What Was Expected
+
 ```typescript
 // Verify account status BEFORE creating checkout session
 const account = await stripe.accounts.retrieve(tradesperson.stripeAccountId);
@@ -90,7 +98,8 @@ if (!account.charges_enabled || !account.details_submitted) {
 }
 ```
 
-#### What Actually Exists:
+#### What Actually Exists
+
 ```typescript
 // src/app/api/stripe/checkout-session/route.ts:59-63
 if (!tradesperson.stripeAccountId) {
@@ -104,12 +113,14 @@ if (!tradesperson.stripeAccountId) {
 ```
 
 **Impact:**
+
 - Payments can be accepted for tradespeople with incomplete onboarding
 - Funds can be stuck if account isn't `charges_enabled`
 - Customer pays, but money goes nowhere
 - **Payment failure after customer charged**
 
 **Proof:** `grep` search in checkout-session route returned:
+
 - ❌ NO `accounts.retrieve` call
 - ❌ NO `charges_enabled` check
 - ❌ NO `details_submitted` check
@@ -117,10 +128,12 @@ if (!tradesperson.stripeAccountId) {
 ---
 
 ### 3. ❌ **RACE CONDITION STILL EXISTS** (Issue #28)
+
 **Severity:** 🔴 CRITICAL  
 **Status:** NOT FIXED
 
-#### What Was Expected:
+#### What Was Expected
+
 ```typescript
 // Atomic transaction in webhook
 await prisma.$transaction(async (tx) => {
@@ -128,7 +141,8 @@ await prisma.$transaction(async (tx) => {
 });
 ```
 
-#### What Actually Exists:
+#### What Actually Exists
+
 ```typescript
 // src/app/api/stripe/webhook/route.ts:50-80
 case "checkout.session.completed": {
@@ -143,21 +157,25 @@ case "checkout.session.completed": {
 ```
 
 **Impact:**
+
 - Multiple deposits can still be accepted simultaneously
 - Database inconsistency possible
 - Two tradespeople could both be marked as accepted
 - Money collected twice but only one wins
 
 **Proof:** `grep` search for `prisma.$transaction` in stripe API routes:
+
 - ❌ **ZERO MATCHES FOUND**
 
 ---
 
 ### 4. ⚠️ **PAYOUT LOGIC HAS CRITICAL BUGS**
+
 **Severity:** 🔴 CRITICAL  
 **Location:** `src/app/api/jobs/[jobId]/complete/route.ts:121-165`
 
 #### Issue A: Invalid Payment Intent Lookup
+
 ```typescript
 // Lines 126-133
 const paymentIntents = await stripe.paymentIntents.list({
@@ -169,6 +187,7 @@ const paymentIntents = await stripe.paymentIntents.list({
 **Problem:** `Job` model has NO `customerStripeId` field. This will return EMPTY results.
 
 **Schema Evidence:**
+
 ```prisma
 model Job {
   customerId String  // ✅ Has this
@@ -177,6 +196,7 @@ model Job {
 ```
 
 #### Issue B: Metadata Filtering Won't Work
+
 ```typescript
 // Lines 135-137
 const jobPaymentIntents = paymentIntents.data.filter(
@@ -187,6 +207,7 @@ const jobPaymentIntents = paymentIntents.data.filter(
 **Problem:** Checkout sessions create Payment Intents, but we're not setting `jobId` in Payment Intent metadata - only in Session metadata.
 
 **Evidence from checkout-session/route.ts:**
+
 ```typescript
 metadata: {
     jobId: job.id,
@@ -195,6 +216,7 @@ metadata: {
 ```
 
 #### Issue C: Double Conversion Bug
+
 ```typescript
 // Line 148
 amount: Math.round(Number(transferAmount) * 100), // ❌ Already in cents!
@@ -214,6 +236,7 @@ amount: Math.round(Number(transferAmount) * 100), // ❌ cents * 100 = wrong!
 ---
 
 ### 5. ⚠️ **WEBHOOK TRANSFER LOGIC NEVER EXECUTES**
+
 **Severity:** 🟠 HIGH  
 **Location:** `src/app/api/stripe/webhook/route.ts:103-122`
 
@@ -257,6 +280,7 @@ if (job && job.status === "COMPLETED" && job.applications[0]?.tradesperson.strip
 ## 🟠 HIGH PRIORITY ISSUES
 
 ### 6. ⚠️ **FINAL PAYMENT METADATA MISMATCH**
+
 **Location:** `src/app/api/stripe/final-payment/route.ts:109`
 
 ```typescript
@@ -271,6 +295,7 @@ metadata: {
 ```
 
 **But webhook checks for:**
+
 ```typescript
 // webhook/route.ts:84
 else if (applicationType === "final_payment") {
@@ -284,16 +309,19 @@ else if (applicationType === "final_payment") {
 ---
 
 ### 7. ⚠️ **DEPOSIT PAYMENT DOESN'T USE CONNECTS**
+
 **Severity:** 🟠 HIGH
 
 The deposit checkout session collects money to the **platform account**, not using Stripe Connect at all.
 
 **Current Flow:**
+
 1. Customer pays deposit → Platform Stripe account
 2. Money sits in platform account
 3. No automatic transfer to tradesperson
 
 **Should Be:**
+
 1. Customer pays deposit → Split via Connect
 2. Platform fee kept, rest held for tradesperson
 3. Released on completion
@@ -301,6 +329,7 @@ The deposit checkout session collects money to the **platform account**, not usi
 ---
 
 ### 8. ⚠️ **STRIPE CONNECT ACCOUNT SETTINGS WRONG**
+
 **Location:** `src/app/api/stripe/connect/onboard/route.ts:28-40`
 
 ```typescript
@@ -321,6 +350,7 @@ const account = await stripe.accounts.create({
 ```
 
 **Issues:**
+
 1. `transfers` capability is for accounts that **receive** transfers, not **charge cards**
 2. Should request `card_payments` and `transfers`
 3. Manual payouts mean tradespeople must manually trigger withdrawals
@@ -330,6 +360,7 @@ const account = await stripe.accounts.create({
 ## 🟡 MEDIUM PRIORITY ISSUES
 
 ### 9. Missing Job Status Validation in Complete Route
+
 **Location:** `src/app/api/jobs/[jobId]/complete/route.ts`
 
 No check if deposit was actually paid before allowing completion.
@@ -337,11 +368,13 @@ No check if deposit was actually paid before allowing completion.
 ---
 
 ### 10. No Webhook Idempotency
+
 Still not implemented (Low priority from bug hunt, but mentioned in PR title)
 
 ---
 
 ### 11. Console.log Still Used
+
 Production code still uses console.log instead of proper logging
 
 ---
@@ -362,6 +395,7 @@ Production code still uses console.log instead of proper logging
 ## 📋 DETAILED FINDINGS BY FILE
 
 ### ✅ `/api/stripe/connect/status/route.ts`
+
 **Status:** GOOD
 
 ```typescript
@@ -380,14 +414,17 @@ if (
 ---
 
 ### ⚠️ `/api/stripe/connect/onboard/route.ts`
+
 **Status:** NEEDS FIX
 
 **Issues:**
+
 1. Wrong capabilities requested
 2. Manual payout schedule
 3. No error handling for invalid email
 
 **Fix Required:**
+
 ```typescript
 capabilities: {
     card_payments: { requested: true },  // ← Add this
@@ -406,15 +443,18 @@ settings: {
 ---
 
 ### ❌ `/api/stripe/checkout-session/route.ts`
+
 **Status:** CRITICAL FIXES NEEDED
 
 **Missing:**
+
 1. Account verification before charging
 2. Platform fees
 3. Connect transfer configuration
 4. Proper error handling for Stripe API failures
 
 **Must Add:**
+
 ```typescript
 // 1. Verify account
 const account = await stripe.accounts.retrieve(tradesperson.stripeAccountId);
@@ -437,9 +477,11 @@ const session = await stripe.checkout.sessions.create({
 ---
 
 ### ❌ `/api/stripe/webhook/route.ts`
+
 **Status:** CRITICAL FIXES NEEDED
 
 **Required Changes:**
+
 1. Add `prisma.$transaction` wrapper
 2. Fix duplicate payment check
 3. Fix metadata key mismatch
@@ -449,9 +491,11 @@ const session = await stripe.checkout.sessions.create({
 ---
 
 ### ❌ `/api/jobs/[jobId]/complete/route.ts`
+
 **Status:** BROKEN - CRITICAL BUGS
 
 **Bugs Found:**
+
 1. `job.customerStripeId` doesn't exist
 2. Payment intent metadata won't match
 3. Double conversion of cents
@@ -464,6 +508,7 @@ const session = await stripe.checkout.sessions.create({
 ## 🎯 REQUIRED FIXES BEFORE MERGE
 
 ### Must Fix (Blocking)
+
 - [ ] **1. Add platform fees to checkout session** (Issue #27)
 - [ ] **2. Add account verification before charging** (Issue #27)
 - [ ] **3. Wrap webhook updates in transaction** (Issue #28)
@@ -474,6 +519,7 @@ const session = await stripe.checkout.sessions.create({
 - [ ] **8. Fix Stripe Connect capabilities**
 
 ### Should Fix (Important)
+
 - [ ] 9. Add webhook idempotency
 - [ ] 10. Add proper logging (not console.log)
 - [ ] 11. Add deposit payment validation in complete route
@@ -484,7 +530,8 @@ const session = await stripe.checkout.sessions.create({
 
 ## 🧪 TESTING RECOMMENDATIONS
 
-### Critical Test Cases Missing:
+### Critical Test Cases Missing
+
 1. ❌ Concurrent deposit payment attempts
 2. ❌ Payment with unverified Connect account
 3. ❌ Payout calculation accuracy
@@ -492,7 +539,8 @@ const session = await stripe.checkout.sessions.create({
 5. ❌ Platform fee collection
 6. ❌ Both parties confirming completion
 
-### Test Data Needed:
+### Test Data Needed
+
 ```typescript
 // Stripe test mode accounts
 - Verified Connect account
@@ -505,13 +553,15 @@ const session = await stripe.checkout.sessions.create({
 
 ## 💰 FINANCIAL IMPACT
 
-### Current Implementation:
+### Current Implementation
+
 - Platform revenue: **£0** (no fees collected)
 - Risk: Payments fail if account not ready
 - Risk: Double transfers possible (race condition)
 - Risk: Wrong transfer amounts (calculation bugs)
 
-### With Fixes:
+### With Fixes
+
 - Platform revenue: **10% of all transactions**
 - Payments only accepted for verified accounts
 - Atomic operations prevent double transfers
@@ -536,6 +586,7 @@ const session = await stripe.checkout.sessions.create({
 ## 🎯 CONCLUSION
 
 ### Summary
+
 The branch implements the **structure** for Stripe payments but is **missing critical functionality** that was the entire point of Issue #27:
 
 1. ❌ Platform fees NOT implemented → No revenue
@@ -544,12 +595,14 @@ The branch implements the **structure** for Stripe payments but is **missing cri
 4. ❌ Payout logic has bugs → Wrong amounts transferred
 
 ### Recommendation
+
 **❌ DO NOT MERGE**
 
 **Estimated Time to Fix:** 1-2 days
 **Priority:** Fix issues 1-8 before merge
 
 ### Next Steps
+
 1. Implement platform fees (#1)
 2. Add account verification (#2)
 3. Add transaction wrapper (#3)

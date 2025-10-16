@@ -19,6 +19,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 **Problem:** Platform wasn't collecting any fees (0% revenue on transactions)
 
 **Solution:**
+
 - Added `STRIPE_CONFIG` with 10% platform fee constant in `src/lib/stripe.ts`
 - Created `calculatePlatformFee(amountInPence)` helper function
 - Integrated `payment_intent_data` with:
@@ -26,11 +27,13 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
   - `transfer_data`: Automatic 90% transfer to tradesperson
 
 **Impact:**
+
 - Platform now earns 10% on all transactions
 - Funds automatically split by Stripe (no manual transfers needed)
 - Works for both deposit and final payments
 
 **Files Modified:**
+
 - `src/lib/stripe.ts`
 - `src/app/api/stripe/checkout-session/route.ts`
 - `src/app/api/stripe/final-payment/route.ts`
@@ -42,17 +45,20 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 **Problem:** No verification that tradesperson's Stripe account was ready before charging customers
 
 **Solution:**
+
 - Added `stripe.accounts.retrieve()` before creating checkout sessions
 - Check `charges_enabled` status (must be true)
 - Check `details_submitted` status (must be true)
 - Return 400 error with clear message if account not ready
 
 **Impact:**
+
 - Prevents payment failures from incomplete onboarding
 - Better user experience with clear error messages
 - Protects customers from failed charges
 
 **Files Modified:**
+
 - `src/app/api/stripe/checkout-session/route.ts`
 - `src/app/api/stripe/final-payment/route.ts`
 
@@ -63,6 +69,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 **Problem:** Concurrent webhook calls could result in duplicate payments or multiple accepted applications
 
 **Solution:**
+
 - Wrapped all deposit payment database updates in `prisma.$transaction()`
 - Added duplicate payment check at transaction start
 - Ensures atomic updates to:
@@ -71,11 +78,13 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
   - Rejected applications (REJECTED status)
 
 **Impact:**
+
 - Prevents data corruption from concurrent webhooks
 - Guarantees exactly one tradesperson accepted per job
 - No duplicate payment processing
 
 **Files Modified:**
+
 - `src/app/api/stripe/webhook/route.ts`
 
 ---
@@ -103,11 +112,13 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
    - Now: Properly updates `payoutTransferId` and `payoutReleased`
 
 **Impact:**
+
 - Payouts calculate correct amounts
 - No more API errors from invalid filters
 - Proper tracking of payout status
 
 **Files Modified:**
+
 - `src/app/api/jobs/[jobId]/complete/route.ts`
 
 ---
@@ -117,16 +128,19 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 **Problem:** Manual transfer creation was redundant with Stripe Connect automatic transfers
 
 **Solution:**
+
 - Removed `transfer.paid` event handler from webhook
 - Removed manual `stripe.transfers.create()` call from final payment webhook
 - Stripe Connect's `transfer_data` handles all transfers automatically
 
 **Impact:**
+
 - Simplified webhook from 150+ lines to ~100 lines
 - No duplicate transfer attempts
 - More reliable fund transfers via Stripe's automatic system
 
 **Files Modified:**
+
 - `src/app/api/stripe/webhook/route.ts`
 
 ---
@@ -136,6 +150,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 **Problem:** Only requesting `transfers` capability, missing `card_payments`
 
 **Solution:**
+
 - Added `card_payments: { requested: true }` to account creation
 - Both capabilities now requested:
   - `card_payments` - Accept card payments
@@ -144,11 +159,13 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 - Fixed API version consistency
 
 **Impact:**
+
 - Tradespeople can now accept payments
 - Proper onboarding flow with all required capabilities
 - Consistent API version across entire codebase
 
 **Files Modified:**
+
 - `src/app/api/stripe/connect/onboard/route.ts`
 
 ---
@@ -156,6 +173,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 ## Payment Flow Architecture
 
 ### Deposit Payment (50%)
+
 1. Customer clicks "Accept Application"
 2. API verifies tradesperson Stripe account ready (`charges_enabled`)
 3. Checkout session created with:
@@ -168,6 +186,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 7. Stripe automatically transfers 90% to tradesperson Connect account
 
 ### Final Payment (Remaining 50%)
+
 1. Both customer and tradesperson mark job complete
 2. API verifies tradesperson account ready
 3. Checkout session created (same structure as deposit)
@@ -176,6 +195,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 6. Stripe automatically transfers remaining funds
 
 ### Payout to Tradesperson
+
 - Happens automatically via Stripe Connect `transfer_data`
 - Platform retains 10% fee
 - Tradesperson receives 90% directly
@@ -186,6 +206,7 @@ This document summarizes the 8 critical fixes applied to complete the Stripe Con
 ## Technical Details
 
 ### Platform Fee Calculation
+
 ```typescript
 export function calculatePlatformFee(amountInPence: number): number {
   return Math.round(amountInPence * STRIPE_CONFIG.platformFeePercentage);
@@ -193,6 +214,7 @@ export function calculatePlatformFee(amountInPence: number): number {
 ```
 
 ### Account Verification
+
 ```typescript
 const account = await stripe.accounts.retrieve(stripeAccountId);
 if (!account.charges_enabled || !account.details_submitted) {
@@ -204,6 +226,7 @@ if (!account.charges_enabled || !account.details_submitted) {
 ```
 
 ### Atomic Transaction
+
 ```typescript
 await prisma.$transaction(async (tx) => {
   const currentJob = await tx.job.findUnique({
@@ -240,6 +263,7 @@ await prisma.$transaction(async (tx) => {
 ## Testing Recommendations
 
 ### Critical Path Testing
+
 - [ ] Complete end-to-end payment flow (deposit → work → final payment)
 - [ ] Verify 10% platform fee appears in Stripe dashboard
 - [ ] Test with unverified Connect account (should fail gracefully)
@@ -247,6 +271,7 @@ await prisma.$transaction(async (tx) => {
 - [ ] Verify tradesperson payout amounts calculate correctly
 
 ### Edge Cases
+
 - [ ] Customer cancels payment mid-checkout
 - [ ] Tradesperson hasn't completed onboarding
 - [ ] Network failure during webhook processing
@@ -254,6 +279,7 @@ await prisma.$transaction(async (tx) => {
 - [ ] Multiple rapid webhook retries from Stripe
 
 ### Integration Testing
+
 - [ ] Stripe Connect Express onboarding flow
 - [ ] Stripe dashboard fee collection verification
 - [ ] Prisma transaction rollback behavior
@@ -283,6 +309,7 @@ await prisma.$transaction(async (tx) => {
 ## Next Steps
 
 ### Recommended Follow-up
+
 1. Add comprehensive integration tests for payment flows
 2. Set up Stripe webhook event monitoring/alerting
 3. Create admin dashboard for payment reconciliation
@@ -290,6 +317,7 @@ await prisma.$transaction(async (tx) => {
 5. Implement dispute handling
 
 ### Future Enhancements
+
 1. Support for multiple payment methods (bank transfers, Apple Pay)
 2. Milestone-based payments (not just 50/50 split)
 3. Escrow service for higher-value jobs
@@ -300,6 +328,7 @@ await prisma.$transaction(async (tx) => {
 ## Conclusion
 
 All 8 critical Stripe integration issues have been resolved. The platform now has:
+
 - ✅ Working revenue collection (10% platform fees)
 - ✅ Secure payment processing with account verification
 - ✅ Data integrity with atomic transactions

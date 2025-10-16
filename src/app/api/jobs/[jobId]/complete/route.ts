@@ -120,7 +120,7 @@ export async function POST(
 
 async function initiatePayoutToTradesperson(job: any, application: any) {
     const tradesperson = application.tradesperson;
-    
+
     // Calculate the amount to transfer: only transfer funds actually received from the customer
     // Fetch all successful payment intents for this job
     const paymentIntents = await stripe.paymentIntents.list({
@@ -142,7 +142,7 @@ async function initiatePayoutToTradesperson(job: any, application: any) {
     // Only transfer up to the quoted amount (convert to cents if needed)
     const quoteAmountCents = Math.round(Number(application.quote || job.budget) * 100);
     const transferAmount = Math.min(totalReceivedCents, quoteAmountCents);
-    
+
     // Create a transfer to the tradesperson's Connect account
     // transferAmount is already in cents, no need to multiply by 100 again
     const transfer = await stripe.transfers.create({

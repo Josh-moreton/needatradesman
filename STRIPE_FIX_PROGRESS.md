@@ -9,6 +9,7 @@
 ## 📋 Fix Checklist
 
 ### 🔴 Critical Issues (Must Fix)
+
 - [x] **1. Add Platform Fees (Issue #27)**
   - Status: ✅ COMPLETED
   - File: `src/lib/stripe.ts` - Added fee constants and helpers
@@ -53,9 +54,11 @@
 ## 📝 Changes Log
 
 ### Fix #1: Platform Fees Implementation ✅
+
 **Status:** COMPLETED
 
 **Changes Made:**
+
 - Added `STRIPE_CONFIG` with 10% platform fee
 - Created `calculatePlatformFee(amountInPence)` helper
 - Updated checkout sessions to use `payment_intent_data` with:
@@ -63,6 +66,7 @@
   - `transfer_data`: Automatic transfer to tradesperson
 
 **Files Modified:**
+
 - ✅ `src/lib/stripe.ts` - Added fee configuration
 - ✅ `src/app/api/stripe/checkout-session/route.ts` - Integrated fees
 - ✅ `src/app/api/stripe/final-payment/route.ts` - Integrated fees
@@ -70,55 +74,67 @@
 ---
 
 ### Fix #2: Account Verification ✅
+
 **Status:** COMPLETED
 
 **Changes Made:**
+
 - Added `stripe.accounts.retrieve()` before checkout creation
 - Check `charges_enabled` and `details_submitted` status
 - Return 400 error if account not ready
 
 **Files Modified:**
+
 - ✅ `src/app/api/stripe/checkout-session/route.ts`
 - ✅ `src/app/api/stripe/final-payment/route.ts`
 
 ---
 
 ### Fix #3: Race Condition Fix ✅
+
 **Status:** COMPLETED
 
 **Changes Made:**
+
 - Wrapped deposit payment handling in `prisma.$transaction()`
 - Added duplicate payment check at transaction start
 - Atomic updates to job, accepted application, and rejected applications
 
 **Files Modified:**
+
 - ✅ `src/app/api/stripe/webhook/route.ts`
 
 ---
 
 ### Fix #4: Payout Calculation Bugs ✅
+
 **Status:** COMPLETED
 
 **Bugs Fixed:**
+
 1. ✅ Removed invalid `customer: job.customerStripeId` filter
 2. ✅ Fixed double cents conversion (was multiplying by 100 twice)
 3. ✅ Changed metadata `type` → `applicationType` for consistency
 4. ✅ Re-enabled `payoutTransferId` and `payoutReleased` tracking
 
 **Files Modified:**
+
 - ✅ `src/app/api/jobs/[jobId]/complete/route.ts`
 
 ---
 
 ### Fix #5: Redundant Transfer Logic ✅
+
 **Status:** COMPLETED
 
 **Changes Made:**
+
 - Removed `transfer.paid` event handler (not needed)
 - Removed manual transfer creation from final payment webhook
 - Stripe Connect automatically handles transfers via `transfer_data`
 
 **Files Modified:**
+
 - ✅ `src/app/api/stripe/webhook/route.ts`
 
 ---
@@ -128,17 +144,20 @@
 **Status:** COMPLETED
 
 **Changes Made:**
+
 - Added `card_payments` capability to Connect account creation (was missing)
 - Both capabilities now requested: `card_payments` and `transfers`
 - Switched to centralized Stripe instance from `src/lib/stripe.ts`
 - Fixed API version consistency
 
 **Files Modified:**
+
 - ✅ `src/app/api/stripe/connect/onboard/route.ts`
 
 ---
 
 ## 🧪 Testing Checklist
+
 - [ ] Test deposit payment with platform fees
 - [ ] Test final payment with platform fees
 - [ ] Verify fees appear in Stripe dashboard
@@ -159,6 +178,7 @@
 ---
 
 ## ✅ TypeScript Status
+
 - All modified files compile without errors
 - Prisma client regenerated successfully
 - No runtime errors expected
