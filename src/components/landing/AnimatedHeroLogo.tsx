@@ -72,12 +72,11 @@ export function AnimatedHeroLogo() {
     },
   };
 
-  // Scale and glow effect for the logo
-  const logoScaleVariants = {
-    hidden: { scale: 0.8, filter: "blur(10px)" },
+  // Fade-in effect for the logo (no scale or blur to prevent rasterization)
+  const logoFadeVariants = {
+    hidden: { opacity: 0 },
     visible: {
-      scale: 1,
-      filter: "blur(0px)",
+      opacity: 1,
       transition: {
         duration: 1.5,
         ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
@@ -97,23 +96,38 @@ export function AnimatedHeroLogo() {
         viewBox="0 0 1325.39 599.92"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-auto"
-        variants={logoScaleVariants}
+        variants={logoFadeVariants}
       >
-        {/* Background glow layers - multiple colors for depth */}
+        {/* Define static SVG filter for glow effect */}
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Glow layer - using SVG filter and stroke instead of CSS blur */}
         <motion.g
-          className="opacity-60 blur-xl"
+          opacity="0.7"
+          filter="url(#glow)"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.6 }}
+          animate={{ opacity: 0.7 }}
           transition={{ duration: 2, delay: 1.5 }}
         >
-          {/* Yellow glow layer */}
+          {/* Polygon glow with stroke */}
           <motion.polygon
             points="493.37 246.59 339.87 171.79 186.37 246.59 167.57 208.01 339.87 124.05 512.17 208.01 493.37 246.59"
-            fill="#FFC107"
-            fillOpacity="0.3"
+            fill="none"
+            stroke="#FFC107"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeLinecap="round"
             animate={{
-              scale: [1, 1.05, 1],
-              opacity: [0.3, 0.5, 0.3],
+              opacity: [0.6, 0.8, 0.6],
             }}
             transition={{
               duration: 3,
@@ -123,11 +137,14 @@ export function AnimatedHeroLogo() {
           />
           <motion.path
             d="M392.1,430.17l-91.67-114.69v114.69h-56.53v-196.13h58.33l91.68,118.23v-123.86l56.53,25.5v176.27h-58.34ZM393.91,159.91v-42.59h56.53v61.16l-56.53-18.57Z"
-            fill="#FFC107"
-            fillOpacity="0.3"
+            fill="none"
+            stroke="#00BCD4"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeLinecap="round"
             animate={{
-              scale: [1, 1.05, 1],
-              opacity: [0.3, 0.5, 0.3],
+              opacity: [0.6, 0.8, 0.6],
             }}
             transition={{
               duration: 3,
@@ -138,56 +155,21 @@ export function AnimatedHeroLogo() {
           />
         </motion.g>
 
-        {/* Teal glow layer */}
-        <motion.g
-          className="opacity-50 blur-lg"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
-          transition={{ duration: 2, delay: 1.7 }}
-        >
-          <motion.polygon
-            points="493.37 246.59 339.87 171.79 186.37 246.59 167.57 208.01 339.87 124.05 512.17 208.01 493.37 246.59"
-            fill="#00BCD4"
-            fillOpacity="0.4"
-            animate={{
-              scale: [1, 1.03, 1],
-              opacity: [0.4, 0.6, 0.4],
-            }}
-            transition={{
-              duration: 2.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.3,
-            }}
-          />
-          <motion.path
-            d="M392.1,430.17l-91.67-114.69v114.69h-56.53v-196.13h58.33l91.68,118.23v-123.86l56.53,25.5v176.27h-58.34ZM393.91,159.91v-42.59h56.53v61.16l-56.53-18.57Z"
-            fill="#00BCD4"
-            fillOpacity="0.4"
-            animate={{
-              scale: [1, 1.03, 1],
-              opacity: [0.4, 0.6, 0.4],
-            }}
-            transition={{
-              duration: 2.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.8,
-            }}
-          />
-        </motion.g>
-
-        {/* Main logo shapes - with stroke drawing effect */}
+        {/* Main logo shapes - crisp fill layer on top */}
         <g>
-          {/* Polygon with drawing effect */}
+          {/* Polygon stroke for drawing effect */}
           <motion.polygon
             points="493.37 246.59 339.87 171.79 186.37 246.59 167.57 208.01 339.87 124.05 512.17 208.01 493.37 246.59"
             stroke="currentColor"
             strokeWidth="3"
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeLinecap="round"
             fill="none"
             className="text-primary"
             variants={pathVariants}
           />
+          {/* Polygon fill - crisp, no blur */}
           <motion.polygon
             points="493.37 246.59 339.87 171.79 186.37 246.59 167.57 208.01 339.87 124.05 512.17 208.01 493.37 246.59"
             fill="currentColor"
@@ -195,15 +177,19 @@ export function AnimatedHeroLogo() {
             variants={fillVariants}
           />
 
-          {/* Main N shape with drawing effect */}
+          {/* Main N shape stroke for drawing effect */}
           <motion.path
             d="M392.1,430.17l-91.67-114.69v114.69h-56.53v-196.13h58.33l91.68,118.23v-123.86l56.53,25.5v176.27h-58.34ZM393.91,159.91v-42.59h56.53v61.16l-56.53-18.57Z"
             stroke="currentColor"
             strokeWidth="3"
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeLinecap="round"
             fill="none"
             className="text-primary"
             variants={pathVariants}
           />
+          {/* N shape fill - crisp, no blur */}
           <motion.path
             d="M392.1,430.17l-91.67-114.69v114.69h-56.53v-196.13h58.33l91.68,118.23v-123.86l56.53,25.5v176.27h-58.34ZM393.91,159.91v-42.59h56.53v61.16l-56.53-18.57Z"
             fill="currentColor"
