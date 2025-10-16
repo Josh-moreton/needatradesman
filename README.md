@@ -51,6 +51,9 @@ Create a `.env.local` file and provide the following keys:
 - `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`
 - `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `LOG_LEVEL` (optional) – logging level: `debug`, `info`, `warn`, `error` (defaults to `debug` in dev, `info` in prod)
+- `NEXT_PUBLIC_ALLOWED_ATTACHMENT_DOMAINS` (optional) – comma-separated list of allowed domains for job attachments (e.g., `mybucket.s3.amazonaws.com,mycdn.cloudfront.net`). Defaults to common cloud storage providers if not set.
+
+See `.env.example` for a complete template.
 
 ## Scripts
 
@@ -58,6 +61,20 @@ Create a `.env.local` file and provide the following keys:
 - `pnpm build` – generate Prisma client and build Next.js
 - `pnpm start` – start the production build
 - `pnpm lint` – run ESLint across the project
+- `pnpm type-check` – run TypeScript type checking
+
+## Security
+
+### Attachment Validation
+
+Job attachments are validated to prevent XSS attacks and unauthorized file access:
+
+- **Domain Whitelisting**: Only URLs from approved domains are accepted (configurable via `NEXT_PUBLIC_ALLOWED_ATTACHMENT_DOMAINS`)
+- **File Size Limits**: Maximum 10MB per attachment
+- **Filename Validation**: Filenames must be 1-255 characters
+- **Maximum Attachments**: Up to 5 attachments per job
+
+Default allowed domains include common cloud storage providers (S3, CloudFront, R2, Google Cloud Storage). Configure your own domains in the environment variables to match your file upload infrastructure.
 
 ## Logging
 
