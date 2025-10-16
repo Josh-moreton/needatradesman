@@ -111,7 +111,7 @@ export default function LandingPageAnimated() {
               </Badge>
             </motion.div>
 
-            <motion.h1
+                        <motion.h1
               className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-8 leading-tight break-words"
               variants={fadeInUp}
             >
