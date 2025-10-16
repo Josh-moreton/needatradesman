@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { createLogger } from "@/lib/logger";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const logger = createLogger("tradesperson-apply");
 
@@ -134,7 +135,9 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponseForm jobId={job.id} userId={user.id} />
+            <ErrorBoundary>
+              <ResponseForm jobId={job.id} userId={user.id} />
+            </ErrorBoundary>
           </CardContent>
         </Card>
       </div>
