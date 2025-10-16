@@ -66,9 +66,6 @@
   },
   "packageManager": "pnpm@10.18.3",
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "git add"
-    ]
+    "*.{ts,tsx}": "eslint --fix"
   }
 }
