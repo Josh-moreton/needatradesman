@@ -43,9 +43,9 @@ model Job {
   attachments                   String? // Store as JSON string of file URLs
   customerId                    String
   depositPaid                   Boolean     @default(false)
-  depositPaymentIntentId        String?
+  depositPaymentIntentId        String?     @unique // Ensure each payment intent is used only once
   finalPaid                     Boolean     @default(false)
-  finalPaymentIntentId          String?
+  finalPaymentIntentId          String?     @unique // Ensure each payment intent is used only once
   acceptedTradespersonId        String?
   customerConfirmedComplete     Boolean     @default(false)
   tradespersonConfirmedComplete Boolean     @default(false)
