@@ -20,7 +20,7 @@ export default async function QuoteTemplatesPage() {
   return (
     <div className="container py-6">
       <h1 className="text-2xl font-bold mb-6">Manage Quote Templates</h1>
-      <QuoteTemplatesClient userId={user.id} />
+      <QuoteTemplatesClient />
     </div>
   );
 }

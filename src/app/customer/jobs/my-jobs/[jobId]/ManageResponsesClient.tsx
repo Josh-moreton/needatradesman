@@ -68,6 +68,12 @@ function PayDepositButton({
 
   const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
 
+  const handleClose = () => {
+    setShowDepositModal(false);
+    // Call the callback when modal closes (payment may have completed)
+    onPaymentComplete();
+  };
+
   return (
     <>
       <Button
@@ -80,7 +86,7 @@ function PayDepositButton({
 
       <DepositPaymentModal
         isOpen={showDepositModal}
-        onClose={() => setShowDepositModal(false)}
+        onClose={handleClose}
         jobId={jobId}
         tradespersonId={tradespersonId}
         jobTitle={jobTitle}
