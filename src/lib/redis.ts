@@ -59,8 +59,17 @@ export const applicationRateLimit = redis
 export const messageRateLimit = redis
     ? new Ratelimit({
         redis,
-        limiter: Ratelimit.slidingWindow(50, '1 h'), // 50 requests per hour
+        limiter: Ratelimit.slidingWindow(100, '5 m'), // 100 requests per 5 minutes
         prefix: 'rl:message',
+        analytics: true,
+    })
+    : null;
+
+export const webhookRateLimit = redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(100, '1 m'), // 100 requests per minute
+        prefix: 'rl:webhook',
         analytics: true,
     })
     : null;
@@ -334,6 +343,43 @@ export async function isRedisHealthy(): Promise<boolean> {
         logger.error({ error }, 'Redis health check failed');
         return false;
     }
+}
+
+// Webhook security and idempotency helpers
+const WEBHOOK_FAILURE_THRESHOLD = 10;
+const WEBHOOK_FAILURE_WINDOW = 300; // 5 minutes
+
+/**
+ * Track webhook signature verification failures
+ * @param identifier - IP address or other identifier
+ * @returns The current failure count
+ */
+export async function trackWebhookFailure(identifier: string): Promise<number> {
+    if (!redis) return 0;
+
+    try {
+        const key = `webhook:failures:${identifier}`;
+        const failures = await redis.incr(key);
+
+        // Set expiry on first increment
+        if (failures === 1) {
+            await redis.expire(key, WEBHOOK_FAILURE_WINDOW);
+        }
+
+        return failures;
+    } catch (error) {
+        logger.error({ error, identifier }, 'Error tracking webhook failure');
+        return 0;
+    }
+}
+
+/**
+ * Check if webhook failure threshold has been exceeded
+ * @param failureCount - Number of failures
+ * @returns true if threshold exceeded
+ */
+export function isWebhookFailureThresholdExceeded(failureCount: number): boolean {
+    return failureCount > WEBHOOK_FAILURE_THRESHOLD;
 }
 
 /**

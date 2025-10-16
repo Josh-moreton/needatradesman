@@ -4,13 +4,58 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { createLogger } from "@/lib/logger";
-import { isWebhookProcessed, markWebhookProcessed } from "@/lib/redis";
+import {
+    webhookRateLimit,
+    trackWebhookFailure,
+    isWebhookFailureThresholdExceeded,
+    isWebhookProcessed,
+    markWebhookProcessed
+} from "@/lib/redis";
 
 const logger = createLogger('stripe-webhook');
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
     try {
+        // Get client identifier for rate limiting and failure tracking
+        const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+            request.headers.get('x-real-ip') ||
+            'unknown';
+
+        // Rate limiting for webhook endpoint
+        if (webhookRateLimit) {
+            try {
+                const { success, limit, reset, remaining } = await webhookRateLimit.limit(clientIp);
+
+                if (!success) {
+                    const resetDate = new Date(reset);
+                    const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
+
+                    logger.warn({
+                        ip: clientIp,
+                        limit,
+                        remaining
+                    }, 'Webhook rate limit exceeded');
+
+                    return new NextResponse(
+                        'Rate limit exceeded',
+                        {
+                            status: 429,
+                            headers: {
+                                'X-RateLimit-Limit': String(limit),
+                                'X-RateLimit-Remaining': String(remaining),
+                                'X-RateLimit-Reset': String(reset),
+                                'Retry-After': String(retryAfter),
+                            }
+                        }
+                    );
+                }
+            } catch (error) {
+                // Log rate limiter error but continue processing
+                logger.error({ error }, 'Webhook rate limiter error (likely Redis connection issue)');
+            }
+        }
+
         const body = await request.text();
         const headersList = await headers();
         const signature = headersList.get("stripe-signature");
@@ -28,7 +73,27 @@ export async function POST(request: NextRequest) {
                 webhookSecret
             );
         } catch (err) {
-            logger.error({ error: err }, "Webhook signature verification failed");
+            // Track signature verification failure
+            const failureCount = await trackWebhookFailure(clientIp);
+
+            // Check if threshold exceeded - potential attack
+            if (isWebhookFailureThresholdExceeded(failureCount)) {
+                logger.error({
+                    ip: clientIp,
+                    failureCount,
+                    error: err
+                }, '🚨 SECURITY ALERT: Multiple webhook signature verification failures - possible attack');
+
+                // Note: Consider integrating with monitoring service here
+                // Example: Sentry.captureException(err, { tags: { security_alert: true, ip: clientIp } });
+            } else {
+                logger.error({
+                    error: err,
+                    ip: clientIp,
+                    failureCount
+                }, "Webhook signature verification failed");
+            }
+
             return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
         }
 
@@ -36,11 +101,11 @@ export async function POST(request: NextRequest) {
 
         // Check if event already processed (using Redis as primary check)
         const redisProcessed = await isWebhookProcessed(event.id);
-        
+
         if (redisProcessed) {
             logger.info({ eventId: event.id, eventType: event.type }, 'Webhook event already processed (Redis check)');
-            return NextResponse.json({ 
-                received: true, 
+            return NextResponse.json({
+                received: true,
                 skipped: true,
                 reason: 'already_processed'
             });
@@ -55,8 +120,8 @@ export async function POST(request: NextRequest) {
             logger.info({ eventId: event.id, eventType: event.type }, 'Webhook event already processed (Database check)');
             // Also update Redis cache for future checks
             await markWebhookProcessed(event.id);
-            return NextResponse.json({ 
-                received: true, 
+            return NextResponse.json({
+                received: true,
                 skipped: true,
                 reason: 'already_processed'
             });
@@ -85,10 +150,10 @@ export async function POST(request: NextRequest) {
                             });
 
                             if (currentJob?.depositPaid) {
-                                logger.error({ 
-                                    jobId, 
-                                    tradespersonId, 
-                                    sessionId: session.id 
+                                logger.error({
+                                    jobId,
+                                    tradespersonId,
+                                    sessionId: session.id
                                 }, "Race condition blocked - job already has deposit paid");
                                 throw new Error('Job already has accepted tradesperson');
                             }
@@ -126,16 +191,16 @@ export async function POST(request: NextRequest) {
                             }
                         });
 
-                        logger.info({ 
-                            jobId, 
-                            tradespersonId, 
-                            sessionId: session.id 
+                        logger.info({
+                            jobId,
+                            tradespersonId,
+                            sessionId: session.id
                         }, "Deposit payment processed successfully");
                     } catch (transactionError) {
-                        logger.error({ 
-                            jobId, 
-                            tradespersonId, 
-                            error: transactionError 
+                        logger.error({
+                            jobId,
+                            tradespersonId,
+                            error: transactionError
                         }, "Transaction failed for deposit payment");
                         // Transaction will rollback automatically
                         // Consider alerting admin here for non-race-condition errors
@@ -153,9 +218,9 @@ export async function POST(request: NextRequest) {
                             });
 
                             if (currentJob?.finalPaid) {
-                                logger.error({ 
-                                    jobId, 
-                                    sessionId: session.id 
+                                logger.error({
+                                    jobId,
+                                    sessionId: session.id
                                 }, "Race condition blocked - job already has final payment paid");
                                 throw new Error('Job already has final payment processed');
                             }
@@ -170,14 +235,14 @@ export async function POST(request: NextRequest) {
                             });
                         });
 
-                        logger.info({ 
-                            jobId, 
-                            sessionId: session.id 
+                        logger.info({
+                            jobId,
+                            sessionId: session.id
                         }, "Final payment processed successfully");
                     } catch (transactionError) {
-                        logger.error({ 
-                            jobId, 
-                            error: transactionError 
+                        logger.error({
+                            jobId,
+                            error: transactionError
                         }, "Transaction failed for final payment");
                         // Transaction will rollback automatically
                         // Consider alerting admin here for non-race-condition errors

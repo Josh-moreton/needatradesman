@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState } from "react";
 import { JobCategory } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ interface JobFiltersProps {
 export function JobFilters({ userTrades }: JobFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [location, setLocation] = useState(searchParams.get("location") || "");
@@ -64,14 +65,14 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
     // Reset to page 1 when filtering
     params.set("page", "1");
 
-    router.push(`/jobs?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const clearFilters = () => {
     setSearch("");
     setLocation("");
     setCategory("all");
-    router.push("/jobs");
+    router.push(pathname);
   };
 
   const hasActiveFilters =
