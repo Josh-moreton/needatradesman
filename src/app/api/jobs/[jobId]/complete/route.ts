@@ -3,6 +3,10 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("jobs-complete-api");
+
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ jobId: string }> }
@@ -100,7 +104,7 @@ export async function POST(
                 try {
                     await initiatePayoutToTradesperson(updatedJob, acceptedApplication);
                 } catch (payoutError) {
-                    console.error("Payout initiation failed:", payoutError);
+                    logger.error({ error: payoutError }, "Payout initiation failed");
                     // Job is still marked as completed, but payout failed
                     // This should be handled by admin or retry mechanism
                 }
@@ -114,7 +118,7 @@ export async function POST(
         });
 
     } catch (error) {
-        console.error("Error confirming job completion:", error);
+        logger.error({ error }, "Error confirming job completion");
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }
@@ -184,6 +188,6 @@ async function initiatePayoutToTradesperson(
         },
     });
 
-    console.log(`Payout initiated for job ${job.id}: ${transfer.id}`);
+    logger.info({ jobId: job.id, transferId: transfer.id }, "Payout initiated");
     return transfer;
 }

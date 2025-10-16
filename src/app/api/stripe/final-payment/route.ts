@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("stripe-final-payment");
 
 export async function POST(request: NextRequest) {
     const { userId } = await auth();
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
                 }, { status: 400 });
             }
         } catch (error) {
-            console.error("Failed to verify tradesperson account:", error);
+            logger.error({ error }, "Failed to verify tradesperson account");
             return NextResponse.json({
                 error: "Unable to verify payment account"
             }, { status: 500 });
@@ -167,7 +170,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error("Error creating final payment session:", error);
+        logger.error({ error }, "Error creating final payment session");
         return NextResponse.json(
             { error: "Failed to create payment session" },
             { status: 500 }

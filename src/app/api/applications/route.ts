@@ -181,7 +181,7 @@ export async function GET() {
                     return NextResponse.json(JSON.parse(cached));
                 }
             } catch (cacheError) {
-                console.error('Cache read error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache read error');
             }
         }
 
@@ -248,13 +248,13 @@ export async function GET() {
                 await redis.set(cacheKey, JSON.stringify(applications), { ex: CACHE_TTL.APPLICATIONS });
                 logger.debug({ cacheKey }, 'Cached applications');
             } catch (cacheError) {
-                console.error('Cache write error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache write error');
             }
         }
 
         return NextResponse.json(applications);
     } catch (error) {
-        console.error("Error fetching applications:", error);
+        logger.error({ error }, "Error fetching applications");
         return new NextResponse("Internal server error", { status: 500 });
     }
 }

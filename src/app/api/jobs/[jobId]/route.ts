@@ -117,15 +117,15 @@ export async function PUT(
             try {
                 const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
                 await redis.del(cacheKey);
-                console.log('Invalidated job detail cache:', cacheKey);
+                logger.debug({ cacheKey }, 'Invalidated job detail cache');
             } catch (cacheError) {
-                console.error('Cache invalidation error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache invalidation error');
             }
         }
 
         return NextResponse.json(updatedJob);
     } catch (error) {
-        console.error("Error updating job:", error);
+        logger.error({ error }, "Error updating job");
         return new NextResponse("Internal server error", { status: 500 });
     }
 }

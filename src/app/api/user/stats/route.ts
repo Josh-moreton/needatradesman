@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { getCachedUserStats, cacheUserStats } from "@/lib/redis";
 
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("user-stats-api");
+
 export async function GET() {
     try {
         const user = await getCurrentUser();
@@ -126,7 +130,7 @@ export async function GET() {
 
         return NextResponse.json(stats);
     } catch (error) {
-        console.error("Error fetching user stats:", error);
+        logger.error({ error }, "Error fetching user stats");
         return NextResponse.json(
             { error: "Failed to fetch stats" },
             { status: 500 }

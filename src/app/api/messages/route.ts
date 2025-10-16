@@ -5,6 +5,10 @@ import { redis, messageRateLimit, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 import { pusherServer, getConversationChannel, getUserChannel } from "@/lib/pusher";
 import { z } from "zod";
 
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("messages-api");
+
 const sendMessageSchema = z.object({
     content: z.string().min(1, "Message content is required"),
     receiverId: z.string(),
@@ -109,7 +113,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ conversations: validConversations });
     } catch (error) {
-        console.error("Error fetching messages:", error);
+        logger.error({ error }, "Error fetching messages");
         return NextResponse.json(
             { error: "Failed to fetch messages" },
             { status: 500 }
@@ -149,7 +153,7 @@ export async function POST(request: NextRequest) {
                 }
             } catch (error) {
                 // This is a Redis connection error - log it and continue
-                console.error('Rate limiter error (likely Redis connection issue):', error);
+                logger.error({ error }, "Rate limiter error (likely Redis connection issue)");
                 // Allow the request to proceed if rate limiting fails due to connection issues
             }
         }
@@ -243,13 +247,13 @@ export async function POST(request: NextRequest) {
                 });
             }
         } catch (pusherError) {
-            console.error("Pusher error:", pusherError);
+            logger.error({ error: pusherError }, "Pusher error");
             // Don't fail the request if Pusher fails
         }
 
         return NextResponse.json({ message });
     } catch (error) {
-        console.error("Error sending message:", error);
+        logger.error({ error }, "Error sending message");
         if (error instanceof z.ZodError) {
             return NextResponse.json(
                 { error: "Invalid input", details: error.errors },
