@@ -24,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { createLogger } from '@/lib/logger';
+import { AnimatedHeroLogo } from "./AnimatedHeroLogo";
 
 const logger = createLogger('landing-page');
 
@@ -112,12 +113,10 @@ export default function LandingPageAnimated() {
               </Badge>
             </motion.div>
 
-                        <motion.h1
-              className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-8 leading-tight break-words"
-              variants={fadeInUp}
-            >
-              Need a <span className="text-primary">Tradesman</span>?
-            </motion.h1>
+            {/* Animated Logo Hero */}
+            <motion.div variants={fadeInUp} className="mb-8 sm:mb-12">
+              <AnimatedHeroLogo />
+            </motion.div>
 
             <motion.p
               className="text-base sm:text-xl md:text-2xl text-muted-foreground mb-8 sm:mb-12 max-w-xl mx-auto leading-relaxed"
