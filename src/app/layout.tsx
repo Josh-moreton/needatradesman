@@ -2,6 +2,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { ThemeProvider } from "next-themes";
 import ClerkThemeProvider from "@/components/providers/ClerkThemeProvider";
 import { Toaster } from "sonner";
@@ -35,6 +36,7 @@ export default function RootLayout({
           <ClerkThemeProvider>
             <Header />
             <main className="min-h-screen">{children}</main>
+            <Footer />
             <Toaster position="top-center" />
           </ClerkThemeProvider>
         </ThemeProvider>
