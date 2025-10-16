@@ -13,7 +13,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Logo } from "@/components/ui/logo";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import {
   Home,
@@ -112,15 +111,11 @@ export default function LandingPageAnimated() {
               </Badge>
             </motion.div>
 
-            <motion.h1
-              className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-8 leading-tight break-words flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4"
+                        <motion.h1
+              className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-foreground mb-6 sm:mb-8 leading-tight break-words"
               variants={fadeInUp}
             >
-              <span className="text-white">Need a</span>
-              <span className="inline-block">
-                <Logo variant="yellow" size="hero" priority className="w-[280px] sm:w-[400px] md:w-[500px] lg:w-[600px] h-auto" />
-              </span>
-              <span className="text-white">?</span>
+              Need a <span className="text-primary">Tradesman</span>?
             </motion.h1>
 
             <motion.p
