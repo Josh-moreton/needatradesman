@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
 import { createLogger } from "@/lib/logger";
+import { PAGINATION } from "@/lib/constants";
 import { validateSearchQuery } from "@/lib/utils";
 import {
     redis,
@@ -119,8 +120,12 @@ export async function GET(request: NextRequest) {
         const rawLocation = searchParams.get("location");
         const rawSearch = searchParams.get("search");
         const page = parseInt(searchParams.get("page") || "1");
-        const limit = 12; // jobs per page
+        
+        // Allow limit override via query param with validation (between MIN and MAX)
+        const requestedLimit = parseInt(searchParams.get("limit") || String(PAGINATION.JOBS_PER_PAGE));
+        const limit = Math.min(Math.max(requestedLimit, PAGINATION.MIN_JOBS_PER_PAGE), PAGINATION.MAX_JOBS_PER_PAGE);
 
+        // Create more comprehensive cache key based on all filters including limit
         // Validate and sanitize search query
         let search: string | null = null;
         try {
@@ -148,7 +153,8 @@ export async function GET(request: NextRequest) {
             category || 'all',
             location || 'all',
             search || 'all',
-            page.toString()
+            page.toString(),
+            limit.toString()
         ];
         const filterKey = filterParts.join(':');
         const cacheKey = CACHE_KEYS.JOBS_LIST(filterKey);
@@ -227,7 +233,14 @@ export async function GET(request: NextRequest) {
         // Cache the result with shorter TTL for real-time feel
         await cacheJobsList(cacheKey, response, CACHE_TTL.JOBS_LIST);
 
-        return NextResponse.json(response);
+        return NextResponse.json(response, {
+            headers: {
+                'X-Pagination-Page': String(page),
+                'X-Pagination-Limit': String(limit),
+                'X-Pagination-Total': String(totalCount),
+                'X-Pagination-Pages': String(Math.ceil(totalCount / limit)),
+            }
+        });
     } catch (error) {
         logger.error({ error }, 'Error fetching jobs');
         return new NextResponse("Internal server error", { status: 500 });
