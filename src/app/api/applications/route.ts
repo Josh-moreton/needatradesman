@@ -25,17 +25,32 @@ export async function POST(request: NextRequest) {
             return new NextResponse("Only tradespeople can apply to jobs", { status: 403 });
         }
 
-        // Rate limiting for applications
+        // Rate limiting for applications (use clerkId to avoid reuse of internal IDs)
         if (applicationRateLimit) {
             try {
-                await applicationRateLimit.consume(user.id);
-            } catch (rejRes: unknown) {
-                return new NextResponse("Rate limit exceeded. You can only submit 10 applications per hour.", {
-                    status: 429,
-                    headers: {
-                        'Retry-After': typeof rejRes === 'object' && rejRes && 'msBeforeNext' in rejRes ? String(Math.ceil((rejRes as { msBeforeNext: number }).msBeforeNext / 1000)) : '60',
-                    }
-                });
+                const { success, limit, reset, remaining } = await applicationRateLimit.limit(user.clerkId);
+
+                if (!success) {
+                    const resetDate = new Date(reset);
+                    const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
+
+                    return new NextResponse(
+                        `Rate limit exceeded. You can only submit ${limit} applications per hour. ${remaining} remaining.`,
+                        {
+                            status: 429,
+                            headers: {
+                                'X-RateLimit-Limit': String(limit),
+                                'X-RateLimit-Remaining': String(remaining),
+                                'X-RateLimit-Reset': String(reset),
+                                'Retry-After': String(retryAfter),
+                            }
+                        }
+                    );
+                }
+            } catch (error) {
+                // This is a Redis connection error - log it and continue
+                console.error('Rate limiter error (likely Redis connection issue):', error);
+                // Allow the request to proceed if rate limiting fails due to connection issues
             }
         }
 
@@ -157,7 +172,7 @@ export async function GET() {
 
         if (redis) {
             try {
-                const cached = await redis.get(cacheKey);
+                const cached = await redis.get<string>(cacheKey);
                 if (cached) {
                     console.log('Cache hit for applications:', cacheKey);
                     return NextResponse.json(JSON.parse(cached));
@@ -227,7 +242,7 @@ export async function GET() {
         // Cache the result
         if (redis) {
             try {
-                await redis.set(cacheKey, JSON.stringify(applications), 'EX', CACHE_TTL.APPLICATIONS);
+                await redis.set(cacheKey, JSON.stringify(applications), { ex: CACHE_TTL.APPLICATIONS });
                 console.log('Cached applications:', cacheKey);
             } catch (cacheError) {
                 console.error('Cache write error:', cacheError);

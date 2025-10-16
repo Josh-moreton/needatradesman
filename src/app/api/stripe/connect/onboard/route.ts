@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma"; // adjust import as needed
 import { auth } from "@clerk/nextjs/server"; // or your auth system
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-05-28.basil", // latest
-});
 
 export async function POST(request: NextRequest) {
     try {
