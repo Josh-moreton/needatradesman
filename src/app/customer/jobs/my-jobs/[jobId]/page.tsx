@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
@@ -14,6 +15,38 @@ interface ManageResponsesPageProps {
   params: Promise<{
     jobId: string;
   }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ManageResponsesPageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  
+  try {
+    const job = await prisma.job.findUnique({
+      where: { id: resolvedParams.jobId },
+      select: {
+        title: true,
+        description: true,
+      },
+    });
+
+    if (!job) {
+      return {
+        title: "Job Not Found",
+      };
+    }
+
+    return {
+      title: `Manage Responses - ${job.title}`,
+      description: `Manage applications and responses for: ${job.description.substring(0, 100)}`,
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {
+      title: "Manage Responses",
+    };
+  }
 }
 
 export default async function ManageResponsesPage({

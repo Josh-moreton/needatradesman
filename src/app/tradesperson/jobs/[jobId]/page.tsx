@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
@@ -32,6 +33,61 @@ interface JobDetailPageProps {
   params: Promise<{
     jobId: string;
   }>;
+}
+
+export async function generateMetadata({
+  params,
+}: JobDetailPageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  
+  try {
+    const job = await prisma.job.findUnique({
+      where: { id: resolvedParams.jobId },
+      select: {
+        title: true,
+        description: true,
+        location: true,
+        category: true,
+      },
+    });
+
+    if (!job) {
+      return {
+        title: "Job Not Found",
+      };
+    }
+
+    const description = job.description.substring(0, 160);
+
+    return {
+      title: job.title,
+      description,
+      openGraph: {
+        title: job.title,
+        description,
+        type: "article",
+        images: [
+          {
+            url: "/og-image.png",
+            width: 1200,
+            height: 630,
+            alt: job.title,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: job.title,
+        description,
+        images: ["/og-image.png"],
+      },
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {
+      title: "Job Details",
+    };
+  }
 }
 
 export default async function JobDetailPage({ params }: JobDetailPageProps) {

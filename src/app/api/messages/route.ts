@@ -211,17 +211,24 @@ export async function POST(request: NextRequest) {
 
         // Store in Redis for real-time updates (if Redis is configured)
         if (redis) {
-            const participantIds = [user.id, receiverId].sort().join(":");
-            const channelKey = CACHE_KEYS.CHAT_MESSAGES(jobId || "general", participantIds);
-            await redis.lpush(channelKey, JSON.stringify(message));
-            await redis.expire(channelKey, CACHE_TTL.MESSAGES);
+            try {
+                const participantIds = [user.id, receiverId].sort().join(":");
+                const channelKey = CACHE_KEYS.CHAT_MESSAGES(jobId || "general", participantIds);
+                await redis.lpush(channelKey, JSON.stringify(message));
+                await redis.expire(channelKey, CACHE_TTL.MESSAGES);
 
-            // Publish to Redis channel for real-time updates (future WebSocket implementation)
-            await redis.publish(`chat:${jobId || "general"}`, JSON.stringify(message));
+                // Publish to Redis channel for real-time updates (future WebSocket implementation)
+                await redis.publish(`chat:${jobId || "general"}`, JSON.stringify(message));
 
-            // Clear conversation cache
-            await redis.del(CACHE_KEYS.USER_CONVERSATIONS(user.id));
-            await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
+                // Clear conversation cache
+                await redis.del(CACHE_KEYS.USER_CONVERSATIONS(user.id));
+                await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
+
+                console.log('Message cached and published successfully');
+            } catch (cacheError) {
+                console.error('Redis operations error in message creation:', cacheError);
+                // Continue - message was saved to database, Redis is optional
+            }
         }
 
         // Trigger Pusher events for real-time messaging
