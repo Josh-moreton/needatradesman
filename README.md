@@ -12,6 +12,7 @@ Need A Tradesman is a marketplace for homeowners to connect with vetted tradespe
 - **Redis** – caching, rate limiting and foundation for real‑time features
 - **Pusher** – real‑time chat and notifications
 - **Stripe** – planned escrow and payout system
+- **Pino** – structured logging with context and sensitive data redaction
 - **ESLint** – linting with strict configuration
 
 ## Features
@@ -49,6 +50,7 @@ Create a `.env.local` file and provide the following keys:
 - `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`, `PUSHER_CLUSTER`
 - `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`
 - `STRIPE_SECRET_KEY` and `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `LOG_LEVEL` (optional) – logging level: `debug`, `info`, `warn`, `error` (defaults to `debug` in dev, `info` in prod)
 
 ## Scripts
 
@@ -56,6 +58,41 @@ Create a `.env.local` file and provide the following keys:
 - `pnpm build` – generate Prisma client and build Next.js
 - `pnpm start` – start the production build
 - `pnpm lint` – run ESLint across the project
+
+## Logging
+
+The application uses [Pino](https://getpino.io/) for structured logging with the following features:
+
+- **Environment-aware**: Pretty-printed, colorized logs in development; JSON logs in production
+- **Context-specific loggers**: Each module creates its own logger with context
+- **Sensitive data redaction**: Automatically redacts passwords, tokens, emails, and other sensitive fields in production
+- **Log levels**: `debug` (dev only), `info`, `warn`, `error`
+
+### Usage
+
+```typescript
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('my-module');
+
+logger.info({ userId, jobId }, 'Job created successfully');
+logger.error({ error }, 'Failed to process payment');
+logger.debug({ data }, 'Debug information');
+```
+
+### Configuration
+
+Set the `LOG_LEVEL` environment variable to control logging verbosity:
+- `debug` – All logs including debug information (default in development)
+- `info` – General information and above (default in production)
+- `warn` – Warnings and errors only
+- `error` – Errors only
+
+### Production Integration
+
+For production monitoring, Pino's JSON output can be integrated with log aggregation services like:
+- Vercel Log Drain (Datadog, Better Stack, Logflare, Axiom)
+- Direct integration with any service that accepts JSON logs
 
 ## License
 

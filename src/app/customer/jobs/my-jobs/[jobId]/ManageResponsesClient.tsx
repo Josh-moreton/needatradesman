@@ -16,6 +16,9 @@ import Link from "next/link";
 import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
 
 import { Decimal } from "@prisma/client/runtime/library";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('manage-responses-client');
 
 interface Job {
   id: string;
@@ -121,7 +124,7 @@ function AcceptRejectButtons({
       }
       return await response.json();
     } catch (error) {
-      console.error("Error fetching application:", error);
+      logger.error({ error }, "Error fetching application");
       return null;
     }
   };
@@ -159,7 +162,7 @@ function AcceptRejectButtons({
       onStatusChange();
       router.refresh();
     } catch (error) {
-      console.error("Error updating response:", error);
+      logger.error({ error }, "Error updating response");
       alert("Failed to update response. Please try again.");
     } finally {
       setIsUpdating(false);

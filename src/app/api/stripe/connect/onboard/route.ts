@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 import Stripe from "stripe";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger('stripe-connect-onboard');
 
 export async function POST(request: NextRequest) {
     try {
@@ -21,7 +24,7 @@ export async function POST(request: NextRequest) {
 
         // If no Stripe account, create one
         if (!stripeAccountId) {
-            console.log("Creating new Stripe Connect account for user:", user.email);
+            logger.info({ userEmail: user.email }, "Creating new Stripe Connect account");
             const account = await stripe.accounts.create({
                 type: "express",
                 email: user.email,
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
                 }
             });
             stripeAccountId = account.id;
-            console.log("Created Stripe account:", stripeAccountId);
+            logger.info({ stripeAccountId }, "Created Stripe account");
 
             // Save to DB
             await prisma.user.update({
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         // Create onboarding link
         const origin = request.headers.get("origin") || "http://localhost:3000";
-        console.log("Creating account link for:", stripeAccountId);
+        logger.debug({ stripeAccountId }, "Creating account link");
 
         const accountLink = await stripe.accountLinks.create({
             account: stripeAccountId,
@@ -58,19 +61,19 @@ export async function POST(request: NextRequest) {
             type: "account_onboarding",
         });
 
-        console.log("Account link created successfully");
+        logger.info("Account link created successfully");
         return NextResponse.json({ url: accountLink.url });
     } catch (error) {
-        console.error("Error in Stripe Connect onboarding:", error);
+        logger.error({ error }, "Error in Stripe Connect onboarding");
 
         // Enhanced error logging
         if (error instanceof Stripe.errors.StripeError) {
-            console.error("Stripe error details:", {
+            logger.error({
                 type: error.type,
                 code: error.code,
                 message: error.message,
                 requestId: error.requestId
-            });
+            }, "Stripe error details");
         }
 
         return NextResponse.json(

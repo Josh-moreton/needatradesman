@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
+import { createLogger } from "@/lib/logger";
 import {
     redis,
     jobPostingRateLimit,
@@ -12,6 +13,8 @@ import {
     cacheJobsList,
     invalidateUserStats
 } from "@/lib/redis";
+
+const logger = createLogger("jobs-api");
 
 export async function POST(request: NextRequest) {
     try {
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
                 }
             } catch (error) {
                 // This is a Redis connection error - log it and continue
-                console.error('Rate limiter error (likely Redis connection issue):', error);
+                logger.error({ error }, 'Rate limiter error (likely Redis connection issue)');
                 // Allow the request to proceed if rate limiting fails due to connection issues
             }
         }
@@ -88,16 +91,16 @@ export async function POST(request: NextRequest) {
                     invalidateJobCaches(),
                     invalidateUserStats(user.id, UserRole.CUSTOMER)
                 ]);
-                console.log('Invalidated job feed caches and user stats after job creation');
+                logger.debug('Invalidated job feed caches and user stats after job creation');
             } catch (cacheError) {
-                console.error('Cache invalidation error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache invalidation error');
                 // Don't fail the request if cache invalidation fails
             }
         }
 
         return NextResponse.json(job, { status: 201 });
     } catch (error) {
-        console.error("Error creating job:", error);
+        logger.error({ error }, 'Error creating job');
 
         if (error instanceof Error && error.name === "ZodError") {
             return new NextResponse("Invalid request data", { status: 400 });
@@ -203,7 +206,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(response);
     } catch (error) {
-        console.error("Error fetching jobs:", error);
+        logger.error({ error }, 'Error fetching jobs');
         return new NextResponse("Internal server error", { status: 500 });
     }
 }

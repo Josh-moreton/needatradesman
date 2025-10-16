@@ -16,6 +16,9 @@ import { FormLabel } from "@/components/ui/form";
 import { X, Plus, Trash2 } from "lucide-react";
 import { QuoteItem } from "@/lib/schemas";
 import { toast } from "sonner";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('template-modal');
 
 interface TemplateModalProps {
   onTemplateAdded: () => void;
@@ -56,7 +59,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
       const data = await response.json();
       setTemplates(data);
     } catch (error) {
-      console.error("Error fetching templates:", error);
+      logger.error({ error }, "Error fetching templates");
       toast.error("Failed to load templates");
     } finally {
       setLoading(false);
@@ -124,7 +127,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
       onTemplateAdded();
       setIsOpen(false);
     } catch (error) {
-      console.error("Error creating template:", error);
+      logger.error({ error }, "Error creating template");
       toast.error("Failed to create template");
       setCreating(false);
     }
@@ -145,7 +148,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
       toast.success("Template deleted successfully");
       onTemplateAdded();
     } catch (error) {
-      console.error("Error deleting template:", error);
+      logger.error({ error }, "Error deleting template");
       toast.error("Failed to delete template");
     }
   };

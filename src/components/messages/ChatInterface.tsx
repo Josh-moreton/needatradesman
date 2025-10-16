@@ -13,6 +13,9 @@ import {
   MessageList,
   MessageInput,
 } from "@/components/messages/ChatComponents";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('chat-interface');
 
 interface Message {
   id: string;
@@ -215,7 +218,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
         setConversations(data.conversations || []);
       }
     } catch (error) {
-      console.error("Error fetching conversations:", error);
+      logger.error({ error }, "Error fetching conversations");
     } finally {
       setLoading(false);
     }
@@ -231,7 +234,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
         setMessages(data.messages || []);
       }
     } catch (error) {
-      console.error("Error fetching messages:", error);
+      logger.error({ error }, "Error fetching messages");
     }
   };
 
@@ -260,7 +263,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
         fetchConversations();
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      logger.error({ error }, "Error sending message");
     } finally {
       setSendingMessage(false);
     }

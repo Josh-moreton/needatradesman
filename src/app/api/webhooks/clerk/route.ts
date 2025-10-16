@@ -3,6 +3,9 @@ import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('clerk-webhook');
 
 export async function POST(req: Request) {
     // Get the webhook secret from environment variables
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
             'svix-signature': svix_signature,
         }) as WebhookEvent
     } catch (err) {
-        console.error('Error verifying webhook:', err)
+        logger.error({ error: err }, 'Error verifying webhook')
         return new Response('Error occurred', {
             status: 400,
         })
@@ -52,8 +55,8 @@ export async function POST(req: Request) {
     const { id } = evt.data
     const eventType = evt.type
 
-    console.log(`Webhook with and ID of ${id} and type of ${eventType}`)
-    console.log('Webhook body:', body)
+    logger.info({ id, eventType }, 'Webhook received')
+    logger.debug({ body }, 'Webhook body')
 
     // Handle user.created event
     if (eventType === 'user.created') {
@@ -65,7 +68,7 @@ export async function POST(req: Request) {
             const email = primaryEmail?.email_address
 
             if (!email) {
-                console.error('No email found for user', clerkId)
+                logger.error({ clerkId }, 'No email found for user')
                 return NextResponse.json({ error: 'No email found' }, { status: 400 })
             }
 
@@ -86,9 +89,9 @@ export async function POST(req: Request) {
                 },
             })
 
-            console.log('User synced to database:', clerkId)
+            logger.info({ clerkId }, 'User synced to database')
         } catch (error) {
-            console.error('Error syncing user to database:', error)
+            logger.error({ error }, 'Error syncing user to database')
             return NextResponse.json({ error: 'Database sync failed' }, { status: 500 })
         }
     }
@@ -103,7 +106,7 @@ export async function POST(req: Request) {
             const email = primaryEmail?.email_address
 
             if (!email) {
-                console.error('No email found for user', clerkId)
+                logger.error({ clerkId }, 'No email found for user')
                 return NextResponse.json({ error: 'No email found' }, { status: 400 })
             }
 
@@ -121,10 +124,10 @@ export async function POST(req: Request) {
                         lastName: last_name || null,
                     },
                 })
-                console.log('User updated in database:', clerkId)
+                logger.info({ clerkId }, 'User updated in database')
             }
         } catch (error) {
-            console.error('Error updating user in database:', error)
+            logger.error({ error }, 'Error updating user in database')
             return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
         }
     }
@@ -138,9 +141,9 @@ export async function POST(req: Request) {
             await prisma.user.delete({
                 where: { clerkId }
             })
-            console.log('User deleted from database:', clerkId)
+            logger.info({ clerkId }, 'User deleted from database')
         } catch (error) {
-            console.error('Error deleting user from database:', error)
+            logger.error({ error }, 'Error deleting user from database')
             // Don't return error for delete operations as user might not exist
         }
     }

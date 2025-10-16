@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Home, Hammer, ArrowRight, ArrowLeft } from "lucide-react";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('onboarding-flow');
 
 export default function OnboardingFlow() {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,27 +57,27 @@ export default function OnboardingFlow() {
 
         if (response.ok) {
           try {
-            console.log("Role API call successful, refreshing session...");
+            logger.debug("Role API call successful, refreshing session...");
 
             // Force refresh the session to get updated metadata immediately
             await session?.reload();
 
-            console.log("Session refreshed, redirecting...");
+            logger.debug("Session refreshed, redirecting...");
 
             // Now redirect - the middleware should see the updated session
             // Redirect to unified dashboard regardless of role
             window.location.href = "/dashboard";
           } catch (refreshError) {
-            console.error(
-              "[OnboardingFlow] Error refreshing session after role set:",
-              refreshError
+            logger.error(
+              { error: refreshError },
+              "[OnboardingFlow] Error refreshing session after role set"
             );
             // Fallback to the old retry mechanism
             const checkMetadataAndRedirect = async (attempts = 0) => {
               const maxAttempts = 10;
 
               if (attempts >= maxAttempts) {
-                console.error(
+                logger.error(
                   `[OnboardingFlow] Max attempts reached while waiting for onboarding metadata. Role: ${role}`
                 );
                 // Redirect to unified dashboard
@@ -85,13 +88,13 @@ export default function OnboardingFlow() {
               await user?.reload();
 
               if (user?.publicMetadata?.onboardingComplete) {
-                console.log(
+                logger.debug(
                   `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts. Redirecting. Role: ${role}`
                 );
                 // Redirect to unified dashboard
                 window.location.href = "/dashboard";
               } else {
-                console.warn(
+                logger.warn(
                   `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts}. Retrying...`
                 );
                 setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
@@ -102,15 +105,15 @@ export default function OnboardingFlow() {
           }
         } else {
           const errorText = await response.text();
-          console.error(
-            `[OnboardingFlow] Failed to set user role. Status: ${response.status}. Response:`,
-            errorText
+          logger.error(
+            { errorText, status: response.status },
+            "[OnboardingFlow] Failed to set user role"
           );
           setIsLoading(false);
           setSelectedRole(null);
         }
       } catch (error) {
-        console.error("[OnboardingFlow] Error setting user role:", error);
+        logger.error({ error }, "[OnboardingFlow] Error setting user role");
         setIsLoading(false);
         setSelectedRole(null);
       }
@@ -128,7 +131,7 @@ export default function OnboardingFlow() {
 
   const handleCompleteTradespersonOnboarding = async () => {
     if (selectedTrades.length === 0) {
-      console.warn(
+      logger.warn(
         "[OnboardingFlow] No trades selected for tradesperson onboarding."
       );
       return;
@@ -149,30 +152,30 @@ export default function OnboardingFlow() {
 
       if (response.ok) {
         try {
-          console.log(
+          logger.debug(
             "[OnboardingFlow] Tradesperson role API call successful, refreshing session..."
           );
 
           // Force refresh the session to get updated metadata immediately
           await session?.reload();
 
-          console.log(
+          logger.debug(
             "[OnboardingFlow] Session refreshed, redirecting to dashboard..."
           );
 
           // Redirect to unified dashboard
           window.location.href = "/dashboard";
         } catch (refreshError) {
-          console.error(
-            "[OnboardingFlow] Error refreshing session after tradesperson onboarding:",
-            refreshError
+          logger.error(
+            { error: refreshError },
+            "[OnboardingFlow] Error refreshing session after tradesperson onboarding"
           );
           // Fallback to the old retry mechanism
           const checkMetadataAndRedirect = async (attempts = 0) => {
             const maxAttempts = 10;
 
             if (attempts >= maxAttempts) {
-              console.error(
+              logger.error(
                 "[OnboardingFlow] Max attempts reached while waiting for onboarding metadata (tradesperson). Redirecting."
               );
               window.location.href = "/dashboard";
@@ -182,12 +185,12 @@ export default function OnboardingFlow() {
             await user?.reload();
 
             if (user?.publicMetadata?.onboardingComplete) {
-              console.log(
+              logger.debug(
                 `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts (tradesperson). Redirecting.`
               );
               window.location.href = "/dashboard";
             } else {
-              console.warn(
+              logger.warn(
                 `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts} (tradesperson). Retrying...`
               );
               setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
@@ -198,16 +201,16 @@ export default function OnboardingFlow() {
         }
       } else {
         const errorText = await response.text();
-        console.error(
-          `[OnboardingFlow] Failed to set user role and trades. Status: ${response.status}. Response:`,
-          errorText
+        logger.error(
+          { errorText, status: response.status },
+          "[OnboardingFlow] Failed to set user role and trades"
         );
         setIsLoading(false);
       }
     } catch (error) {
-      console.error(
-        "[OnboardingFlow] Error setting user role and trades:",
-        error
+      logger.error(
+        { error },
+        "[OnboardingFlow] Error setting user role and trades"
       );
       setIsLoading(false);
     }

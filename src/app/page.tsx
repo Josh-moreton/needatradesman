@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import LandingPage from "@/components/landing/LandingPage";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('home-page');
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -49,7 +52,7 @@ export default async function Home() {
       redirect("/onboarding");
     }
   } catch (error) {
-    console.error("Error in home page:", error);
+    logger.error({ error }, "Error in home page");
     // On any error, show landing page to prevent infinite loops
     return <LandingPage />;
   }

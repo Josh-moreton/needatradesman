@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/card";
 import { JobCard } from "@/components/jobs/JobCard";
 import Link from "next/link";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('customer-my-jobs');
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -84,7 +87,7 @@ export default async function MyJobsPage() {
       </div>
     );
   } catch (error) {
-    console.error("Error in my jobs page:", error);
+    logger.error({ error }, "Error in my jobs page");
     redirect("/sign-in");
   }
 }

@@ -22,6 +22,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle } from "lucide-react";
 import { QuoteBuilder } from "@/components/quotes/QuoteBuilder";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('application-form');
 
 interface ApplicationFormProps {
   jobId: string;
@@ -80,7 +83,7 @@ export function ApplicationForm({ jobId }: ApplicationFormProps) {
         router.refresh();
       }, 2000);
     } catch (error) {
-      console.error("Error submitting application:", error);
+      logger.error({ error }, "Error submitting application");
       // TODO: Add proper error handling with toast notifications
       alert(
         error instanceof Error ? error.message : "Failed to submit application"

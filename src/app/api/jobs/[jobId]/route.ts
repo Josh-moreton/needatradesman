@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("jobs-jobId-api");
 
 export async function GET(
     request: NextRequest,
@@ -20,11 +23,11 @@ export async function GET(
             try {
                 const cached = await redis.get<string>(cacheKey);
                 if (cached) {
-                    console.log('Cache hit for job detail:', cacheKey);
+                    logger.debug({ cacheKey }, 'Cache hit for job detail');
                     return NextResponse.json(JSON.parse(cached));
                 }
             } catch (cacheError) {
-                console.error('Cache read error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache read error');
             }
         }
 
@@ -68,15 +71,15 @@ export async function GET(
         if (redis) {
             try {
                 await redis.set(cacheKey, JSON.stringify(job), { ex: CACHE_TTL.JOB_DETAIL });
-                console.log('Cached job detail:', jobId);
+                logger.debug({ jobId }, 'Cached job detail');
             } catch (cacheError) {
-                console.error('Cache write error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache write error');
             }
         }
 
         return NextResponse.json(job);
     } catch (error) {
-        console.error("Error fetching job:", error);
+        logger.error({ error }, 'Error fetching job');
         return new NextResponse("Internal server error", { status: 500 });
     }
 }
@@ -114,15 +117,15 @@ export async function PUT(
             try {
                 const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
                 await redis.del(cacheKey);
-                console.log('Invalidated job detail cache:', cacheKey);
+                logger.debug({ cacheKey }, 'Invalidated job detail cache');
             } catch (cacheError) {
-                console.error('Cache invalidation error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache invalidation error');
             }
         }
 
         return NextResponse.json(updatedJob);
     } catch (error) {
-        console.error("Error updating job:", error);
+        logger.error({ error }, "Error updating job");
         return new NextResponse("Internal server error", { status: 500 });
     }
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("stripe-connect-status");
+
 import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 
 export async function GET() {
@@ -37,7 +41,7 @@ export async function GET() {
             return NextResponse.json({ status: "pending" });
         }
     } catch (error) {
-        console.error("Error retrieving Stripe account:", error);
+        logger.error({ error }, "Error retrieving Stripe account");
         return NextResponse.json(
             { error: "Failed to retrieve Stripe account status" },
             { status: 500 }

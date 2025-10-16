@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { z } from "zod";
 import { redis, invalidateApplicationCaches, invalidateJobDetailCache, invalidateUserStats } from "@/lib/redis";
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("applications-id-api");
 
 const updateResponseSchema = z.object({
     status: z.enum(["ACCEPTED", "REJECTED"]),
@@ -120,16 +123,16 @@ export async function PATCH(
                     invalidateUserStats(user.id, UserRole.CUSTOMER),
                     invalidateUserStats(updatedResponse.tradesperson.id, UserRole.TRADESPERSON)
                 ]);
-                console.log('Invalidated caches after application status update');
+                logger.debug('Invalidated caches after application status update');
             } catch (cacheError) {
-                console.error('Cache invalidation error:', cacheError);
+                logger.error({ error: cacheError }, 'Cache invalidation error');
                 // Don't fail the request if cache invalidation fails
             }
         }
 
         return NextResponse.json({ response: updatedResponse });
     } catch (error) {
-        console.error("Error updating response:", error);
+        logger.error({ error }, 'Error updating response');
         if (error instanceof z.ZodError) {
             return NextResponse.json(
                 { error: "Invalid input", details: error.errors },

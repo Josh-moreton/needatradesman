@@ -11,6 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('payout-setup-card');
 
 type StatusType = "not_setup" | "pending" | "verified";
 
@@ -33,7 +36,7 @@ export function PayoutSetupCard({ status }: { status: StatusType }) {
         alert("Failed to start onboarding. Please try again.");
       }
     } catch (error) {
-      console.error("Error starting onboarding:", error);
+      logger.error({ error }, "Error starting onboarding");
       alert("Something went wrong. Please try again later.");
     } finally {
       setLoading(false);

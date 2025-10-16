@@ -3,6 +3,9 @@ import { auth, currentUser, clerkClient } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('user-role-api');
 
 const setRoleSchema = z.object({
     role: z.nativeEnum(UserRole),
@@ -125,7 +128,7 @@ export async function POST(request: NextRequest) {
             });
         }
     } catch (error) {
-        console.error('Error setting user role:', error);
+        logger.error({ error }, 'Error setting user role');
 
         if (error instanceof z.ZodError) {
             return NextResponse.json(

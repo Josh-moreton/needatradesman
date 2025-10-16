@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('user-onboarding-status');
 
 export async function POST() {
     try {
@@ -23,7 +26,7 @@ export async function POST() {
             onboardingComplete: user.publicMetadata?.onboardingComplete || false
         })
     } catch (error) {
-        console.error('Error checking onboarding status:', error)
+        logger.error({ error }, 'Error checking onboarding status')
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

@@ -23,6 +23,9 @@ import {
   Clock,
   ArrowRight,
 } from "lucide-react";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('landing-page');
 
 // Linear-inspired animation variants
 const fadeInUp = {
@@ -62,11 +65,9 @@ export default function LandingPageAnimated() {
 
   // Add debug logging
   useEffect(() => {
-    console.log(
-      "LandingPageAnimated - isLoaded:",
-      isLoaded,
-      "isSignedIn:",
-      isSignedIn
+    logger.debug(
+      { isLoaded, isSignedIn },
+      "LandingPageAnimated status"
     );
   }, [isLoaded, isSignedIn]);
 
@@ -90,7 +91,7 @@ export default function LandingPageAnimated() {
     );
   }
 
-  console.log(
+  logger.debug(
     "LandingPageAnimated - Rendering main landing page with animations"
   );
 

@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('onboarding-page');
 
 // This page uses authentication, so it should be dynamically rendered
 export const dynamic = "force-dynamic";
@@ -51,7 +54,7 @@ export default async function OnboardingPage() {
     // User needs onboarding, show the flow
     return <OnboardingFlow />;
   } catch (error) {
-    console.error("Error in onboarding page:", error);
+    logger.error({ error }, "Error in onboarding page");
     redirect("/sign-in");
   }
 }

@@ -3,6 +3,10 @@ import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
+import { createLogger } from "@/lib/logger";
+
+const logger = createLogger("stripe-checkout-session");
+
 export async function POST(request: NextRequest) {
     const { userId } = await auth();
     if (!userId) {
@@ -63,7 +67,7 @@ export async function POST(request: NextRequest) {
         try {
             account = await stripe.accounts.retrieve(tradesperson.stripeAccountId);
         } catch (error) {
-            console.error("Failed to retrieve Stripe account:", error);
+            logger.error({ error }, "Failed to retrieve Stripe account");
             return NextResponse.json({
                 error: "Unable to verify tradesperson payment account"
             }, { status: 500 });
@@ -152,7 +156,7 @@ export async function POST(request: NextRequest) {
         // Return the session URL
         return NextResponse.json({ url: session.url });
     } catch (error) {
-        console.error("Error creating checkout session:", error);
+        logger.error({ error }, "Error creating checkout session");
         return NextResponse.json(
             { error: "Failed to create checkout session" },
             { status: 500 }

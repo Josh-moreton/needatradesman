@@ -11,6 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('dashboard-payouts');
 
 export default function DashboardPayoutsPage() {
   const searchParams = useSearchParams();
@@ -34,7 +37,7 @@ export default function DashboardPayoutsPage() {
           setStatus(data.status);
         }
       } catch (error) {
-        console.error("Error fetching Stripe account status:", error);
+        logger.error({ error }, "Error fetching Stripe account status");
       } finally {
         setLoading(false);
       }
