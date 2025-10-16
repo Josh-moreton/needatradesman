@@ -1,4 +1,4 @@
 version: STSv1
 mode: enforce
-mx: *.yourmailhost.tld
+mx: needatradesman-co-uk.mail.protection.outlook.com
 max_age: 86400
