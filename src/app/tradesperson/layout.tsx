@@ -27,7 +27,7 @@ export default async function TradespersonLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-background">
       <SidebarTradesperson user={user} />
       <main className="flex-1 overflow-y-auto">{children}</main>
     </div>

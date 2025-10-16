@@ -218,10 +218,10 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
                           job.status === "OPEN"
                             ? "bg-green-100 text-green-800"
                             : job.status === "IN_PROGRESS"
-                            ? "bg-blue-100 text-blue-800"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                             : job.status === "COMPLETED"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-red-100 text-red-800"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                         }`}
                       >
                         {job.status.toLowerCase()}

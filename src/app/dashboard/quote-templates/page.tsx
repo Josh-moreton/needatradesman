@@ -3,6 +3,8 @@ import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import QuoteTemplatesClient from "@/components/quotes/QuoteTemplatesClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardQuoteTemplatesPage() {
   const user = await getCurrentUser();
 
