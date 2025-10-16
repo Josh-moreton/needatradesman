@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-05-28.basil",
-});
+import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 
 export async function GET(request: NextRequest) {
     const { userId } = await auth();

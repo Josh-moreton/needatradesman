@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
+import { stripe, calculatePlatformFee } from "@/lib/stripe";
 
 export async function POST(request: NextRequest) {
     const { userId } = await auth();
@@ -96,10 +96,35 @@ export async function POST(request: NextRequest) {
         // Format for Stripe (amount in cents/pennies)
         const formattedAmount = Math.round(remainingAmount * 100);
 
+        // Calculate platform fee for final payment
+        const platformFee = calculatePlatformFee(remainingAmount);
+
+        // Verify tradesperson's Stripe account is still active
+        const tradesperson = application.tradesperson;
+        if (!tradesperson.stripeAccountId) {
+            return NextResponse.json({
+                error: "Tradesperson payment account not found"
+            }, { status: 400 });
+        }
+
+        try {
+            const account = await stripe.accounts.retrieve(tradesperson.stripeAccountId);
+            if (!account.charges_enabled || !account.details_submitted) {
+                return NextResponse.json({
+                    error: "Tradesperson payment account is not ready"
+                }, { status: 400 });
+            }
+        } catch (error) {
+            console.error("Failed to verify tradesperson account:", error);
+            return NextResponse.json({
+                error: "Unable to verify payment account"
+            }, { status: 500 });
+        }
+
         // Get origin for success/cancel URLs
         const origin = request.headers.get("origin") || "http://localhost:3000";
 
-        // Create a Checkout Session for final payment
+        // Create a Checkout Session for final payment with Connect
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             mode: "payment",
@@ -116,15 +141,22 @@ export async function POST(request: NextRequest) {
                     quantity: 1,
                 },
             ],
+            payment_intent_data: {
+                application_fee_amount: platformFee,
+                transfer_data: {
+                    destination: tradesperson.stripeAccountId,
+                },
+            },
             success_url: `${origin}/customer/jobs/${jobId}?final_payment_success=true`,
             cancel_url: `${origin}/customer/jobs/${jobId}?final_payment_cancelled=true`,
             metadata: {
                 jobId: job.id,
                 applicationId: application.id,
                 tradespersonId: application.tradespersonId,
-                type: "final_payment",
+                applicationType: "final_payment",  // Fixed: matches webhook check
                 depositAmount: depositAmount.toString(),
                 finalAmount: remainingAmount.toString(),
+                platformFee: platformFee.toString(),
             },
         });
 

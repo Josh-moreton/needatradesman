@@ -124,34 +124,35 @@ async function initiatePayoutToTradesperson(job: any, application: any) {
     // Calculate the amount to transfer: only transfer funds actually received from the customer
     // Fetch all successful payment intents for this job
     const paymentIntents = await stripe.paymentIntents.list({
-        customer: job.customerStripeId,
         limit: 100, // adjust as needed
     });
 
-    // Filter payment intents related to this job (assuming job.id is stored in metadata)
+    // Filter payment intents related to this job (check metadata.jobId)
     const jobPaymentIntents = paymentIntents.data.filter(
         (pi) => pi.status === "succeeded" && pi.metadata && pi.metadata.jobId === job.id
     );
 
-    // Sum the amount received for this job
-    const totalReceived = jobPaymentIntents.reduce((sum, pi) => sum + (pi.amount_received || 0), 0);
+    // Sum the amount received for this job (already in cents from Stripe)
+    const totalReceivedCents = jobPaymentIntents.reduce((sum, pi) => sum + (pi.amount_received || 0), 0);
 
-    if (!totalReceived || totalReceived <= 0) {
+    if (!totalReceivedCents || totalReceivedCents <= 0) {
         throw new Error("No funds received from customer for this job");
     }
 
-    // Only transfer up to the quoted amount (in cents)
+    // Only transfer up to the quoted amount (convert to cents if needed)
     const quoteAmountCents = Math.round(Number(application.quote || job.budget) * 100);
-    const transferAmount = Math.min(totalReceived, quoteAmountCents);
+    const transferAmount = Math.min(totalReceivedCents, quoteAmountCents);
+    
     // Create a transfer to the tradesperson's Connect account
+    // transferAmount is already in cents, no need to multiply by 100 again
     const transfer = await stripe.transfers.create({
-        amount: Math.round(Number(transferAmount) * 100), // Convert to cents
+        amount: transferAmount, // Already in cents
         currency: "gbp",
         destination: tradesperson.stripeAccountId,
         metadata: {
             jobId: job.id,
             applicationId: application.id,
-            type: "job_completion_payout"
+            applicationType: "job_completion_payout"
         }
     });
 
@@ -159,7 +160,8 @@ async function initiatePayoutToTradesperson(job: any, application: any) {
     await prisma.job.update({
         where: { id: job.id },
         data: {
-            payoutTransferId: transfer.id
+            payoutTransferId: transfer.id,
+            payoutReleased: true
         }
     });
 
