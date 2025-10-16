@@ -25,7 +25,6 @@ interface PaymentStatusCardProps {
   userRole: "CUSTOMER" | "TRADESPERSON";
   customerConfirmedComplete?: boolean;
   tradespersonConfirmedComplete?: boolean;
-  onRefresh?: () => void;
 }
 
 export function PaymentStatusCard({
@@ -40,7 +39,6 @@ export function PaymentStatusCard({
   userRole,
   customerConfirmedComplete = false,
   tradespersonConfirmedComplete = false,
-  onRefresh,
 }: PaymentStatusCardProps) {
   const [finalPaymentModalOpen, setFinalPaymentModalOpen] = useState(false);
 

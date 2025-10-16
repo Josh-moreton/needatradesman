@@ -148,7 +148,7 @@ export function JobCompletionCard({
             <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
-                <p className="font-medium text-blue-800">You've confirmed completion</p>
+                <p className="font-medium text-blue-800">You&apos;ve confirmed completion</p>
                 <p className="text-blue-700">
                   Waiting for the {userRole === "CUSTOMER" ? "tradesperson" : "customer"} to confirm.
                 </p>

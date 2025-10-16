@@ -104,7 +104,7 @@ export function FinalPaymentModal({
             <ul className="space-y-1 text-xs">
               <li>• This is the final payment for your completed job</li>
               <li>• Funds will be transferred to the tradesperson upon payment</li>
-              <li>• You'll receive a confirmation email after payment</li>
+              <li>• You&apos;ll receive a confirmation email after payment</li>
             </ul>
           </div>
         </div>
