@@ -46,23 +46,23 @@ if (redis) {
 
 ---
 
-## ❌ 2. Unused Auth Helper Functions
+## ✅ 2. Unused Auth Helper Functions - COMPLETED
 
-### Location: `src/lib/auth.ts` lines 37-92
+### Location: `src/lib/auth.ts` ~~lines 37-92~~ **DELETED**
 
-**What we built:**
+**What we had built:**
 ```typescript
-- requireRole(allowedRoles)           // NOT USED
-- getAuthenticatedUserWithRedirects() // NOT USED
-- validateUserRole()                  // NOT USED
+- requireRole(allowedRoles)           // DELETED ✅
+- getAuthenticatedUserWithRedirects() // DELETED ✅
+- validateUserRole()                  // DELETED ✅
 ```
 
-**Problem:**
-- ❌ Built "in case we need them"
-- ❌ Role checks happen in pages, not via these helpers
-- ❌ Adds complexity without value
+**Problem (RESOLVED):**
+- ✅ Built "in case we need them" - now removed
+- ✅ Role checks happen in pages, not via these helpers
+- ✅ Complexity removed
 
-**What we actually use:**
+**What we use (kept):**
 ```typescript
 // These are used and useful:
 - getCurrentUser()  ✅
@@ -71,9 +71,9 @@ if (redis) {
 - isAuthenticated() ✅
 ```
 
-**Recommendation:** 🗑️ **DELETE** unused functions (lines 37-92)
+**Status:** ✅ **COMPLETED** - See `docs/ISSUE_154_RESOLUTION.md`
 
-**Impact:** Remove ~60 lines of dead code
+**Impact:** ✅ Removed 31 lines of dead code (file reduced from 95 to 64 lines)
 
 ---
 
@@ -198,12 +198,12 @@ import { Ratelimit } from '@upstash/ratelimit'
 | Issue | Lines | Status | Action |
 |-------|-------|--------|--------|
 | **Unused Redis wrappers** | ~130 | ❌ Dead code | DELETE |
-| **Unused auth helpers** | ~60 | ❌ Dead code | DELETE |
+| **Unused auth helpers** | ~31 | ✅ **COMPLETED** | ~~DELETE~~ DONE |
 | **Manual cache management** | ~120 | ⚠️ Overengineered | SIMPLIFY (use Next.js cache or React Query) |
 | **Custom logger** | ~60 | ⚠️ Overkill | SIMPLIFY (use Vercel logging) |
 | **SDK usage (Clerk, Stripe, etc)** | N/A | ✅ Good | KEEP |
 
-**Total removable code:** ~190 lines of completely unused code
+**Total removable code:** ~130 lines of completely unused code (auth helpers done ✅)
 **Total simplifiable code:** ~180 lines that could use standard patterns
 
 ---
@@ -215,11 +215,15 @@ import { Ratelimit } from '@upstash/ratelimit'
 # src/lib/redis.ts
 # Delete lines 220-348 (safe* wrappers)
 
-# src/lib/auth.ts  
-# Delete lines 37-92 (requireRole, getAuthenticatedUserWithRedirects, validateUserRole)
+# src/lib/auth.ts - ✅ COMPLETED
+# ✅ Deleted lines 37-92 (requireRole, getAuthenticatedUserWithRedirects, validateUserRole)
+# See: docs/ISSUE_154_RESOLUTION.md
 ```
 
-**Impact:** Remove ~190 lines, zero risk (not used anywhere)
+**Impact:** 
+- ✅ Auth helpers: 31 lines removed
+- ⏳ Redis wrappers: ~130 lines remaining to remove
+- **Total removed so far:** 31 lines
 
 ### Priority 2: Simplify Caching (Next Sprint)
 Replace manual cache invalidation with:
