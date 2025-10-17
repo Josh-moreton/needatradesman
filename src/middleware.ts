@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
     const { userId, sessionClaims } = await auth()
+    const pathname = req.nextUrl.pathname
 
     // Allow public routes
     if (isPublicRoute(req)) {
@@ -22,9 +23,13 @@ export default clerkMiddleware(async (auth, req) => {
         return NextResponse.next()
     }
 
+    // Skip onboarding checks for API routes - let API routes handle their own auth
+    if (pathname.startsWith('/api/')) {
+        return NextResponse.next()
+    }
+
     // Simple onboarding check using publicMetadata
     const isOnboarded = (sessionClaims?.publicMetadata as { onboardingComplete?: boolean })?.onboardingComplete
-    const pathname = req.nextUrl.pathname
 
     // Redirect to onboarding if not completed (except if already on onboarding)
     if (!isOnboarded && !pathname.startsWith('/onboarding')) {

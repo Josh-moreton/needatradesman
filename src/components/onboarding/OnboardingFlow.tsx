@@ -56,53 +56,21 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          try {
-            logger.debug("Role API call successful, refreshing session...");
+          logger.debug("Role API call successful, refreshing session...");
 
-            // Force refresh the session to get updated metadata immediately
-            await session?.reload();
+          // Reload both session and user to ensure fresh JWT
+          await Promise.all([
+            session?.reload(),
+            user?.reload()
+          ]);
 
-            logger.debug("Session refreshed, redirecting...");
+          // Give Clerk a moment to propagate the changes
+          await new Promise(resolve => setTimeout(resolve, 300));
 
-            // Now redirect - the middleware should see the updated session
-            // Redirect to unified dashboard regardless of role
-            window.location.href = "/dashboard";
-          } catch (refreshError) {
-            logger.error(
-              { error: refreshError },
-              "[OnboardingFlow] Error refreshing session after role set"
-            );
-            // Fallback to the old retry mechanism
-            const checkMetadataAndRedirect = async (attempts = 0) => {
-              const maxAttempts = 10;
+          logger.debug("Session refreshed, redirecting...");
 
-              if (attempts >= maxAttempts) {
-                logger.error(
-                  `[OnboardingFlow] Max attempts reached while waiting for onboarding metadata. Role: ${role}`
-                );
-                // Redirect to unified dashboard
-                window.location.href = "/dashboard";
-                return;
-              }
-
-              await user?.reload();
-
-              if (user?.publicMetadata?.onboardingComplete) {
-                logger.debug(
-                  `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts. Redirecting. Role: ${role}`
-                );
-                // Redirect to unified dashboard
-                window.location.href = "/dashboard";
-              } else {
-                logger.warn(
-                  `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts}. Retrying...`
-                );
-                setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
-              }
-            };
-
-            checkMetadataAndRedirect();
-          }
+          // Hard redirect to force middleware to re-evaluate with fresh JWT
+          window.location.href = "/dashboard";
         } else {
           const errorText = await response.text();
           logger.error(
@@ -151,54 +119,25 @@ export default function OnboardingFlow() {
       });
 
       if (response.ok) {
-        try {
-          logger.debug(
-            "[OnboardingFlow] Tradesperson role API call successful, refreshing session..."
-          );
+        logger.debug(
+          "[OnboardingFlow] Tradesperson role API call successful, refreshing session..."
+        );
 
-          // Force refresh the session to get updated metadata immediately
-          await session?.reload();
+        // Reload both session and user to ensure fresh JWT
+        await Promise.all([
+          session?.reload(),
+          user?.reload()
+        ]);
 
-          logger.debug(
-            "[OnboardingFlow] Session refreshed, redirecting to dashboard..."
-          );
+        // Give Clerk a moment to propagate the changes
+        await new Promise(resolve => setTimeout(resolve, 300));
 
-          // Redirect to unified dashboard
-          window.location.href = "/dashboard";
-        } catch (refreshError) {
-          logger.error(
-            { error: refreshError },
-            "[OnboardingFlow] Error refreshing session after tradesperson onboarding"
-          );
-          // Fallback to the old retry mechanism
-          const checkMetadataAndRedirect = async (attempts = 0) => {
-            const maxAttempts = 10;
+        logger.debug(
+          "[OnboardingFlow] Session refreshed, redirecting to dashboard..."
+        );
 
-            if (attempts >= maxAttempts) {
-              logger.error(
-                "[OnboardingFlow] Max attempts reached while waiting for onboarding metadata (tradesperson). Redirecting."
-              );
-              window.location.href = "/dashboard";
-              return;
-            }
-
-            await user?.reload();
-
-            if (user?.publicMetadata?.onboardingComplete) {
-              logger.debug(
-                `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts (tradesperson). Redirecting.`
-              );
-              window.location.href = "/dashboard";
-            } else {
-              logger.warn(
-                `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts} (tradesperson). Retrying...`
-              );
-              setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
-            }
-          };
-
-          checkMetadataAndRedirect();
-        }
+        // Hard redirect to force middleware to re-evaluate with fresh JWT
+        window.location.href = "/dashboard";
       } else {
         const errorText = await response.text();
         logger.error(
