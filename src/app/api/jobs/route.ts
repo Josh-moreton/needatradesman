@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
                     }
                 };
             },
-            ['jobs', category || 'all', location || 'all', search || 'all', String(page), String(limit)],
+            ['jobs', category || 'no-category', location || 'no-location', search || 'no-search', String(page), String(limit)],
             {
                 revalidate: 180, // 3 minutes for real-time feel
                 tags: ['jobs']
