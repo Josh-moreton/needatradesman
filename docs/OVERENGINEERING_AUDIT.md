@@ -198,12 +198,12 @@ import { Ratelimit } from '@upstash/ratelimit'
 | Issue | Lines | Status | Action |
 |-------|-------|--------|--------|
 | **Unused Redis wrappers** | ~130 | ❌ Dead code | DELETE |
-| **Unused auth helpers** | ~31 | ✅ **COMPLETED** | ~~DELETE~~ DONE |
+| **Unused auth helpers** | ~31 | ✅ **COMPLETED** | ✅ DONE |
 | **Manual cache management** | ~120 | ⚠️ Overengineered | SIMPLIFY (use Next.js cache or React Query) |
 | **Custom logger** | ~60 | ⚠️ Overkill | SIMPLIFY (use Vercel logging) |
 | **SDK usage (Clerk, Stripe, etc)** | N/A | ✅ Good | KEEP |
 
-**Total removable code:** ~130 lines of completely unused code (auth helpers done ✅)
+**Total removable code:** ~130 lines of unused code remaining (auth helpers: 31 lines already removed ✅)
 **Total simplifiable code:** ~180 lines that could use standard patterns
 
 ---
