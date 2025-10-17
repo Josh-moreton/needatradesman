@@ -44,120 +44,130 @@ export function LocationInput({
   disabled = false,
   className = "",
 }: Readonly<LocationInputProps>) {
+  // Alias the custom element to a component type to avoid JSX IntrinsicElements typing issues
+  const GmpAutocomplete = 'gmp-place-autocomplete' as unknown as React.ElementType;
   const containerRef = useRef<HTMLDivElement>(null);
+  const autocompleteElementRef = useRef<HTMLElement | null>(null);
+  const onChangeRef = useRef(onChange);
   const [isLoading, setIsLoading] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
-  // Initialize Google Places Autocomplete Element
+  // Build a stable handler for the web component event using latest onChange via ref
+  function createPlaceSelectHandler(
+    onChangeRefParam: React.MutableRefObject<(loc: LocationData | null) => void>
+  ) {
+    return async (event: Event) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const place = (event.target as any)?.place as google.maps.places.Place | undefined;
+      if (!place) {
+        toast.error("Unable to get location details");
+        return;
+      }
+      try {
+        await place.fetchFields({
+          fields: [
+            "formattedAddress",
+            "location",
+            "addressComponents",
+            "displayName",
+          ],
+        });
+        if (!place.location) {
+          toast.error("Unable to get location details");
+          return;
+        }
+        const locationData = extractLocationDataFromPlace(place);
+        onChangeRefParam.current(locationData);
+      } catch (error) {
+        console.error("Error fetching place details:", error);
+        toast.error("Failed to get location details");
+      }
+    };
+  }
+
+  // Keep latest onChange in a ref to avoid re-subscribing listeners
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // Initialize Google libraries and attach listeners to the existing custom element
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
+
     if (!apiKey) {
       console.warn("Google Maps API key not found. Location autocomplete disabled.");
       return;
     }
 
-    // Capture the ref value at the start of the effect
-    const container = containerRef.current;
-    if (!container) return;
-
     setIsLoading(true);
 
-    // Set Google Maps API options
-    setOptions({
-      key: apiKey,
-      v: "weekly",
-      libraries: ["places"],
-    });
+    // Set Google Maps API options ONLY ONCE globally
+    if (!(globalThis as any).__googleMapsConfigured) {
+      setOptions({ key: apiKey, v: "weekly", libraries: ["places"] });
+      (globalThis as any).__googleMapsConfigured = true;
+    }
 
-    // Use the modern functional API
+    let cleanup: (() => void) | undefined;
+    let isMounted = true;
+
     (async () => {
       try {
+        // Ensure libraries are present
         await importLibrary("places");
-        
-        if (!container) return;
+        // Preload geocoding for the button flow
+        try { await importLibrary("geocoding"); } catch { /* optional */ }
 
-        // Create the new PlaceAutocompleteElement
-        const autocompleteElement = document.createElement("gmp-place-autocomplete");
-        
-        // Set attributes
-        autocompleteElement.setAttribute("component-restrictions", JSON.stringify({ country: "gb" }));
-        // Note: 'types' attribute is not supported in the new Places API web component
-        // The component will return all place types by default
-        autocompleteElement.setAttribute("placeholder", placeholder);
-        
-        // Apply custom styling to match our design
-        autocompleteElement.style.width = "100%";
-        
-        // Clear container and append the element
-        container.innerHTML = "";
-        container.appendChild(autocompleteElement);
+        if (!isMounted) return;
 
-        // Listen for place selection using the custom event
-        autocompleteElement.addEventListener("gmp-placeselect", async (event: Event) => {
-          // The event target contains the place object
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const place = (event.target as any).place;
+        const el = autocompleteElementRef.current;
+        if (!el) {
+          // Wait a tick for the element to mount
+          queueMicrotask(() => {
+            const lateEl = autocompleteElementRef.current;
+            if (!lateEl) return;
+            const handler = createPlaceSelectHandler(onChangeRef);
+            lateEl.addEventListener("gmp-placeselect", handler);
+            cleanup = () => lateEl.removeEventListener("gmp-placeselect", handler);
+            setIsLoading(false);
+          });
+          return;
+        }
 
-          if (!place) {
-            toast.error("Unable to get location details");
-            return;
-          }
-
-          try {
-            // Fetch place details with required fields
-            await place.fetchFields({
-              fields: [
-                "formattedAddress",
-                "location",
-                "addressComponents",
-                "displayName",
-              ],
-            });
-
-            if (!place.location) {
-              toast.error("Unable to get location details");
-              return;
-            }
-
-            const locationData = extractLocationDataFromPlace(place);
-            onChange(locationData);
-          } catch (error) {
-            console.error("Error fetching place details:", error);
-            toast.error("Failed to get location details");
-          }
-        });
+        const handler = createPlaceSelectHandler(onChangeRef);
+        el.addEventListener("gmp-placeselect", handler);
+        cleanup = () => el.removeEventListener("gmp-placeselect", handler);
 
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading Google Maps:", error);
-        toast.error("Failed to load location services");
-        setIsLoading(false);
+        if (isMounted) {
+          toast.error("Failed to load location services");
+          setIsLoading(false);
+        }
       }
     })();
 
     return () => {
-      // Cleanup - use the captured container reference
-      if (container) {
-        container.innerHTML = "";
-      }
+      isMounted = false;
+      cleanup?.();
     };
-  }, [onChange, placeholder]);
+  }, []);
 
-  // Update value when changed externally
+  // Update value when changed externally (best-effort for the web component)
   useEffect(() => {
-    const container = containerRef.current;
-    if (container && value) {
-      // Set the value on the autocomplete element's input
-      const input = container.querySelector("input");
-      if (input) {
-        input.value = value.displayText;
+    const el = autocompleteElementRef.current as any;
+    if (!el) return;
+    const text = value?.displayText ?? "";
+    try {
+      if ("value" in el) {
+        el.value = text;
+      } else if (text) {
+        el.setAttribute("value", text);
+      } else {
+        el.removeAttribute?.("value");
       }
-    } else if (container && !value) {
-      const input = container.querySelector("input");
-      if (input) {
-        input.value = "";
-      }
+    } catch {
+      // Non-fatal: underlying API may not expose a value property
     }
   }, [value]);
 
@@ -265,6 +275,8 @@ export function LocationInput({
             return;
           }
 
+          // Ensure geocoding library is present
+          try { await importLibrary("geocoding"); } catch { /* ignore */ }
           const geocoder = new google.maps.Geocoder();
           geocoder.geocode(
             { location: { lat: latitude, lng: longitude } },
@@ -320,16 +332,19 @@ export function LocationInput({
 
   return (
     <div className={`flex gap-2 ${className}`}>
-      <div 
-        ref={containerRef} 
-        className="relative flex-1"
-        style={{ opacity: isLoading ? 0.5 : 1 }}
-      >
+      <div ref={containerRef} className="relative flex-1" style={{ opacity: isLoading ? 0.5 : 1 }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <span className="text-sm text-muted-foreground">Loading...</span>
           </div>
         )}
+        {/* Render the Google Places web component declaratively to avoid DOM conflicts */}
+        <GmpAutocomplete
+          ref={autocompleteElementRef as unknown as React.RefObject<any>}
+          component-restrictions={JSON.stringify({ country: "gb" })}
+          placeholder={placeholder}
+          style={{ width: "100%" }}
+        />
       </div>
       <Button
         type="button"
