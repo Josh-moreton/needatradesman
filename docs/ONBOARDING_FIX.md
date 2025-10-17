@@ -34,32 +34,28 @@ if (pathname.startsWith('/api/')) {
 - Middleware should only handle page-level redirects
 - This is the standard Clerk pattern - middleware protects pages, APIs protect themselves
 
-### Fix 2: Robust Session Refresh
+### Fix 2: Use Official Clerk Pattern for Metadata Updates
 **File:** `src/components/onboarding/OnboardingFlow.tsx`
 
-Changed from fragile retry mechanism to robust dual-reload with delay:
+Changed to Clerk's official recommended pattern from their documentation:
 ```typescript
-// Reload both session and user to ensure fresh JWT
-await Promise.all([
-  session?.reload(),
-  user?.reload()
-]);
+// Reload user to fetch updated publicMetadata from Clerk
+await user?.reload();
 
-// Give Clerk a moment to propagate the changes
-await new Promise(resolve => setTimeout(resolve, 300));
-
-// Hard redirect to force middleware to re-evaluate with fresh JWT
-window.location.href = "/dashboard";
+// Use Next.js router for client-side navigation
+router.push("/dashboard");
 ```
 
-**Removed:** 50+ lines of complex retry logic with nested error handlers
+**Removed:** 50+ lines of complex retry logic, fallback mechanisms, and hard redirects
 
-**Why This Works:**
-1. `session?.reload()` refreshes the JWT token
-2. `user?.reload()` refreshes the user object with publicMetadata
-3. 300ms delay ensures Clerk's internal state is synchronized
-4. Hard redirect (`window.location.href`) forces browser to make fresh request
-5. Middleware evaluates the new request with the fresh JWT cookie
+**Why This Works (According to Clerk Docs):**
+1. After backend updates `publicMetadata`, client calls `await user?.reload()`
+2. This fetches the fresh user data from Clerk's API
+3. Use Next.js `router.push()` for navigation (not `window.location.href`)
+4. Middleware automatically sees updated JWT on the next request
+5. This is the exact pattern from Clerk's official onboarding guide: https://clerk.com/docs/guides/development/add-onboarding-flow
+
+**Key Insight:** We were over-engineering it with `session?.reload()`, delays, and hard redirects. Clerk's docs show you only need `user?.reload()` + `router.push()`.
 
 ## Testing Checklist
 - [ ] New user signs up
@@ -102,7 +98,12 @@ window.location.href = "/dashboard";
 
 ## Files Changed
 - `src/middleware.ts` - Added API route exclusion (3 lines)
-- `src/components/onboarding/OnboardingFlow.tsx` - Simplified session refresh (removed 100+ lines, added 10 clean lines)
+- `src/components/onboarding/OnboardingFlow.tsx` - Switched to official Clerk pattern (removed 100+ lines of custom retry logic, now uses standard `user?.reload()` + `router.push()`)
+
+## References
+- [Clerk Official Onboarding Guide](https://clerk.com/docs/guides/development/add-onboarding-flow)
+- [Clerk Middleware Reference](https://clerk.com/docs/references/nextjs/clerk-middleware)
+- [Clerk Sample App](https://github.com/clerk/clerk-nextjs-onboarding-sample-app/tree/main)
 
 ## Verification
 ✅ Type checking passes: `pnpm type-check`

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser, useSession } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { UserRole, JobCategory } from "@prisma/client"; // Use Prisma enum instead
 import {
   Card,
@@ -24,7 +25,7 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
   const { user } = useUser();
-  const { session } = useSession();
+  const router = useRouter();
 
   // Check if user has already completed onboarding but metadata hasn't propagated yet
   useEffect(() => {
@@ -56,21 +57,15 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          logger.debug("Role API call successful, refreshing session...");
+          logger.debug("Role API call successful, reloading user data...");
 
-          // Reload both session and user to ensure fresh JWT
-          await Promise.all([
-            session?.reload(),
-            user?.reload()
-          ]);
+          // Reload user to fetch updated publicMetadata from Clerk
+          await user?.reload();
 
-          // Give Clerk a moment to propagate the changes
-          await new Promise(resolve => setTimeout(resolve, 300));
+          logger.debug("User data reloaded, redirecting to dashboard...");
 
-          logger.debug("Session refreshed, redirecting...");
-
-          // Hard redirect to force middleware to re-evaluate with fresh JWT
-          window.location.href = "/dashboard";
+          // Use Next.js router for client-side navigation
+          router.push("/dashboard");
         } else {
           const errorText = await response.text();
           logger.error(
@@ -120,24 +115,18 @@ export default function OnboardingFlow() {
 
       if (response.ok) {
         logger.debug(
-          "[OnboardingFlow] Tradesperson role API call successful, refreshing session..."
+          "[OnboardingFlow] Tradesperson role API call successful, reloading user data..."
         );
 
-        // Reload both session and user to ensure fresh JWT
-        await Promise.all([
-          session?.reload(),
-          user?.reload()
-        ]);
-
-        // Give Clerk a moment to propagate the changes
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Reload user to fetch updated publicMetadata from Clerk
+        await user?.reload();
 
         logger.debug(
-          "[OnboardingFlow] Session refreshed, redirecting to dashboard..."
+          "[OnboardingFlow] User data reloaded, redirecting to dashboard..."
         );
 
-        // Hard redirect to force middleware to re-evaluate with fresh JWT
-        window.location.href = "/dashboard";
+        // Use Next.js router for client-side navigation
+        router.push("/dashboard");
       } else {
         const errorText = await response.text();
         logger.error(
