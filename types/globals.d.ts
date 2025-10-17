@@ -1,10 +1,10 @@
-export {}
+export { }
 
 declare global {
-  interface CustomJwtSessionClaims {
-    publicMetadata: {
-      onboardingComplete?: boolean
-      role?: string
+    interface CustomJwtSessionClaims {
+        publicMetadata: {
+            onboardingComplete?: boolean
+            role?: string
+        }
     }
-  }
 }
