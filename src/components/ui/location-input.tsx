@@ -58,7 +58,9 @@ export function LocationInput({
       return;
     }
 
-    if (!containerRef.current) return;
+    // Capture the ref value at the start of the effect
+    const container = containerRef.current;
+    if (!container) return;
 
     setIsLoading(true);
 
@@ -74,7 +76,6 @@ export function LocationInput({
       try {
         await importLibrary("places");
         
-        const container = containerRef.current;
         if (!container) return;
 
         // Create the new PlaceAutocompleteElement
@@ -136,8 +137,7 @@ export function LocationInput({
     })();
 
     return () => {
-      // Cleanup - store ref value before cleanup runs
-      const container = containerRef.current;
+      // Cleanup - use the captured container reference
       if (container) {
         container.innerHTML = "";
       }
