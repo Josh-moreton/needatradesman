@@ -1,5 +1,23 @@
+/**
+ * Middleware Pattern (The Right Way)
+ * 
+ * Middleware should ONLY:
+ * 1. Check if auth cookie exists
+ * 2. Route between public and protected areas
+ * 
+ * Middleware should NOT:
+ * ❌ Query the database (Next.js explicitly advises against this)
+ * ❌ Check user roles or onboarding state
+ * ❌ Read JWT claims for authorization decisions
+ * 
+ * Authorization checks happen in Server Components/Layouts using the auth-gate pattern.
+ * 
+ * References:
+ * - https://nextjs.org/docs/app/building-your-application/routing/middleware
+ * - https://clerk.com/docs/references/nextjs/clerk-middleware
+ */
+
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 
 // Public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -11,54 +29,15 @@ const isPublicRoute = createRouteMatcher([
 
 export default clerkMiddleware(
     async (auth, req) => {
-        const { userId, sessionClaims } = await auth()
-        const pathname = req.nextUrl.pathname
-
-        // Allow public routes
+        // Allow public routes without any checks
         if (isPublicRoute(req)) {
-            return NextResponse.next()
+            return
         }
 
-        // Protect all other routes - Clerk handles redirect to sign-in
-        if (!userId) {
-            return NextResponse.next()
-        }
-
-        // Skip onboarding checks for API routes - let API routes handle their own auth
-        if (pathname.startsWith('/api/')) {
-            return NextResponse.next()
-        }
-
-        // Simple onboarding check using metadata from session token
-        const metadata = sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined
-        const isOnboarded = metadata?.onboardingComplete
-
-        // Debug logging
-        console.log('[Middleware Debug]', {
-            pathname,
-            userId: userId?.substring(0, 8) + '...',
-            hasSessionClaims: !!sessionClaims,
-            hasMetadata: !!metadata,
-            metadata,
-            isOnboarded,
-            allClaimKeys: sessionClaims ? Object.keys(sessionClaims) : [],
-        })
-
-        // Redirect to onboarding if not completed (except if already on onboarding)
-        if (!isOnboarded && !pathname.startsWith('/onboarding')) {
-            console.log('[Middleware] Redirecting to /onboarding')
-            return NextResponse.redirect(new URL('/onboarding', req.url))
-        }
-
-        // Redirect away from onboarding if already completed
-        if (isOnboarded && pathname.startsWith('/onboarding')) {
-            console.log('[Middleware] Redirecting to /dashboard')
-            return NextResponse.redirect(new URL('/dashboard', req.url))
-        }
-
-        return NextResponse.next()
-    },
-    { debug: true } // Enable debug mode to see JWT claims in terminal
+        // Protect all other routes - Clerk handles the redirect to sign-in
+        // This just checks if the auth cookie exists, nothing more
+        await auth.protect()
+    }
 )
 
 export const config = {

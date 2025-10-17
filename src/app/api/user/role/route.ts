@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { revalidateTag } from 'next/cache'
 
 const logger = createLogger('user-role-api');
 
@@ -54,6 +55,10 @@ export async function POST(request: NextRequest) {
                 }
             });
 
+            // Invalidate the auth gate cache so the layout picks up the new user immediately
+            revalidateTag(`user:${userId}`)
+            revalidateTag('user-gate')
+
             return NextResponse.json({
                 success: true,
                 user: updatedUser
@@ -94,6 +99,10 @@ export async function POST(request: NextRequest) {
                     }
                 });
 
+                // Invalidate the auth gate cache so the layout picks up the new user immediately
+                revalidateTag(`user:${userId}`)
+                revalidateTag('user-gate')
+
                 return NextResponse.json({
                     success: true,
                     user: updatedUser
@@ -121,6 +130,10 @@ export async function POST(request: NextRequest) {
                     role: role
                 }
             });
+
+            // Invalidate the auth gate cache so the layout picks up the new user immediately
+            revalidateTag(`user:${userId}`)
+            revalidateTag('user-gate')
 
             return NextResponse.json({
                 success: true,
