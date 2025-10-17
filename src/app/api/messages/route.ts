@@ -4,10 +4,26 @@ import { prisma } from "@/lib/prisma";
 import { redis, messageRateLimit, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 import { pusherServer, getConversationChannel, getUserChannel } from "@/lib/pusher";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("messages-api");
+
+// Type for message with includes
+type MessageWithRelations = Prisma.MessageGetPayload<{
+    include: {
+        sender: {
+            select: { id: true; firstName: true; lastName: true; email: true };
+        };
+        receiver: {
+            select: { id: true; firstName: true; lastName: true; email: true };
+        };
+        job: {
+            select: { id: true; title: true };
+        };
+    };
+}>;
 
 const sendMessageSchema = z.object({
     content: z.string().min(1, "Message content is required"),
@@ -15,6 +31,130 @@ const sendMessageSchema = z.object({
     jobId: z.string().optional(),
     messageType: z.enum(["TEXT", "IMAGE", "FILE"]).default("TEXT"),
 });
+
+// Helper: Check rate limit for user
+async function checkRateLimit(clerkId: string): Promise<{ allowed: boolean; error?: NextResponse }> {
+    if (!messageRateLimit) {
+        return { allowed: true };
+    }
+
+    try {
+        const { success, limit, reset, remaining } = await messageRateLimit.limit(clerkId);
+
+        if (!success) {
+            const resetDate = new Date(reset);
+            const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
+
+            return {
+                allowed: false,
+                error: NextResponse.json(
+                    { error: `Too many messages. You can only send ${limit} messages per 5 minutes. ${remaining} remaining.` },
+                    {
+                        status: 429,
+                        headers: {
+                            'X-RateLimit-Limit': String(limit),
+                            'X-RateLimit-Remaining': String(remaining),
+                            'X-RateLimit-Reset': String(reset),
+                            'Retry-After': String(retryAfter),
+                        }
+                    }
+                )
+            };
+        }
+
+        return { allowed: true };
+    } catch (error) {
+        logger.error({ error }, "Rate limiter error (likely Redis connection issue)");
+        return { allowed: true }; // Allow request if rate limiting fails
+    }
+}
+
+// Helper: Verify job authorization
+async function verifyJobAuthorization(jobId: string, userId: string): Promise<{ authorized: boolean; error?: NextResponse }> {
+    const job = await prisma.job.findUnique({
+        where: { id: jobId },
+        include: {
+            applications: {
+                where: { tradespersonId: userId },
+            },
+        },
+    });
+
+    if (!job) {
+        return {
+            authorized: false,
+            error: NextResponse.json({ error: "Job not found" }, { status: 404 })
+        };
+    }
+
+    const isJobOwner = job.customerId === userId;
+    const hasApplied = job.applications.length > 0;
+
+    if (!isJobOwner && !hasApplied) {
+        return {
+            authorized: false,
+            error: NextResponse.json(
+                { error: "You can only message about jobs you've posted or applied to" },
+                { status: 403 }
+            )
+        };
+    }
+
+    return { authorized: true };
+}
+
+// Helper: Cache message in Redis
+async function cacheMessageInRedis(message: MessageWithRelations, userId: string, receiverId: string, jobId?: string): Promise<void> {
+    if (!redis) return;
+
+    try {
+        const participantIds = [userId, receiverId].sort((a, b) => a.localeCompare(b)).join(":");
+        const channelKey = CACHE_KEYS.CHAT_MESSAGES(jobId || "general", participantIds);
+        await redis.lpush(channelKey, JSON.stringify(message));
+        await redis.expire(channelKey, CACHE_TTL.MESSAGES);
+
+        // Publish to Redis channel for real-time updates (future WebSocket implementation)
+        await redis.publish(`chat:${jobId || "general"}`, JSON.stringify(message));
+
+        // Clear conversation cache
+        await redis.del(CACHE_KEYS.USER_CONVERSATIONS(userId));
+        await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
+
+        logger.debug('Message cached and published successfully');
+    } catch (cacheError) {
+        logger.error({ error: cacheError }, 'Redis operations error in message creation');
+        // Continue - message was saved to database, Redis is optional
+    }
+}
+
+// Helper: Send Pusher notifications
+async function sendPusherNotifications(message: MessageWithRelations, userId: string, receiverId: string, content: string, jobId?: string): Promise<void> {
+    if (!jobId) return;
+
+    try {
+        // Send to conversation channel (both users see the message)
+        const conversationChannel = getConversationChannel(jobId, [userId, receiverId]);
+        await pusherServer.trigger(conversationChannel, "new-message", {
+            message,
+            timestamp: new Date().toISOString(),
+        });
+
+        // Send notification to receiver's personal channel
+        await pusherServer.trigger(getUserChannel(receiverId), "message-notification", {
+            messageId: message.id,
+            senderId: userId,
+            senderName: message.sender.firstName && message.sender.lastName
+                ? `${message.sender.firstName} ${message.sender.lastName}`
+                : message.sender.email,
+            jobTitle: message.job?.title,
+            preview: content.substring(0, 100),
+            timestamp: new Date().toISOString(),
+        });
+    } catch (pusherError) {
+        logger.error({ error: pusherError }, "Pusher error");
+        // Don't fail the request if Pusher fails
+    }
+}
 
 // GET /api/messages - Get conversations for current user
 export async function GET(request: NextRequest) {
@@ -130,32 +270,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Rate limiting (use clerkId to avoid reuse of internal IDs)
-        if (messageRateLimit) {
-            try {
-                const { success, limit, reset, remaining } = await messageRateLimit.limit(user.clerkId);
-
-                if (!success) {
-                    const resetDate = new Date(reset);
-                    const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
-
-                    return NextResponse.json(
-                        { error: `Too many messages. You can only send ${limit} messages per 5 minutes. ${remaining} remaining.` },
-                        {
-                            status: 429,
-                            headers: {
-                                'X-RateLimit-Limit': String(limit),
-                                'X-RateLimit-Remaining': String(remaining),
-                                'X-RateLimit-Reset': String(reset),
-                                'Retry-After': String(retryAfter),
-                            }
-                        }
-                    );
-                }
-            } catch (error) {
-                // This is a Redis connection error - log it and continue
-                logger.error({ error }, "Rate limiter error (likely Redis connection issue)");
-                // Allow the request to proceed if rate limiting fails due to connection issues
-            }
+        const rateLimitResult = await checkRateLimit(user.clerkId);
+        if (!rateLimitResult.allowed) {
+            return rateLimitResult.error!;
         }
 
         const body = await request.json();
@@ -163,27 +280,9 @@ export async function POST(request: NextRequest) {
 
         // Verify that the user is either the job poster or has applied to the job
         if (jobId) {
-            const job = await prisma.job.findUnique({
-                where: { id: jobId },
-                include: {
-                    applications: {
-                        where: { tradespersonId: user.id },
-                    },
-                },
-            });
-
-            if (!job) {
-                return NextResponse.json({ error: "Job not found" }, { status: 404 });
-            }
-
-            const isJobOwner = job.customerId === user.id;
-            const hasApplied = job.applications.length > 0;
-
-            if (!isJobOwner && !hasApplied) {
-                return NextResponse.json(
-                    { error: "You can only message about jobs you've posted or applied to" },
-                    { status: 403 }
-                );
+            const authResult = await verifyJobAuthorization(jobId, user.id);
+            if (!authResult.authorized) {
+                return authResult.error!;
             }
         }
 
@@ -210,53 +309,10 @@ export async function POST(request: NextRequest) {
         });
 
         // Store in Redis for real-time updates (if Redis is configured)
-        if (redis) {
-            try {
-                const participantIds = [user.id, receiverId].sort().join(":");
-                const channelKey = CACHE_KEYS.CHAT_MESSAGES(jobId || "general", participantIds);
-                await redis.lpush(channelKey, JSON.stringify(message));
-                await redis.expire(channelKey, CACHE_TTL.MESSAGES);
-
-                // Publish to Redis channel for real-time updates (future WebSocket implementation)
-                await redis.publish(`chat:${jobId || "general"}`, JSON.stringify(message));
-
-                // Clear conversation cache
-                await redis.del(CACHE_KEYS.USER_CONVERSATIONS(user.id));
-                await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
-
-                logger.debug('Message cached and published successfully');
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Redis operations error in message creation');
-                // Continue - message was saved to database, Redis is optional
-            }
-        }
+        await cacheMessageInRedis(message, user.id, receiverId, jobId);
 
         // Trigger Pusher events for real-time messaging
-        try {
-            if (jobId) {
-                // Send to conversation channel (both users see the message)
-                const conversationChannel = getConversationChannel(jobId, [user.id, receiverId]);
-                await pusherServer.trigger(conversationChannel, "new-message", {
-                    message,
-                    timestamp: new Date().toISOString(),
-                });
-
-                // Send notification to receiver's personal channel
-                await pusherServer.trigger(getUserChannel(receiverId), "message-notification", {
-                    messageId: message.id,
-                    senderId: user.id,
-                    senderName: message.sender.firstName && message.sender.lastName
-                        ? `${message.sender.firstName} ${message.sender.lastName}`
-                        : message.sender.email,
-                    jobTitle: message.job?.title,
-                    preview: content.substring(0, 100),
-                    timestamp: new Date().toISOString(),
-                });
-            }
-        } catch (pusherError) {
-            logger.error({ error: pusherError }, "Pusher error");
-            // Don't fail the request if Pusher fails
-        }
+        await sendPusherNotifications(message, user.id, receiverId, content, jobId);
 
         return NextResponse.json({ message });
     } catch (error) {
