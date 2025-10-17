@@ -30,7 +30,6 @@ declare global {
     interface IntrinsicElements {
       'gmp-place-autocomplete': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
         'component-restrictions'?: string;
-        types?: string;
         placeholder?: string;
       };
     }
@@ -83,7 +82,8 @@ export function LocationInput({
         
         // Set attributes
         autocompleteElement.setAttribute("component-restrictions", JSON.stringify({ country: "gb" }));
-        autocompleteElement.setAttribute("types", "geocode|establishment");
+        // Note: 'types' attribute is not supported in the new Places API web component
+        // The component will return all place types by default
         autocompleteElement.setAttribute("placeholder", placeholder);
         
         // Apply custom styling to match our design
