@@ -24,7 +24,7 @@ export default async function OnboardingPage() {
     }
 
     // Check session metadata for onboarding completion
-    const metadata = sessionClaims?.publicMetadata as ClerkMetadata;
+    const metadata = sessionClaims?.metadata as ClerkMetadata;
     const onboardingComplete = metadata?.onboardingComplete;
     const userRole = metadata?.role;
 

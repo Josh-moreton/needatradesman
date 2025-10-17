@@ -29,19 +29,16 @@ export default clerkMiddleware(
             return NextResponse.next()
         }
 
-        // Simple onboarding check using publicMetadata OR metadata as fallback
-        const publicMetadata = sessionClaims?.publicMetadata as { onboardingComplete?: boolean } | undefined
+        // Simple onboarding check using metadata from session token
         const metadata = sessionClaims?.metadata as { onboardingComplete?: boolean } | undefined
-        const isOnboarded = publicMetadata?.onboardingComplete ?? metadata?.onboardingComplete
+        const isOnboarded = metadata?.onboardingComplete
 
         // Debug logging
         console.log('[Middleware Debug]', {
             pathname,
             userId: userId?.substring(0, 8) + '...',
             hasSessionClaims: !!sessionClaims,
-            hasPublicMetadata: !!publicMetadata,
             hasMetadata: !!metadata,
-            publicMetadata,
             metadata,
             isOnboarded,
             allClaimKeys: sessionClaims ? Object.keys(sessionClaims) : [],
