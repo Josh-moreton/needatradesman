@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -91,7 +90,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function JobDetailPage({ params }: JobDetailPageProps) {
+export default async function JobDetailPage({ params }: Readonly<JobDetailPageProps>) {
   try {
     const user = await getCurrentUser();
 
@@ -201,12 +200,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                 </CardDescription>
               </div>
               <Badge
-                variant={
-                  getStatusColor(job.status) as
-                    | "default"
-                    | "secondary"
-                    | "destructive"
-                }
+                variant={getStatusColor(job.status)}
                 className="ml-4"
               >
                 {job.status.replace("_", " ")}
@@ -286,9 +280,9 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                 {job._count.applications !== 1 ? "s" : ""}
               </p>
               <p className="text-muted-foreground">
-                {job._count.applications === 0
-                  ? "Be the first to apply!"
-                  : "Other tradespeople have shown interest"}
+                {job._count.applications > 0
+                  ? "Other tradespeople have shown interest"
+                  : "Be the first to apply!"}
               </p>
             </CardContent>
           </Card>
