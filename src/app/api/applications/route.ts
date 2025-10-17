@@ -233,7 +233,7 @@ export async function GET() {
 
                 return applications;
             },
-            ['applications'],
+            ['applications', user.id, user.role],
             {
                 revalidate: 180, // 3 minutes for real-time updates
                 tags: ['applications', `applications-${user.id}`]

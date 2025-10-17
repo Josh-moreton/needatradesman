@@ -124,7 +124,7 @@ export async function GET() {
 
                 return stats;
             },
-            ['user-stats'],
+            ['user-stats', user.id, user.role],
             {
                 revalidate: 300, // 5 minutes
                 tags: ['user-stats', `user-stats-${user.id}`]
