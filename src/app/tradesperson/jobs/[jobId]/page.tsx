@@ -141,7 +141,9 @@ export default async function JobDetailPage({ params }: Readonly<JobDetailPagePr
       hasResponded = !!existingApplication;
     }
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (
+      status: string
+    ): "default" | "secondary" | "destructive" => {
       switch (status) {
         case "OPEN":
           return "default";
