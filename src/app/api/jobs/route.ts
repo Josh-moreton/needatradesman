@@ -74,6 +74,9 @@ export async function POST(request: NextRequest) {
 
         // Extract location data from structured locationData if available
         const locationData = validatedData.locationData;
+        // Always persist a non-empty location string for legacy search/display
+        const locationString: string =
+            (locationData?.displayText || locationData?.formattedAddress || validatedData.location || "").trim();
 
         // Create job in database
         const job = await prisma.job.create({
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
                 title: validatedData.title,
                 description: validatedData.description,
                 category: validatedData.category,
-                location: validatedData.location,
+                location: locationString,
                 latitude: locationData?.latitude,
                 longitude: locationData?.longitude,
                 formattedAddress: locationData?.formattedAddress,

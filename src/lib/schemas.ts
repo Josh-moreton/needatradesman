@@ -52,10 +52,22 @@ export const createJobSchema = z.object({
     title: z.string().min(1, 'Title is required').max(100, 'Title too long'),
     description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description too long'),
     category: z.nativeEnum(JobCategory),
-    location: z.string().min(1, 'Location is required'), // Legacy support
+    // Accept either a simple string or structured location data; validation below ensures one exists
+    location: z.string().optional(), // Legacy support
     locationData: locationDataSchema.optional(), // Structured location data
     budget: z.number().positive('Budget must be positive').optional(),
     attachments: z.array(attachmentSchema).max(5, 'Maximum 5 attachments allowed').optional(),
+}).superRefine((data, ctx) => {
+    const hasLocationString = typeof data.location === 'string' && data.location.trim().length > 0
+    const hasStructured = !!data.locationData
+    if (!hasLocationString && !hasStructured) {
+        // Attach the error to locationData since our UI is bound to that field
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Location is required',
+            path: ['locationData'],
+        })
+    }
 })
 
 export const quoteItemSchema = z.object({

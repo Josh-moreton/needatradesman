@@ -23,22 +23,11 @@ interface LocationInputProps {
   className?: string;
 }
 
-type PlaceSelectEvent = Event & {
-  target: (EventTarget & { place?: google.maps.places.Place }) | null;
-};
+// The gmp-placeselect event is a CustomEvent whose detail contains the Place
+type PlaceSelectEvent = CustomEvent<{ place: google.maps.places.Place | undefined }>
 
 interface GmpPlaceAutocompleteElement extends HTMLElement {
   value?: string;
-  addEventListener(
-    type: "gmp-placeselect",
-    listener: (event: PlaceSelectEvent) => void,
-    options?: boolean | AddEventListenerOptions
-  ): void;
-  removeEventListener(
-    type: "gmp-placeselect",
-    listener: (event: PlaceSelectEvent) => void,
-    options?: boolean | EventListenerOptions
-  ): void;
 }
 
 declare global {
@@ -91,8 +80,14 @@ export function LocationInput({
         if (!isMounted) return;
         const el = autocompleteElementRef.current;
         const attach = (element: GmpPlaceAutocompleteElement) => {
-          const handler = async (event: PlaceSelectEvent) => {
-            const place = event.target?.place;
+          const handler = async (event: Event) => {
+            // Try all known shapes for the gmp-placeselect event
+            const anyEvent = event as unknown as {
+              place?: google.maps.places.Place
+              detail?: { place?: google.maps.places.Place }
+              target?: { place?: google.maps.places.Place }
+            }
+            const place = anyEvent.place || anyEvent.detail?.place || anyEvent.target?.place;
             if (!place) {
               toast.error("Unable to get location details");
               return;
@@ -117,8 +112,8 @@ export function LocationInput({
               toast.error("Failed to get location details");
             }
           };
-          element.addEventListener("gmp-placeselect", handler);
-          cleanup = () => element.removeEventListener("gmp-placeselect", handler);
+          element.addEventListener("gmp-placeselect", handler as EventListener);
+          cleanup = () => element.removeEventListener("gmp-placeselect", handler as EventListener);
         };
 
         if (!el) {
@@ -314,7 +309,7 @@ export function LocationInput({
     <div className={`flex gap-2 ${className}`}>
       <div ref={containerRef} className="relative flex-1" style={{ opacity: isLoading ? 0.5 : 1 }}>
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
             <span className="text-sm text-muted-foreground">Loading...</span>
           </div>
         )}
