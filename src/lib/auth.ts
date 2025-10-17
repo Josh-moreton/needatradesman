@@ -1,6 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from './prisma'
-import { UserRole } from '@prisma/client'
 import { createLogger } from './logger'
 
 const logger = createLogger('auth');
@@ -34,16 +33,6 @@ export async function requireAuth() {
     return user
 }
 
-export async function requireRole(allowedRoles: UserRole[]) {
-    const user = await requireAuth()
-
-    if (!allowedRoles.includes(user.role)) {
-        throw new Error(`Access denied. Required roles: ${allowedRoles.join(', ')}`)
-    }
-
-    return user
-}
-
 export async function needsOnboarding() {
     try {
         const { userId } = await auth()
@@ -72,22 +61,4 @@ export async function isAuthenticated() {
         logger.error({ error }, 'Error checking authentication')
         return false
     }
-}
-
-export async function getAuthenticatedUserWithRedirects() {
-    const user = await getCurrentUser()
-
-    if (!user) {
-        return { user: null, redirect: '/sign-in' }
-    }
-
-    if (!user.role) {
-        return { user, redirect: '/onboarding' }
-    }
-
-    return { user, redirect: null }
-}
-
-export function validateUserRole(user: { role?: UserRole } | null, allowedRoles: UserRole[]): boolean {
-    return !!user && !!user.role && allowedRoles.includes(user.role)
 }
