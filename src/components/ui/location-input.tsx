@@ -23,19 +23,7 @@ interface LocationInputProps {
   className?: string;
 }
 
-// Declare custom element type for PlaceAutocompleteElement
-/* eslint-disable @typescript-eslint/no-namespace */
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'gmp-place-autocomplete': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        'component-restrictions'?: string;
-        placeholder?: string;
-      };
-    }
-  }
-}
-/* eslint-enable @typescript-eslint/no-namespace */
+// Typings for the custom element live in types/globals.d.ts
 
 export function LocationInput({
   value,

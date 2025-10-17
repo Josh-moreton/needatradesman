@@ -27,19 +27,8 @@ export default function OnboardingFlow() {
   const { user } = useUser();
   const router = useRouter();
 
-  // Check if user has already completed onboarding but metadata hasn't propagated yet
-  useEffect(() => {
-    const checkOnboardingStatus = () => {
-      if (user?.publicMetadata?.onboardingComplete) {
-        // User has completed onboarding, redirect to unified dashboard
-        window.location.href = "/dashboard";
-        // Remove the fallback redirect to prevent infinite loop
-      }
-    };
-
-    // Only check once when the component mounts
-    checkOnboardingStatus();
-  }, [user]);
+  // Avoid client-side redirects based on Clerk metadata to prevent loops.
+  // Server route (/onboarding) already gates using DB role and redirects when complete.
 
   const handleRoleSelect = async (role: UserRole) => {
     setSelectedRole(role);
