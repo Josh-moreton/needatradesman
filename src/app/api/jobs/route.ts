@@ -72,6 +72,9 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const validatedData = createJobSchema.parse(body);
 
+        // Extract location data from structured locationData if available
+        const locationData = validatedData.locationData;
+
         // Create job in database
         const job = await prisma.job.create({
             data: {
@@ -79,6 +82,11 @@ export async function POST(request: NextRequest) {
                 description: validatedData.description,
                 category: validatedData.category,
                 location: validatedData.location,
+                latitude: locationData?.latitude,
+                longitude: locationData?.longitude,
+                formattedAddress: locationData?.formattedAddress,
+                city: locationData?.city,
+                postcode: locationData?.postcode,
                 budget: validatedData.budget,
                 attachments: validatedData.attachments ? JSON.stringify(validatedData.attachments) : null,
                 customerId: user.id,
@@ -119,11 +127,17 @@ export async function GET(request: NextRequest) {
         const category = searchParams.get("category");
         const rawLocation = searchParams.get("location");
         const rawSearch = searchParams.get("search");
-        const page = parseInt(searchParams.get("page") || "1");
-        
+        const lat = searchParams.get("lat");
+        const lng = searchParams.get("lng");
+        const page = Number.parseInt(searchParams.get("page") || "1");
+
         // Allow limit override via query param with validation (between MIN and MAX)
-        const requestedLimit = parseInt(searchParams.get("limit") || String(PAGINATION.JOBS_PER_PAGE));
+        const requestedLimit = Number.parseInt(searchParams.get("limit") || String(PAGINATION.JOBS_PER_PAGE));
         const limit = Math.min(Math.max(requestedLimit, PAGINATION.MIN_JOBS_PER_PAGE), PAGINATION.MAX_JOBS_PER_PAGE);
+
+        // Parse coordinates for distance-based search
+        const userLat = lat ? Number.parseFloat(lat) : null;
+        const userLng = lng ? Number.parseFloat(lng) : null;
 
         // Create more comprehensive cache key based on all filters including limit
         // Validate and sanitize search query
@@ -153,6 +167,7 @@ export async function GET(request: NextRequest) {
             category || 'all',
             location || 'all',
             search || 'all',
+            userLat && userLng ? `${userLat},${userLng}` : 'all',
             page.toString(),
             limit.toString()
         ];
@@ -166,14 +181,32 @@ export async function GET(request: NextRequest) {
         }
 
         // Build where clause for database query
+        // Note: For true distance-based search, consider PostGIS extension
+        // For now, we search by postcode/city/location text
         const where = {
             status: "OPEN" as const,
             ...(category && { category: category as JobCategory }),
             ...(location && {
-                location: {
-                    contains: location,
-                    mode: "insensitive" as const,
-                }
+                OR: [
+                    {
+                        location: {
+                            contains: location,
+                            mode: "insensitive" as const,
+                        }
+                    },
+                    {
+                        postcode: {
+                            contains: location,
+                            mode: "insensitive" as const,
+                        }
+                    },
+                    {
+                        city: {
+                            contains: location,
+                            mode: "insensitive" as const,
+                        }
+                    }
+                ]
             }),
             ...(search && {
                 OR: [

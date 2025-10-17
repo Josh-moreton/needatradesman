@@ -24,7 +24,7 @@ export const attachmentSchema = z.object({
         try {
             const urlObj = new URL(url);
             // Check if the hostname ends with any of the allowed domains
-            return allowedDomains.some(domain => 
+            return allowedDomains.some(domain =>
                 urlObj.hostname.endsWith(domain) || urlObj.hostname === domain
             );
         } catch {
@@ -37,12 +37,23 @@ export const attachmentSchema = z.object({
     size: z.number().positive('File size must be positive').max(10 * 1024 * 1024, 'File size must not exceed 10MB'),
 });
 
+// Location data schema for structured location input
+export const locationDataSchema = z.object({
+    displayText: z.string().min(1, 'Location is required'),
+    formattedAddress: z.string(),
+    latitude: z.number(),
+    longitude: z.number(),
+    city: z.string().optional(),
+    postcode: z.string().optional(),
+});
+
 // Zod schemas for validation
 export const createJobSchema = z.object({
     title: z.string().min(1, 'Title is required').max(100, 'Title too long'),
     description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description too long'),
     category: z.nativeEnum(JobCategory),
-    location: z.string().min(1, 'Location is required'),
+    location: z.string().min(1, 'Location is required'), // Legacy support
+    locationData: locationDataSchema.optional(), // Structured location data
     budget: z.number().positive('Budget must be positive').optional(),
     attachments: z.array(attachmentSchema).max(5, 'Maximum 5 attachments allowed').optional(),
 })
@@ -77,6 +88,7 @@ export const updateUserSchema = z.object({
 
 // Type exports
 export type Attachment = z.infer<typeof attachmentSchema>
+export type LocationData = z.infer<typeof locationDataSchema>
 export type CreateJobInput = z.infer<typeof createJobSchema>
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>
 export type QuoteItem = z.infer<typeof quoteItemSchema>

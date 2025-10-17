@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationInput } from "@/components/ui/location-input";
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ export function JobForm() {
       description: "",
       category: undefined,
       location: "",
+      locationData: undefined,
       budget: undefined,
     },
   });
@@ -63,12 +65,18 @@ export function JobForm() {
     setIsSubmitting(true);
 
     try {
+      // If locationData is provided, use it for location display
+      const jobData = {
+        ...data,
+        location: data.locationData?.displayText || data.location,
+      };
+
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(jobData),
       });
 
       if (!response.ok) {
@@ -182,18 +190,24 @@ export function JobForm() {
 
         <FormField
           control={form.control}
-          name="location"
+          name="locationData"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Location</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="e.g. SW1A 1AA or Central London"
-                  {...field}
+                <LocationInput
+                  value={field.value}
+                  onChange={(locationData) => {
+                    field.onChange(locationData);
+                    // Also update the legacy location field for backwards compatibility
+                    form.setValue("location", locationData?.displayText || "");
+                  }}
+                  placeholder="Enter location or use current location"
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormDescription>
-                Your postcode or general area where the work needs to be done
+                Your postcode or area. Use the location button to auto-detect your current location.
               </FormDescription>
               <FormMessage />
             </FormItem>

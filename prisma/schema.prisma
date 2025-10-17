@@ -37,7 +37,12 @@ model Job {
   title                         String
   description                   String
   category                      JobCategory
-  location                      String
+  location                      String // Legacy text field for display
+  latitude                      Float? // For distance-based searches
+  longitude                     Float? // For distance-based searches
+  formattedAddress              String? // Full address from Google Places
+  city                          String? // Extracted city/town
+  postcode                      String? // UK postcode for filtering
   budget                        Decimal?
   status                        JobStatus   @default(OPEN)
   attachments                   String? // Store as JSON string of file URLs
@@ -64,6 +69,9 @@ model Job {
   @@index([customerId])
   @@index([status, category])
   @@index([createdAt])
+  @@index([postcode]) // For postcode-based searches
+  @@index([city]) // For city-based searches
+  @@index([latitude, longitude]) // For distance-based queries
   @@map("jobs")
 }
 
