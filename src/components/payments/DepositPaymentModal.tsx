@@ -55,7 +55,16 @@ export function DepositPaymentModal({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout session");
+        // Handle specific error codes from Stripe verification
+        if (data.code === 'ACCOUNT_NOT_CHARGEABLE') {
+          throw new Error("The tradesperson's payment account is not ready to accept payments. Please ask them to complete their verification.");
+        } else if (data.code === 'ACCOUNT_REQUIREMENTS_PENDING') {
+          throw new Error("The tradesperson has pending verification requirements. Please ask them to complete their account setup.");
+        } else if (data.code === 'ACCOUNT_DETAILS_INCOMPLETE') {
+          throw new Error("The tradesperson has not completed their account setup.");
+        } else {
+          throw new Error(data.error || "Failed to create checkout session");
+        }
       }
 
       // Redirect to Stripe Checkout
