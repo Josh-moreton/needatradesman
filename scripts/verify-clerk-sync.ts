@@ -42,8 +42,29 @@ async function verifySync(fix: boolean = false): Promise<SyncReport> {
         // Fetch all users from Clerk
         console.log('📥 Fetching users from Clerk...')
         const client = await clerkClient()
-        const clerkUsers = await client.users.getUserList({ limit: 500 })
-        report.totalClerkUsers = clerkUsers.data.length
+        
+        // Fetch all users with pagination
+        const allClerkUsers = []
+        let offset = 0
+        const limit = 500
+        let hasMore = true
+        
+        while (hasMore) {
+            const response = await client.users.getUserList({ 
+                limit,
+                offset 
+            })
+            allClerkUsers.push(...response.data)
+            offset += limit
+            hasMore = response.data.length === limit
+            
+            if (hasMore) {
+                console.log(`   Fetched ${allClerkUsers.length} users so far...`)
+            }
+        }
+        
+        const clerkUsers = allClerkUsers
+        report.totalClerkUsers = clerkUsers.length
         console.log(`   Found ${report.totalClerkUsers} users in Clerk\n`)
 
         // Fetch all users from Prisma
@@ -61,21 +82,21 @@ async function verifySync(fix: boolean = false): Promise<SyncReport> {
 
         // Create lookup maps
         const prismaUserMap = new Map(prismaUsers.map(u => [u.clerkId, u]))
-        const clerkUserMap = new Map(clerkUsers.data.map(u => [u.id, u]))
+        const clerkUserMap = new Map(clerkUsers.map(u => [u.id, u]))
 
         // Check for users in Clerk but not in Prisma
         console.log('🔎 Checking for users in Clerk missing from Prisma...')
-        for (const clerkUser of clerkUsers.data) {
+        for (const clerkUser of clerkUsers) {
             if (!prismaUserMap.has(clerkUser.id)) {
+                const primaryEmail = clerkUser.emailAddresses.find(
+                    e => e.id === clerkUser.primaryEmailAddressId
+                )
+                
                 report.missingInPrisma.push(clerkUser.id)
-                console.log(`   ❌ Missing: ${clerkUser.id} (${clerkUser.emailAddresses[0]?.emailAddress})`)
+                console.log(`   ❌ Missing: ${clerkUser.id} (${primaryEmail?.emailAddress || 'no email'})`)
                 
                 if (fix) {
                     // Sync the missing user
-                    const primaryEmail = clerkUser.emailAddresses.find(
-                        e => e.id === clerkUser.primaryEmailAddressId
-                    )
-                    
                     if (primaryEmail) {
                         try {
                             await prisma.user.create({
@@ -119,7 +140,7 @@ async function verifySync(fix: boolean = false): Promise<SyncReport> {
 
         // Check for email mismatches
         console.log('🔎 Checking for email mismatches...')
-        for (const clerkUser of clerkUsers.data) {
+        for (const clerkUser of clerkUsers) {
             const prismaUser = prismaUserMap.get(clerkUser.id)
             if (prismaUser) {
                 const clerkEmail = clerkUser.emailAddresses.find(

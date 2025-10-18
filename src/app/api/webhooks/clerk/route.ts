@@ -55,26 +55,27 @@ export async function POST(req: Request) {
     // Handle the webhook
     const { id } = evt.data
     const eventType = evt.type
+    const eventId = String(id) // Ensure event ID is a string
 
-    logger.info({ id, eventType }, 'Webhook received')
+    logger.info({ id: eventId, eventType }, 'Webhook received')
     logger.debug({ body }, 'Webhook body')
 
     // Check idempotency - has this event been processed before?
     // First check Redis (fast)
-    const redisProcessed = await isWebhookProcessed(id as string);
+    const redisProcessed = await isWebhookProcessed(eventId);
     if (redisProcessed) {
-        logger.info({ eventId: id, eventType }, 'Webhook event already processed (Redis check)');
+        logger.info({ eventId, eventType }, 'Webhook event already processed (Redis check)');
         return NextResponse.json({ received: true, skipped: true, reason: 'already_processed' });
     }
 
     // Then check database (fallback/persistent)
     const dbProcessed = await prisma.webhookEvent.findUnique({
-        where: { id: id as string }
+        where: { id: eventId }
     });
     if (dbProcessed) {
-        logger.info({ eventId: id, eventType }, 'Webhook event already processed (Database check)');
+        logger.info({ eventId, eventType }, 'Webhook event already processed (Database check)');
         // Cache it in Redis for next time
-        await markWebhookProcessed(id as string);
+        await markWebhookProcessed(eventId);
         return NextResponse.json({ received: true, skipped: true, reason: 'already_processed' });
     }
 
@@ -169,21 +170,25 @@ export async function POST(req: Request) {
     }
 
     // Mark event as processed in Redis (24 hour TTL)
-    await markWebhookProcessed(id as string);
+    await markWebhookProcessed(eventId);
 
     // Store event in database for long-term idempotency
     try {
         await prisma.webhookEvent.create({
             data: {
-                id: id as string,
+                id: eventId,
                 source: 'CLERK',
                 processed: true,
             }
         });
-        logger.debug({ eventId: id }, 'Clerk webhook event stored in database');
-    } catch {
-        // Ignore duplicate key errors (race condition)
-        logger.debug({ eventId: id }, 'Database storage skipped (likely duplicate)');
+        logger.debug({ eventId }, 'Clerk webhook event stored in database');
+    } catch (error) {
+        // Ignore duplicate key errors (race condition), but log other errors
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+            logger.debug({ eventId }, 'Database storage skipped (duplicate key)');
+        } else {
+            logger.error({ error, eventId }, 'Error storing webhook event in database');
+        }
     }
 
     return new Response('', { status: 200 })
