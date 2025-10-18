@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Home,
   DollarSign,
+  HelpCircle,
 } from "lucide-react";
 
 interface SidebarTradespersonProps {
@@ -50,6 +51,11 @@ export function SidebarTradesperson({ user }: SidebarTradespersonProps) {
       href: "/dashboard/payouts",
       label: "Payouts",
       icon: DollarSign,
+    },
+    {
+      href: "/dashboard/support",
+      label: "Support",
+      icon: HelpCircle,
     },
   ];
 

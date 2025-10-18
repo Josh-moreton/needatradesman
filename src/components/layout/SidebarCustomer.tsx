@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { User } from "@prisma/client";
-import { PlusCircle, FileText, MessageSquare, Home } from "lucide-react";
+import { PlusCircle, FileText, MessageSquare, Home, HelpCircle } from "lucide-react";
 
 interface SidebarCustomerProps {
   user: User;
@@ -33,6 +33,11 @@ export function SidebarCustomer({ user }: SidebarCustomerProps) {
       href: "/dashboard/messages",
       label: "Messages",
       icon: MessageSquare,
+    },
+    {
+      href: "/dashboard/support",
+      label: "Support",
+      icon: HelpCircle,
     },
   ];
 

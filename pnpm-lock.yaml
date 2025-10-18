@@ -65,6 +65,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      crisp-sdk-web:
+        specifier: ^1.0.26
+        version: 1.0.26
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -1424,6 +1427,9 @@ packages:
   cookie@1.0.2:
     resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
     engines: {node: '>=18'}
+
+  crisp-sdk-web@1.0.26:
+    resolution: {integrity: sha512-MBK/+tCNJmt/l9ZYHb0cUUaaF02rCKeqLw1cruY/HU48tPOOnhUM0JdvuPaeq1d5VB2DCILY4rGYE4NeJbXvzg==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -3999,6 +4005,8 @@ snapshots:
   consola@3.4.2: {}
 
   cookie@1.0.2: {}
+
+  crisp-sdk-web@1.0.26: {}
 
   cross-spawn@7.0.6:
     dependencies:
