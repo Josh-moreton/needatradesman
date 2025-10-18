@@ -28,7 +28,7 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('application-form');
 
 interface ApplicationFormProps {
-  jobId: string;
+  readonly jobId: string;
 }
 
 export function ApplicationForm({ jobId }: ApplicationFormProps) {

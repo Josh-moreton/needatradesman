@@ -42,11 +42,13 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
     const locationParam = searchParams.get("location");
     if (locationParam) {
       // Create a simple LocationData object from the URL param for display
+      // Note: No Place ID from URL params - this is just for display/filtering
       return {
+        id: "", // No Place ID available from URL params
         displayText: locationParam,
         formattedAddress: locationParam,
-        latitude: 0,
-        longitude: 0,
+        latitude: Number(searchParams.get("lat")) || 0,
+        longitude: Number(searchParams.get("lng")) || 0,
       };
     }
     return null;

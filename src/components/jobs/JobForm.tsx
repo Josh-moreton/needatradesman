@@ -51,6 +51,7 @@ export function JobForm() {
 
   const form = useForm<CreateJobInput>({
     resolver: zodResolver(createJobSchema),
+    mode: "onSubmit", // Only validate on submit to avoid premature errors
     defaultValues: {
       title: "",
       description: "",
@@ -65,6 +66,15 @@ export function JobForm() {
     setIsSubmitting(true);
 
     try {
+      // Log the data being submitted for debugging
+      logger.debug({ 
+        data,
+        hasLocationData: !!data.locationData,
+        hasLocation: !!data.location,
+        locationDataValue: data.locationData,
+        locationValue: data.location
+      }, "Submitting job form");
+
       // If locationData is provided, use it for location display
       const jobData = {
         ...data,
@@ -118,11 +128,16 @@ export function JobForm() {
     }
   }
   
-  function onError(errors: Record<string, unknown>) {
-    logger.warn({ errors }, "Job form validation errors");
+  const onError = (errors: Record<string, unknown>) => {
+    logger.warn({ 
+      errors,
+      formValues: form.getValues(),
+      locationData: form.getValues("locationData"),
+      location: form.getValues("location"),
+    }, "Job form validation errors");
     // Show a generic message; field-level messages render via <FormMessage />
     toast.error("Please fix the highlighted fields and try again.");
-  }
+  };
 
   return (
     <Form {...form}>
@@ -204,23 +219,31 @@ export function JobForm() {
                 <LocationInput
                   value={field.value}
                   onChange={(locationData) => {
+                    logger.debug({ 
+                      locationData,
+                      hasPlaceId: !!locationData?.id 
+                    }, "Location selected");
                     // Normalize null to undefined so it satisfies zod.optional
                     field.onChange(locationData ?? undefined);
                     // Also update the legacy location field for backwards compatibility
+                    // Use shouldValidate: false here to avoid premature validation
                     form.setValue(
                       "location",
                       locationData?.displayText || "",
-                      { shouldValidate: true, shouldDirty: true }
+                      { shouldValidate: false, shouldDirty: true }
                     );
-                    // Clear any existing validation error on either field now that we have a selection
-                    form.clearErrors(["location", "locationData"]);
+                    // Manually trigger validation after both values are set
+                    // This ensures the superRefine check sees the Place ID
+                    if (locationData?.id) {
+                      form.clearErrors(["location", "locationData"]);
+                    }
                   }}
                   placeholder="Enter location or use current location"
                   disabled={isSubmitting}
                 />
               </FormControl>
               <FormDescription>
-                Your postcode or area. Use the location button to auto-detect your current location.
+                Your postcode or area. Select a location from the dropdown to continue.
               </FormDescription>
               <FormMessage />
             </FormItem>

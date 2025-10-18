@@ -7,6 +7,7 @@ import { Navigation } from "lucide-react";
 import { toast } from "sonner";
 
 export interface LocationData {
+  id: string; // Place ID - the only proof of valid selection
   displayText: string;
   formattedAddress: string;
   latitude: number;
@@ -22,9 +23,6 @@ interface LocationInputProps {
   disabled?: boolean;
   className?: string;
 }
-
-// The gmp-placeselect event is a CustomEvent whose detail contains the Place
-type PlaceSelectEvent = CustomEvent<{ place: google.maps.places.Place | undefined }>
 
 interface GmpPlaceAutocompleteElement extends HTMLElement {
   value?: string;
@@ -80,40 +78,68 @@ export function LocationInput({
         if (!isMounted) return;
         const el = autocompleteElementRef.current;
         const attach = (element: GmpPlaceAutocompleteElement) => {
+          // Use gmp-select (not gmp-placeselect) - the correct event for Places (New)
           const handler = async (event: Event) => {
-            // Try all known shapes for the gmp-placeselect event
-            const anyEvent = event as unknown as {
-              place?: google.maps.places.Place
-              detail?: { place?: google.maps.places.Place }
-              target?: { place?: google.maps.places.Place }
-            }
-            const place = anyEvent.place || anyEvent.detail?.place || anyEvent.target?.place;
-            if (!place) {
+            console.log("gmp-select event fired", event);
+            
+            // Try to extract placePrediction from various possible structures
+            const customEvent = event as CustomEvent;
+            const placePrediction = 
+              customEvent.detail?.placePrediction || 
+              customEvent.detail?.prediction ||
+              (customEvent as any).placePrediction;
+            
+            console.log("placePrediction:", placePrediction);
+            
+            if (!placePrediction) {
+              console.error("No placePrediction found in event:", event);
               toast.error("Unable to get location details");
               return;
             }
+            
             try {
+              // Convert prediction to Place and fetch minimal fields
+              const place = placePrediction.toPlace();
+              console.log("Place object created:", place);
+              
               await place.fetchFields({
                 fields: [
+                  "id", // Place ID in Places (New) - proof of valid selection
                   "formattedAddress",
                   "location",
                   "addressComponents",
                   "displayName",
                 ],
               });
-              if (!place.location) {
+              
+              console.log("Place fields fetched:", { id: place.id, location: place.location });
+              
+              if (!place.location || !place.id) {
+                console.error("Missing required fields:", { id: place.id, location: place.location });
                 toast.error("Unable to get location details");
                 return;
               }
+              
               const locationData = extractLocationDataFromPlace(place);
+              console.log("Location data extracted:", locationData);
               onChangeRef.current(locationData);
             } catch (error) {
               console.error("Error fetching place details:", error);
               toast.error("Failed to get location details");
             }
           };
-          element.addEventListener("gmp-placeselect", handler as EventListener);
-          cleanup = () => element.removeEventListener("gmp-placeselect", handler as EventListener);
+          element.addEventListener("gmp-select", handler as EventListener);
+          
+          // Clear the selection if user types after selecting - text alone is meaningless
+          const inputHandler = () => {
+            onChangeRef.current(null);
+          };
+          element.addEventListener("input", inputHandler as EventListener);
+          
+          cleanup = () => {
+            element.removeEventListener("gmp-select", handler as EventListener);
+            element.removeEventListener("input", inputHandler as EventListener);
+          };
         };
 
         if (!el) {
@@ -166,6 +192,7 @@ export function LocationInput({
     const lat = place.location!.lat();
     const lng = place.location!.lng();
     const formattedAddress = place.formattedAddress || "";
+    const placeId = place.id || ""; // Place ID - the key validation field
 
     let city: string | undefined;
     let postcode: string | undefined;
@@ -186,6 +213,7 @@ export function LocationInput({
     const displayText = postcode || city || place.displayName || formattedAddress.split(",")[0];
 
     return {
+      id: placeId,
       displayText,
       formattedAddress,
       latitude: lat,
@@ -201,6 +229,8 @@ export function LocationInput({
     const lat = result.geometry.location.lat();
     const lng = result.geometry.location.lng();
     const formattedAddress = result.formatted_address || "";
+    // Geocoder uses legacy place_id field name (not place.id like Places New)
+    const placeId = result.place_id || "";
 
     let city: string | undefined;
     let postcode: string | undefined;
@@ -220,6 +250,7 @@ export function LocationInput({
     const displayText = postcode || city || formattedAddress.split(",")[0];
 
     return {
+      id: placeId,
       displayText,
       formattedAddress,
       latitude: lat,
@@ -317,7 +348,7 @@ export function LocationInput({
           ref={(el: Element | null) => {
             autocompleteElementRef.current = el as GmpPlaceAutocompleteElement | null;
           }}
-          component-restrictions={JSON.stringify({ country: "gb" })}
+          included-region-codes="gb"
           placeholder={placeholder}
           className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
         />

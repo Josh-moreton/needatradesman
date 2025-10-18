@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { z } from "zod";
-import { redis, invalidateApplicationCaches, invalidateJobDetailCache, invalidateUserStats } from "@/lib/redis";
+import { revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("applications-id-api");
@@ -111,24 +111,14 @@ export async function PATCH(
         }
 
         // Invalidate relevant caches after application status update
-        if (redis) {
-            try {
-                await Promise.all([
-                    // Invalidate application caches for both customer and tradesperson
-                    invalidateApplicationCaches(user.id, UserRole.CUSTOMER),
-                    invalidateApplicationCaches(updatedResponse.tradesperson.id, UserRole.TRADESPERSON),
-                    // Invalidate job detail cache as application status changed
-                    invalidateJobDetailCache(response.jobId),
-                    // Invalidate user stats for both users
-                    invalidateUserStats(user.id, UserRole.CUSTOMER),
-                    invalidateUserStats(updatedResponse.tradesperson.id, UserRole.TRADESPERSON)
-                ]);
-                logger.debug('Invalidated caches after application status update');
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache invalidation error');
-                // Don't fail the request if cache invalidation fails
-            }
-        }
+        revalidateTag('applications');
+        revalidateTag(`applications-${user.id}`);
+        revalidateTag(`applications-${updatedResponse.tradesperson.id}`);
+        revalidateTag('job-detail');
+        revalidateTag(`job-${response.jobId}`);
+        revalidateTag(`user-stats-${user.id}`);
+        revalidateTag(`user-stats-${updatedResponse.tradesperson.id}`);
+        logger.debug('Invalidated caches after application status update');
 
         return NextResponse.json({ response: updatedResponse });
     } catch (error) {
