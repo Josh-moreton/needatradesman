@@ -5,15 +5,10 @@ import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
 import { createLogger } from "@/lib/logger";
 import { PAGINATION } from "@/lib/constants";
 import { validateSearchQuery } from "@/lib/utils";
+import { unstable_cache, revalidateTag } from "next/cache";
 import {
     redis,
-    jobPostingRateLimit,
-    CACHE_KEYS,
-    CACHE_TTL,
-    invalidateJobCaches,
-    getCachedJobsList,
-    cacheJobsList,
-    invalidateUserStats
+    jobPostingRateLimit
 } from "@/lib/redis";
 
 const logger = createLogger("jobs-api");
@@ -74,6 +69,52 @@ export async function POST(request: NextRequest) {
 
         // Extract location data from structured locationData if available
         const locationData = validatedData.locationData;
+
+        // Server-side verification: verify Place ID with Google Places API
+        if (locationData?.id) {
+            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+            if (apiKey) {
+                try {
+                    const verifyResponse = await fetch(
+                        `https://places.googleapis.com/v1/places/${locationData.id}?fields=id,formattedAddress,location&key=${apiKey}`,
+                        {
+                            headers: {
+                                'X-Goog-Api-Key': apiKey,
+                            },
+                        }
+                    );
+
+                    if (!verifyResponse.ok) {
+                        logger.warn({ placeId: locationData.id, status: verifyResponse.status }, 'Place ID verification failed');
+                        return new NextResponse("Invalid location: Place ID could not be verified", { status: 400 });
+                    }
+
+                    const placeDetails = await verifyResponse.json();
+                    logger.debug({ placeId: locationData.id, verified: true }, 'Place ID verified successfully');
+
+                    // Optionally: verify the coords match (within reasonable tolerance)
+                    if (placeDetails.location) {
+                        const latDiff = Math.abs(placeDetails.location.latitude - locationData.latitude);
+                        const lngDiff = Math.abs(placeDetails.location.longitude - locationData.longitude);
+                        if (latDiff > 0.01 || lngDiff > 0.01) {
+                            logger.warn({
+                                placeId: locationData.id,
+                                providedLat: locationData.latitude,
+                                providedLng: locationData.longitude,
+                                verifiedLat: placeDetails.location.latitude,
+                                verifiedLng: placeDetails.location.longitude,
+                            }, 'Location coordinates mismatch');
+                            return new NextResponse("Invalid location: Coordinates do not match Place ID", { status: 400 });
+                        }
+                    }
+                } catch (error) {
+                    logger.error({ error, placeId: locationData.id }, 'Error verifying Place ID');
+                    // Don't fail the request if verification fails due to network issues
+                    // but log it for monitoring
+                }
+            }
+        }
+
         // Always persist a non-empty location string for legacy search/display
         const locationString: string =
             (locationData?.displayText || locationData?.formattedAddress || validatedData.location || "").trim();
@@ -85,6 +126,7 @@ export async function POST(request: NextRequest) {
                 description: validatedData.description,
                 category: validatedData.category,
                 location: locationString,
+                placeId: locationData?.id, // Store Place ID for validation and future verification
                 latitude: locationData?.latitude,
                 longitude: locationData?.longitude,
                 formattedAddress: locationData?.formattedAddress,
@@ -100,10 +142,8 @@ export async function POST(request: NextRequest) {
         // Invalidate job feed caches when a new job is created
         if (redis) {
             try {
-                await Promise.all([
-                    invalidateJobCaches(),
-                    invalidateUserStats(user.id, UserRole.CUSTOMER)
-                ]);
+                revalidateTag('jobs');
+                revalidateTag(`user-stats-${user.id}`);
                 logger.debug('Invalidated job feed caches and user stats after job creation');
             } catch (cacheError) {
                 logger.error({ error: cacheError }, 'Cache invalidation error');
@@ -130,19 +170,12 @@ export async function GET(request: NextRequest) {
         const category = searchParams.get("category");
         const rawLocation = searchParams.get("location");
         const rawSearch = searchParams.get("search");
-        const lat = searchParams.get("lat");
-        const lng = searchParams.get("lng");
         const page = Number.parseInt(searchParams.get("page") || "1");
 
         // Allow limit override via query param with validation (between MIN and MAX)
         const requestedLimit = Number.parseInt(searchParams.get("limit") || String(PAGINATION.JOBS_PER_PAGE));
         const limit = Math.min(Math.max(requestedLimit, PAGINATION.MIN_JOBS_PER_PAGE), PAGINATION.MAX_JOBS_PER_PAGE);
 
-        // Parse coordinates for distance-based search
-        const userLat = lat ? Number.parseFloat(lat) : null;
-        const userLng = lng ? Number.parseFloat(lng) : null;
-
-        // Create more comprehensive cache key based on all filters including limit
         // Validate and sanitize search query
         let search: string | null = null;
         try {
@@ -165,116 +198,117 @@ export async function GET(request: NextRequest) {
             return new NextResponse("Invalid location query", { status: 400 });
         }
 
-        // Create more comprehensive cache key based on all filters
-        const filterParts = [
-            category || 'all',
-            location || 'all',
-            search || 'all',
-            userLat && userLng ? `${userLat},${userLng}` : 'all',
-            page.toString(),
-            limit.toString()
-        ];
-        const filterKey = filterParts.join(':');
-        const cacheKey = CACHE_KEYS.JOBS_LIST(filterKey);
+        // Use unstable_cache for caching with Next.js
+        const getJobsList = unstable_cache(
+            async (filterParams: {
+                category: string | null;
+                location: string | null;
+                search: string | null;
+                page: number;
+                limit: number;
+            }) => {
+                // Build where clause for database query
+                const where = {
+                    status: "OPEN" as const,
+                    ...(filterParams.category && { category: filterParams.category as JobCategory }),
+                    ...(filterParams.location && {
+                        OR: [
+                            {
+                                location: {
+                                    contains: filterParams.location,
+                                    mode: "insensitive" as const,
+                                }
+                            },
+                            {
+                                postcode: {
+                                    contains: filterParams.location,
+                                    mode: "insensitive" as const,
+                                }
+                            },
+                            {
+                                city: {
+                                    contains: filterParams.location,
+                                    mode: "insensitive" as const,
+                                }
+                            }
+                        ]
+                    }),
+                    ...(filterParams.search && {
+                        OR: [
+                            {
+                                title: {
+                                    contains: filterParams.search,
+                                    mode: "insensitive" as const,
+                                }
+                            },
+                            {
+                                description: {
+                                    contains: filterParams.search,
+                                    mode: "insensitive" as const,
+                                }
+                            }
+                        ]
+                    }),
+                };
 
-        // Try to get from cache first
-        const cached = await getCachedJobsList(cacheKey);
-        if (cached) {
-            return NextResponse.json(typeof cached === 'string' ? JSON.parse(cached) : cached);
-        }
-
-        // Build where clause for database query
-        // Note: For true distance-based search, consider PostGIS extension
-        // For now, we search by postcode/city/location text
-        const where = {
-            status: "OPEN" as const,
-            ...(category && { category: category as JobCategory }),
-            ...(location && {
-                OR: [
-                    {
-                        location: {
-                            contains: location,
-                            mode: "insensitive" as const,
-                        }
-                    },
-                    {
-                        postcode: {
-                            contains: location,
-                            mode: "insensitive" as const,
-                        }
-                    },
-                    {
-                        city: {
-                            contains: location,
-                            mode: "insensitive" as const,
-                        }
-                    }
-                ]
-            }),
-            ...(search && {
-                OR: [
-                    {
-                        title: {
-                            contains: search,
-                            mode: "insensitive" as const,
-                        }
-                    },
-                    {
-                        description: {
-                            contains: search,
-                            mode: "insensitive" as const,
-                        }
-                    }
-                ]
-            }),
-        };
-
-        // Get total count for pagination
-        const [jobs, totalCount] = await Promise.all([
-            prisma.job.findMany({
-                where,
-                include: {
-                    customer: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
+                // Get total count for pagination
+                const [jobs, totalCount] = await Promise.all([
+                    prisma.job.findMany({
+                        where,
+                        include: {
+                            customer: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                },
+                            },
+                            _count: {
+                                select: {
+                                    applications: true,
+                                },
+                            },
                         },
-                    },
-                    _count: {
-                        select: {
-                            applications: true,
+                        orderBy: {
+                            createdAt: "desc",
                         },
-                    },
-                },
-                orderBy: {
-                    createdAt: "desc",
-                },
-                skip: (page - 1) * limit,
-                take: limit,
-            }),
-            prisma.job.count({ where })
-        ]);
+                        skip: (filterParams.page - 1) * filterParams.limit,
+                        take: filterParams.limit,
+                    }),
+                    prisma.job.count({ where })
+                ]);
 
-        const response = {
-            jobs,
-            pagination: {
-                page,
-                limit,
-                total: totalCount,
-                pages: Math.ceil(totalCount / limit),
-                hasMore: page * limit < totalCount
+                return {
+                    jobs,
+                    pagination: {
+                        page: filterParams.page,
+                        limit: filterParams.limit,
+                        total: totalCount,
+                        pages: Math.ceil(totalCount / filterParams.limit),
+                        hasMore: filterParams.page * filterParams.limit < totalCount
+                    }
+                };
+            },
+            ['jobs', category || 'no-category', location || 'no-location', search || 'no-search', String(page), String(limit)],
+            {
+                revalidate: 180, // 3 minutes for real-time feel
+                tags: ['jobs']
             }
-        };
+        );
 
-        // Cache the result with shorter TTL for real-time feel
-        await cacheJobsList(cacheKey, response, CACHE_TTL.JOBS_LIST);
+        const response = await getJobsList({
+            category,
+            location,
+            search,
+            page,
+            limit
+        });
 
         return NextResponse.json(response, {
             headers: {
                 'X-Pagination-Page': String(page),
                 'X-Pagination-Limit': String(limit),
-                'X-Pagination-Total': String(totalCount),
-                'X-Pagination-Pages': String(Math.ceil(totalCount / limit)),
+                'X-Pagination-Total': String(response.pagination.total),
+                'X-Pagination-Pages': String(response.pagination.pages),
             }
         });
     } catch (error) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { redis, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("jobs-jobId-api");
@@ -16,65 +16,54 @@ export async function GET(
             return new NextResponse("Job ID is required", { status: 400 });
         }
 
-        // Try to get from cache first
-        const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
-
-        if (redis) {
-            try {
-                const cached = await redis.get<string>(cacheKey);
-                if (cached) {
-                    logger.debug({ cacheKey }, 'Cache hit for job detail');
-                    return NextResponse.json(JSON.parse(cached));
-                }
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache read error');
-            }
-        }
-
-        // Get job from database
-        const job = await prisma.job.findUnique({
-            where: { id: jobId },
-            include: {
-                customer: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-                applications: {
+        // Use unstable_cache for caching with Next.js
+        const getJobDetail = unstable_cache(
+            async (id: string) => {
+                // Get job from database
+                const job = await prisma.job.findUnique({
+                    where: { id },
                     include: {
-                        tradesperson: {
+                        customer: {
                             select: {
                                 id: true,
                                 firstName: true,
                                 lastName: true,
-                                email: true,
+                            },
+                        },
+                        applications: {
+                            include: {
+                                tradesperson: {
+                                    select: {
+                                        id: true,
+                                        firstName: true,
+                                        lastName: true,
+                                        email: true,
+                                    },
+                                },
+                            },
+                            orderBy: { createdAt: "desc" },
+                        },
+                        _count: {
+                            select: {
+                                applications: true,
                             },
                         },
                     },
-                    orderBy: { createdAt: "desc" },
-                },
-                _count: {
-                    select: {
-                        applications: true,
-                    },
-                },
+                });
+
+                return job;
             },
-        });
+            ['job-detail'],
+            {
+                revalidate: 300, // 5 minutes
+                tags: ['job-detail', `job-${jobId}`]
+            }
+        );
+
+        const job = await getJobDetail(jobId);
 
         if (!job) {
             return new NextResponse("Job not found", { status: 404 });
-        }
-
-        // Cache the result
-        if (redis) {
-            try {
-                await redis.set(cacheKey, JSON.stringify(job), { ex: CACHE_TTL.JOB_DETAIL });
-                logger.debug({ jobId }, 'Cached job detail');
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache write error');
-            }
         }
 
         return NextResponse.json(job);
@@ -112,16 +101,11 @@ export async function PUT(
             },
         });
 
-        // Invalidate cache
-        if (redis) {
-            try {
-                const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
-                await redis.del(cacheKey);
-                logger.debug({ cacheKey }, 'Invalidated job detail cache');
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache invalidation error');
-            }
-        }
+        // Invalidate cache using Next.js tags
+        revalidateTag('job-detail');
+        revalidateTag(`job-${jobId}`);
+        revalidateTag('jobs');
+        logger.debug({ jobId }, 'Invalidated job caches');
 
         return NextResponse.json(updatedJob);
     } catch (error) {

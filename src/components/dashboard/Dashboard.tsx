@@ -28,10 +28,15 @@ interface DashboardProps {
   };
 }
 
-export default function Dashboard({ user }: DashboardProps) {
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
+export default function Dashboard({ user }: Readonly<DashboardProps>) {
+  // Extract name formatting to avoid nested ternary and nested template literals
+  let displayName = "there";
+  if (user.firstName) {
+    displayName = user.firstName;
+    if (user.lastName) {
+      displayName = `${user.firstName} ${user.lastName}`;
+    }
+  }
 
   // Only tradespeople should see this dashboard since customers are redirected
   if (user.role === UserRole.TRADESPERSON) {
@@ -42,7 +47,7 @@ export default function Dashboard({ user }: DashboardProps) {
   return null;
 }
 
-function TradespersonDashboard({ displayName }: { displayName: string }) {
+function TradespersonDashboard({ displayName }: Readonly<{ displayName: string }>) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-8">
@@ -145,12 +150,12 @@ function StatsCard({
   value,
   description,
   icon,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   description: string;
   icon: React.ReactNode;
-}) {
+}>) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -172,14 +177,14 @@ function ActionCard({
   href,
   buttonText,
   variant = "default",
-}: {
+}: Readonly<{
   title: string;
   description: string;
   icon: React.ReactNode;
   href: string;
   buttonText: string;
   variant?: "default" | "primary";
-}) {
+}>) {
   return (
     <Card className="transition-all hover:shadow-md">
       <CardHeader>

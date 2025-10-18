@@ -7,7 +7,7 @@ import { ReactNode, useEffect, useState } from "react";
 export default function ClerkThemeProvider({
   children,
 }: {
-  children: ReactNode;
+  readonly children: ReactNode;
 }) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);

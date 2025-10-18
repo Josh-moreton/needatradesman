@@ -127,7 +127,7 @@ revalidateTag('jobs')
 
 ---
 
-## ❌ 4. Custom Logger with Unnecessary Complexity
+## ✅ 4. Custom Logger with Unnecessary Complexity (RESOLVED ✅)
 
 ### Location: `src/lib/logger.ts`
 
@@ -142,26 +142,28 @@ import pino from 'pino'
 - ⚠️ Redacting fields that are already protected
 - ⚠️ For a simple marketplace, this is overkill
 
-**Standard Approaches:**
+**✅ RESOLVED:**
 
-### For Development:
+We simplified the logger to use Vercel's built-in console logging:
+
 ```typescript
-// Just use console with prefixes:
-const logger = {
-    info: (msg: string, data?: object) => console.log(`[INFO]`, msg, data),
-    error: (msg: string, data?: object) => console.error(`[ERROR]`, msg, data),
-    debug: (msg: string, data?: object) => console.debug(`[DEBUG]`, msg, data),
-}
+// Simplified console-based logger (~60 lines)
+export const createLogger = (context: string) => ({
+  info: (dataOrMsg, msg?) => console.log(formatLog(context, 'info', dataOrMsg, msg)),
+  warn: (dataOrMsg, msg?) => console.warn(formatLog(context, 'warn', dataOrMsg, msg)),
+  error: (dataOrMsg, msg?) => console.error(formatLog(context, 'error', dataOrMsg, msg)),
+  debug: (dataOrMsg, msg?) => !isProduction && console.debug(formatLog(context, 'debug', dataOrMsg, msg)),
+});
 ```
 
-### For Production:
-Use Vercel's built-in logging (already integrated) or:
-- [Vercel Log Drains](https://vercel.com/docs/observability/log-drains) → Datadog/Logflare
-- [Next.js OpenTelemetry](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry)
+**Benefits:**
+- ✅ Works with Turbopack (no worker thread issues)
+- ✅ No external dependencies (removed `pino` and `pino-pretty`)
+- ✅ Maintains API compatibility (no code changes needed)
+- ✅ Logs automatically captured by Vercel
+- ✅ Viewable in Vercel Dashboard or `vercel logs` CLI
 
-**Recommendation:** ⚠️ **SIMPLIFY** or use Vercel's built-in logging
-
-**Impact:** Less code to maintain, better integration with deployment platform
+**Impact:** Simpler code, better platform integration, zero breaking changes
 
 ---
 
@@ -200,11 +202,12 @@ import { Ratelimit } from '@upstash/ratelimit'
 | **Unused Redis wrappers** | ~130 | ❌ Dead code | DELETE |
 | **Unused auth helpers** | ~31 | ✅ **COMPLETED** | ✅ DONE |
 | **Manual cache management** | ~120 | ⚠️ Overengineered | SIMPLIFY (use Next.js cache or React Query) |
-| **Custom logger** | ~60 | ⚠️ Overkill | SIMPLIFY (use Vercel logging) |
+| **Custom logger** | ~60 | ✅ **RESOLVED** | ✅ Simplified to console-based logging |
 | **SDK usage (Clerk, Stripe, etc)** | N/A | ✅ Good | KEEP |
 
-**Total removable code:** ~130 lines of unused code remaining (auth helpers: 31 lines already removed ✅)
-**Total simplifiable code:** ~180 lines that could use standard patterns
+**Total removable code:** ~190 lines of completely unused code
+**Total simplifiable code:** ~120 lines that could use standard patterns (down from ~180)
+**Already simplified:** ~60 lines (logger now uses console-based approach)
 
 ---
 
@@ -232,10 +235,14 @@ Replace manual cache invalidation with:
 
 **Impact:** More reliable, less code, better DX
 
-### Priority 3: Simplify Logging (Future)
-Use Vercel's built-in logging or simple console wrappers.
+### ~~Priority 3: Simplify Logging~~ ✅ COMPLETED
+~~Use Vercel's built-in logging or simple console wrappers.~~
 
-**Impact:** Less maintenance, better platform integration
+**Status:** ✅ **DONE** - Migrated to simplified console-based logger
+- Removed `pino` and `pino-pretty` dependencies
+- Maintained API compatibility (no breaking changes)
+- Now Turbopack-compatible
+- Better Vercel integration
 
 ---
 
