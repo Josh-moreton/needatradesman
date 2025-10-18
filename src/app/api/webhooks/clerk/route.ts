@@ -4,6 +4,7 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { isWebhookProcessed, markWebhookProcessed } from '@/lib/redis'
 
 const logger = createLogger('clerk-webhook');
 
@@ -57,6 +58,25 @@ export async function POST(req: Request) {
 
     logger.info({ id, eventType }, 'Webhook received')
     logger.debug({ body }, 'Webhook body')
+
+    // Check idempotency - has this event been processed before?
+    // First check Redis (fast)
+    const redisProcessed = await isWebhookProcessed(id as string);
+    if (redisProcessed) {
+        logger.info({ eventId: id, eventType }, 'Webhook event already processed (Redis check)');
+        return NextResponse.json({ received: true, skipped: true, reason: 'already_processed' });
+    }
+
+    // Then check database (fallback/persistent)
+    const dbProcessed = await prisma.webhookEvent.findUnique({
+        where: { id: id as string }
+    });
+    if (dbProcessed) {
+        logger.info({ eventId: id, eventType }, 'Webhook event already processed (Database check)');
+        // Cache it in Redis for next time
+        await markWebhookProcessed(id as string);
+        return NextResponse.json({ received: true, skipped: true, reason: 'already_processed' });
+    }
 
     // Handle user.created event
     if (eventType === 'user.created') {
@@ -146,6 +166,24 @@ export async function POST(req: Request) {
             logger.error({ error }, 'Error deleting user from database')
             // Don't return error for delete operations as user might not exist
         }
+    }
+
+    // Mark event as processed in Redis (24 hour TTL)
+    await markWebhookProcessed(id as string);
+
+    // Store event in database for long-term idempotency
+    try {
+        await prisma.webhookEvent.create({
+            data: {
+                id: id as string,
+                source: 'CLERK',
+                processed: true,
+            }
+        });
+        logger.debug({ eventId: id }, 'Clerk webhook event stored in database');
+    } catch {
+        // Ignore duplicate key errors (race condition)
+        logger.debug({ eventId: id }, 'Database storage skipped (likely duplicate)');
     }
 
     return new Response('', { status: 200 })

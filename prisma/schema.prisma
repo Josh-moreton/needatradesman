@@ -141,9 +141,10 @@ model QuoteTemplateItem {
 }
 
 model WebhookEvent {
-  id        String   @id // Stripe event ID
-  processed Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id        String         @id // Event ID (Stripe or Clerk)
+  source    WebhookSource  @default(STRIPE) // Source of the webhook
+  processed Boolean        @default(true)
+  createdAt DateTime       @default(now())
 
   @@index([id, processed])
   @@map("webhook_events")
@@ -186,4 +187,9 @@ enum MessageType {
   TEXT
   IMAGE
   FILE
+}
+
+enum WebhookSource {
+  STRIPE
+  CLERK
 }
