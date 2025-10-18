@@ -10,28 +10,30 @@ import {
 import Link from "next/link";
 
 interface JobCardProps {
-  job: {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    location: string;
-    budget: unknown; // Decimal from Prisma
-    status: string;
-    createdAt: Date;
-    customer?: {
-      firstName: string | null;
-      lastName: string | null;
+  readonly job: {
+    readonly id: string;
+    readonly title: string;
+    readonly description: string;
+    readonly category: string;
+    readonly location: string;
+    readonly budget: unknown; // Decimal from Prisma
+    readonly status: string;
+    readonly createdAt: Date;
+    readonly customer?: {
+      readonly firstName: string | null;
+      readonly lastName: string | null;
     };
-    _count?: {
-      applications: number;
+    readonly _count?: {
+      readonly applications: number;
     };
   };
-  variant?: "customer" | "public";
+  readonly variant?: "customer" | "public";
 }
 
 export function JobCard({ job, variant = "public" }: JobCardProps) {
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (
+    status: string
+  ): "default" | "secondary" | "destructive" => {
     switch (status) {
       case "OPEN":
         return "default";
@@ -71,14 +73,7 @@ export function JobCard({ job, variant = "public" }: JobCardProps) {
                 : job.description}
             </CardDescription>
           </div>
-          <Badge
-            variant={
-              getStatusColor(job.status) as
-                | "default"
-                | "secondary"
-                | "destructive"
-            }
-          >
+          <Badge variant={getStatusColor(job.status)}>
             {job.status.replace("_", " ")}
           </Badge>
         </div>

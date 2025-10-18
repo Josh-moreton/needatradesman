@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { notFound } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
@@ -23,8 +22,8 @@ const logger = createLogger("tradesperson-apply");
 export const dynamic = "force-dynamic";
 
 interface ApplyPageProps {
-  params: Promise<{
-    jobId: string;
+  readonly params: Promise<{
+    readonly jobId: string;
   }>;
 }
 
