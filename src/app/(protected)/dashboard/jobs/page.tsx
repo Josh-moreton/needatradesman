@@ -24,10 +24,8 @@ export default async function DashboardJobsPage({
     return;
   }
 
-  if (!user.role) {
-    redirect("/onboarding");
-    return;
-  }
+  // The layout handles the onboarding flow if user.role is null
+  // If we reach here, user has a role (layout ensures this)
 
   // Role-based job browsing
   if (user.role === UserRole.TRADESPERSON) {
@@ -37,7 +35,7 @@ export default async function DashboardJobsPage({
     redirect("/dashboard/my-jobs");
     return;
   } else {
-    redirect("/onboarding");
+    redirect("/sign-in");
     return;
   }
 }

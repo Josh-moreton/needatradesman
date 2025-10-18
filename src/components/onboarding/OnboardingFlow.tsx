@@ -51,10 +51,10 @@ export default function OnboardingFlow() {
           // Reload user to fetch updated publicMetadata from Clerk
           await user?.reload();
 
-          logger.debug("User data reloaded, redirecting to dashboard...");
+          logger.debug("User data reloaded, refreshing page...");
 
-          // Use Next.js router for client-side navigation
-          router.push("/dashboard");
+          // Refresh the current page to trigger layout re-render
+          router.refresh();
         } else {
           const errorText = await response.text();
           logger.error(
@@ -111,11 +111,11 @@ export default function OnboardingFlow() {
         await user?.reload();
 
         logger.debug(
-          "[OnboardingFlow] User data reloaded, redirecting to dashboard..."
+          "[OnboardingFlow] User data reloaded, refreshing page..."
         );
 
-        // Use Next.js router for client-side navigation
-        router.push("/dashboard");
+        // Refresh the current page to trigger layout re-render
+        router.refresh();
       } else {
         const errorText = await response.text();
         logger.error(

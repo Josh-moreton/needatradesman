@@ -60,7 +60,7 @@ export default function LandingPageAnimated() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.push("/onboarding");
+      router.push("/dashboard");
     }
   }, [isSignedIn, isLoaded, router]);
 

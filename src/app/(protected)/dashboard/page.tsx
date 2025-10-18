@@ -31,10 +31,8 @@ export default async function DashboardPage() {
     return;
   }
 
-  if (!user.role) {
-    redirect("/onboarding");
-    return;
-  }
+  // The layout handles the onboarding flow if user.role is null
+  // If we reach here, user has a role (layout ensures this)
 
   // Role-based dashboard rendering
   if (user.role === UserRole.CUSTOMER) {
@@ -42,8 +40,8 @@ export default async function DashboardPage() {
   } else if (user.role === UserRole.TRADESPERSON) {
     return <TradespersonDashboardPage user={user} />;
   } else {
-    // Invalid role - redirect to onboarding
-    redirect("/onboarding");
+    // Invalid role - this shouldn't happen as layout handles it
+    redirect("/sign-in");
     return;
   }
 }
