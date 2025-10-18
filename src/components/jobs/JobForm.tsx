@@ -98,7 +98,7 @@ export function JobForm() {
       toast.success("Job posted successfully!");
 
       // Redirect to job management page
-      router.push("/customer/jobs/my-jobs");
+      router.push("/dashboard/my-jobs");
       router.refresh();
     } catch (error) {
       logger.error({ error }, "Error creating job");

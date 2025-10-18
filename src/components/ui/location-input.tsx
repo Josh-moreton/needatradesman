@@ -84,10 +84,11 @@ export function LocationInput({
             
             // Try to extract placePrediction from various possible structures
             const customEvent = event as CustomEvent;
+            const eventWithPrediction = event as unknown as { placePrediction?: typeof customEvent.detail.placePrediction };
             const placePrediction = 
               customEvent.detail?.placePrediction || 
               customEvent.detail?.prediction ||
-              (customEvent as any).placePrediction;
+              eventWithPrediction.placePrediction;
             
             console.log("placePrediction:", placePrediction);
             

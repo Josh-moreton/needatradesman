@@ -68,8 +68,8 @@ export default function Header() {
                               className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
                               href={
                                 isTradesperson
-                                  ? "/tradesperson/jobs"
-                                  : "/customer/jobs/new"
+                                  ? "/dashboard/jobs"
+                                  : "/dashboard/jobs/new"
                               }
                             >
                               <div className="mb-2 mt-4 text-lg font-medium">
@@ -86,20 +86,20 @@ export default function Header() {
                         {isCustomer ? (
                           <>
                             <ListItem
-                              href="/customer/jobs/new"
+                              href="/dashboard/jobs/new"
                               title="Post a Job"
                             >
                               Create a new job posting to find skilled
                               tradespeople.
                             </ListItem>
                             <ListItem
-                              href="/customer/jobs/my-jobs"
+                              href="/dashboard/my-jobs"
                               title="My Jobs"
                             >
                               Manage your posted jobs and view applications.
                             </ListItem>
                             <ListItem
-                              href="/customer/messages"
+                              href="/dashboard/messages"
                               title="Messages"
                             >
                               Communicate with tradespeople.
@@ -108,19 +108,19 @@ export default function Header() {
                         ) : isTradesperson ? (
                           <>
                             <ListItem
-                              href="/tradesperson/jobs"
+                              href="/dashboard/jobs"
                               title="Browse Jobs"
                             >
                               Find work opportunities in your area.
                             </ListItem>
                             <ListItem
-                              href="/tradesperson/my-responses"
+                              href="/dashboard/my-responses"
                               title="My Responses"
                             >
                               Track your job applications and responses.
                             </ListItem>
                             <ListItem
-                              href="/tradesperson/messages"
+                              href="/dashboard/messages"
                               title="Messages"
                             >
                               Communicate with customers.
@@ -170,18 +170,18 @@ export default function Header() {
                       <Link
                         href={
                           isCustomer
-                            ? "/customer/messages"
+                            ? "/dashboard/messages"
                             : isTradesperson
-                            ? "/tradesperson/messages"
+                            ? "/dashboard/messages"
                             : "/"
                         }
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
                           ((isCustomer &&
-                            pathname?.startsWith("/customer/messages")) ||
+                            pathname?.startsWith("/dashboard/messages")) ||
                             (isTradesperson &&
                               pathname?.startsWith(
-                                "/tradesperson/messages"
+                                "/dashboard/messages"
                               ))) &&
                             "bg-accent text-accent-foreground"
                         )}

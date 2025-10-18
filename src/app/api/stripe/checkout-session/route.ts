@@ -149,8 +149,8 @@ export async function POST(request: NextRequest) {
                 applicationId: application.id,
                 platformFee: platformFee.toString(),
             },
-            success_url: `${origin}/customer/jobs/${jobId}?payment_success=true`,
-            cancel_url: `${origin}/customer/jobs/${jobId}?payment_cancelled=true`,
+            success_url: `${origin}/dashboard/jobs/${jobId}?payment_success=true`,
+            cancel_url: `${origin}/dashboard/jobs/${jobId}?payment_cancelled=true`,
         });
 
         // Return the session URL
