@@ -152,7 +152,7 @@ model WebhookEvent {
 
 // Enums
 enum UserRole {
-  PENDING      // User has not completed onboarding
+  PENDING // User has not completed onboarding
   CUSTOMER
   TRADESPERSON
 }
