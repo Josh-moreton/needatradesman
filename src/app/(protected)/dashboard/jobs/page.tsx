@@ -24,22 +24,17 @@ export default async function DashboardJobsPage({
     return;
   }
 
-  if (!user.role) {
-    redirect("/onboarding");
-    return;
-  }
-
   // Role-based job browsing
   if (user.role === UserRole.TRADESPERSON) {
     return <TradespersonJobsView user={user} searchParams={searchParams} />;
   } else if (user.role === UserRole.CUSTOMER) {
     // Customers should see their own jobs
     redirect("/dashboard/my-jobs");
-    return;
-  } else {
-    redirect("/onboarding");
-    return;
   }
+
+  // Invalid role - this shouldn't happen as layout handles it
+  // Redirect to dashboard which will show onboarding via layout
+  redirect("/dashboard");
 }
 
 async function TradespersonJobsView({

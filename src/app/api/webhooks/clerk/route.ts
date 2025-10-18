@@ -72,7 +72,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'No email found' }, { status: 400 })
             }
 
-            // Upsert user in database - without role initially (they will set it during onboarding)
+            // Upsert user in database - with PENDING role (they will set it during onboarding)
             await prisma.user.upsert({
                 where: { clerkId },
                 create: {
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
                     email,
                     firstName: first_name || null,
                     lastName: last_name || null,
-                    role: 'CUSTOMER', // Default role - will be updated during onboarding
+                    // role defaults to PENDING in schema, but explicit here for clarity
                 },
                 update: {
                     email,
