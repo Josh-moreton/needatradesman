@@ -80,10 +80,19 @@ export function LocationInput({
         const attach = (element: GmpPlaceAutocompleteElement) => {
           // Use gmp-select (not gmp-placeselect) - the correct event for Places (New)
           const handler = async (event: Event) => {
-            const selectEvent = event as CustomEvent<{ placePrediction: google.maps.places.PlacePrediction }>;
-            const placePrediction = selectEvent.detail?.placePrediction;
+            console.log("gmp-select event fired", event);
+            
+            // Try to extract placePrediction from various possible structures
+            const customEvent = event as CustomEvent;
+            const placePrediction = 
+              customEvent.detail?.placePrediction || 
+              customEvent.detail?.prediction ||
+              (customEvent as any).placePrediction;
+            
+            console.log("placePrediction:", placePrediction);
             
             if (!placePrediction) {
+              console.error("No placePrediction found in event:", event);
               toast.error("Unable to get location details");
               return;
             }
@@ -91,6 +100,8 @@ export function LocationInput({
             try {
               // Convert prediction to Place and fetch minimal fields
               const place = placePrediction.toPlace();
+              console.log("Place object created:", place);
+              
               await place.fetchFields({
                 fields: [
                   "id", // Place ID in Places (New) - proof of valid selection
@@ -101,12 +112,16 @@ export function LocationInput({
                 ],
               });
               
+              console.log("Place fields fetched:", { id: place.id, location: place.location });
+              
               if (!place.location || !place.id) {
+                console.error("Missing required fields:", { id: place.id, location: place.location });
                 toast.error("Unable to get location details");
                 return;
               }
               
               const locationData = extractLocationDataFromPlace(place);
+              console.log("Location data extracted:", locationData);
               onChangeRef.current(locationData);
             } catch (error) {
               console.error("Error fetching place details:", error);
