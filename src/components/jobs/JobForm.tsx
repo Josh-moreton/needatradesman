@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationInput } from "@/components/ui/location-input";
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ export function JobForm() {
       description: "",
       category: undefined,
       location: "",
+      locationData: undefined,
       budget: undefined,
     },
   });
@@ -63,12 +65,18 @@ export function JobForm() {
     setIsSubmitting(true);
 
     try {
+      // If locationData is provided, use it for location display
+      const jobData = {
+        ...data,
+        location: data.locationData?.displayText || data.location,
+      };
+
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(jobData),
       });
 
       if (!response.ok) {
@@ -109,10 +117,16 @@ export function JobForm() {
       setIsSubmitting(false);
     }
   }
+  
+  function onError(errors: Record<string, unknown>) {
+    logger.warn({ errors }, "Job form validation errors");
+    // Show a generic message; field-level messages render via <FormMessage />
+    toast.error("Please fix the highlighted fields and try again.");
+  }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
         <FormField
           control={form.control}
           name="title"
@@ -158,7 +172,7 @@ export function JobForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a job category" />
@@ -182,18 +196,31 @@ export function JobForm() {
 
         <FormField
           control={form.control}
-          name="location"
+          name="locationData"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Location</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="e.g. SW1A 1AA or Central London"
-                  {...field}
+                <LocationInput
+                  value={field.value}
+                  onChange={(locationData) => {
+                    // Normalize null to undefined so it satisfies zod.optional
+                    field.onChange(locationData ?? undefined);
+                    // Also update the legacy location field for backwards compatibility
+                    form.setValue(
+                      "location",
+                      locationData?.displayText || "",
+                      { shouldValidate: true, shouldDirty: true }
+                    );
+                    // Clear any existing validation error on either field now that we have a selection
+                    form.clearErrors(["location", "locationData"]);
+                  }}
+                  placeholder="Enter location or use current location"
+                  disabled={isSubmitting}
                 />
               </FormControl>
               <FormDescription>
-                Your postcode or general area where the work needs to be done
+                Your postcode or area. Use the location button to auto-detect your current location.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -211,6 +238,7 @@ export function JobForm() {
                   type="number"
                   placeholder="e.g. 150"
                   {...field}
+                  value={field.value ?? ""}
                   onChange={(e) =>
                     field.onChange(
                       e.target.value ? Number(e.target.value) : undefined
@@ -226,15 +254,30 @@ export function JobForm() {
           )}
         />
 
-        <div className="flex gap-4 pt-4">
-          <Button type="submit" disabled={isSubmitting} className="flex-1">
+        <div className="flex gap-4 pt-4 relative z-50">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1"
+            onMouseDown={() => {
+              // Blur any focused element (e.g., autocomplete dropdown) so overlays close before click
+              const el = document.activeElement as HTMLElement | null;
+              el?.blur?.();
+            }}
+            onClick={() => logger.debug("Submit clicked")}
+          >
             {isSubmitting ? "Creating Job..." : "Post Job"}
           </Button>
           <Button
             type="button"
             variant="outline"
+            className=""
             onClick={() => router.back()}
             disabled={isSubmitting}
+            onMouseDown={() => {
+              const el = document.activeElement as HTMLElement | null;
+              el?.blur?.();
+            }}
           >
             Cancel
           </Button>

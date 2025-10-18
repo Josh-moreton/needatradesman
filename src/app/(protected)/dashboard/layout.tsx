@@ -17,7 +17,7 @@ export default async function DashboardLayout({
     return;
   }
 
-  // Role check - redirect to onboarding if no role
+  // Onboarding gate: DB is the source of truth. If user has no role, redirect to onboarding.
   if (!user.role) {
     redirect("/onboarding");
     return;

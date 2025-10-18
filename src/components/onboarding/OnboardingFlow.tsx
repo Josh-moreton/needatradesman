@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUser, useSession } from "@clerk/nextjs";
+import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { UserRole, JobCategory } from "@prisma/client"; // Use Prisma enum instead
 import {
   Card,
@@ -24,21 +25,10 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
   const { user } = useUser();
-  const { session } = useSession();
+  const router = useRouter();
 
-  // Check if user has already completed onboarding but metadata hasn't propagated yet
-  useEffect(() => {
-    const checkOnboardingStatus = () => {
-      if (user?.publicMetadata?.onboardingComplete) {
-        // User has completed onboarding, redirect to unified dashboard
-        window.location.href = "/dashboard";
-        // Remove the fallback redirect to prevent infinite loop
-      }
-    };
-
-    // Only check once when the component mounts
-    checkOnboardingStatus();
-  }, [user]);
+  // Avoid client-side redirects based on Clerk metadata to prevent loops.
+  // Server route (/onboarding) already gates using DB role and redirects when complete.
 
   const handleRoleSelect = async (role: UserRole) => {
     setSelectedRole(role);
@@ -56,53 +46,15 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          try {
-            logger.debug("Role API call successful, refreshing session...");
+          logger.debug("Role API call successful, reloading user data...");
 
-            // Force refresh the session to get updated metadata immediately
-            await session?.reload();
+          // Reload user to fetch updated publicMetadata from Clerk
+          await user?.reload();
 
-            logger.debug("Session refreshed, redirecting...");
+          logger.debug("User data reloaded, redirecting to dashboard...");
 
-            // Now redirect - the middleware should see the updated session
-            // Redirect to unified dashboard regardless of role
-            window.location.href = "/dashboard";
-          } catch (refreshError) {
-            logger.error(
-              { error: refreshError },
-              "[OnboardingFlow] Error refreshing session after role set"
-            );
-            // Fallback to the old retry mechanism
-            const checkMetadataAndRedirect = async (attempts = 0) => {
-              const maxAttempts = 10;
-
-              if (attempts >= maxAttempts) {
-                logger.error(
-                  `[OnboardingFlow] Max attempts reached while waiting for onboarding metadata. Role: ${role}`
-                );
-                // Redirect to unified dashboard
-                window.location.href = "/dashboard";
-                return;
-              }
-
-              await user?.reload();
-
-              if (user?.publicMetadata?.onboardingComplete) {
-                logger.debug(
-                  `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts. Redirecting. Role: ${role}`
-                );
-                // Redirect to unified dashboard
-                window.location.href = "/dashboard";
-              } else {
-                logger.warn(
-                  `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts}. Retrying...`
-                );
-                setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
-              }
-            };
-
-            checkMetadataAndRedirect();
-          }
+          // Use Next.js router for client-side navigation
+          router.push("/dashboard");
         } else {
           const errorText = await response.text();
           logger.error(
@@ -151,54 +103,19 @@ export default function OnboardingFlow() {
       });
 
       if (response.ok) {
-        try {
-          logger.debug(
-            "[OnboardingFlow] Tradesperson role API call successful, refreshing session..."
-          );
+        logger.debug(
+          "[OnboardingFlow] Tradesperson role API call successful, reloading user data..."
+        );
 
-          // Force refresh the session to get updated metadata immediately
-          await session?.reload();
+        // Reload user to fetch updated publicMetadata from Clerk
+        await user?.reload();
 
-          logger.debug(
-            "[OnboardingFlow] Session refreshed, redirecting to dashboard..."
-          );
+        logger.debug(
+          "[OnboardingFlow] User data reloaded, redirecting to dashboard..."
+        );
 
-          // Redirect to unified dashboard
-          window.location.href = "/dashboard";
-        } catch (refreshError) {
-          logger.error(
-            { error: refreshError },
-            "[OnboardingFlow] Error refreshing session after tradesperson onboarding"
-          );
-          // Fallback to the old retry mechanism
-          const checkMetadataAndRedirect = async (attempts = 0) => {
-            const maxAttempts = 10;
-
-            if (attempts >= maxAttempts) {
-              logger.error(
-                "[OnboardingFlow] Max attempts reached while waiting for onboarding metadata (tradesperson). Redirecting."
-              );
-              window.location.href = "/dashboard";
-              return;
-            }
-
-            await user?.reload();
-
-            if (user?.publicMetadata?.onboardingComplete) {
-              logger.debug(
-                `[OnboardingFlow] Onboarding metadata found after ${attempts} attempts (tradesperson). Redirecting.`
-              );
-              window.location.href = "/dashboard";
-            } else {
-              logger.warn(
-                `[OnboardingFlow] Onboarding metadata not found on attempt ${attempts} (tradesperson). Retrying...`
-              );
-              setTimeout(() => checkMetadataAndRedirect(attempts + 1), 500);
-            }
-          };
-
-          checkMetadataAndRedirect();
-        }
+        // Use Next.js router for client-side navigation
+        router.push("/dashboard");
       } else {
         const errorText = await response.text();
         logger.error(

@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LocationInput, type LocationData } from "@/components/ui/location-input";
 import { Search, X } from "lucide-react";
 
 const categoryOptions = [
@@ -37,7 +38,19 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
   const pathname = usePathname();
 
   const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [location, setLocation] = useState(searchParams.get("location") || "");
+  const [location, setLocation] = useState<LocationData | null>(() => {
+    const locationParam = searchParams.get("location");
+    if (locationParam) {
+      // Create a simple LocationData object from the URL param for display
+      return {
+        displayText: locationParam,
+        formattedAddress: locationParam,
+        latitude: 0,
+        longitude: 0,
+      };
+    }
+    return null;
+  });
   const [category, setCategory] = useState(
     searchParams.get("category") || "all"
   );
@@ -54,8 +67,16 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
       params.set("search", search.trim());
     }
 
-    if (location.trim()) {
-      params.set("location", location.trim());
+    if (location) {
+      // Use displayText or postcode/city for filtering
+      const locationText = location.postcode || location.city || location.displayText;
+      params.set("location", locationText);
+      
+      // Include coordinates for distance-based searches if available
+      if (location.latitude && location.longitude) {
+        params.set("lat", String(location.latitude));
+        params.set("lng", String(location.longitude));
+      }
     }
 
     if (category && category !== "all") {
@@ -70,7 +91,7 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
 
   const clearFilters = () => {
     setSearch("");
-    setLocation("");
+    setLocation(null);
     setCategory("all");
     router.push(pathname);
   };
@@ -108,16 +129,10 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
           <label htmlFor="location-input" className="text-sm font-medium">
             Location
           </label>
-          <Input
-            id="location-input"
-            placeholder="Enter location..."
+          <LocationInput
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSearch();
-              }
-            }}
+            onChange={setLocation}
+            placeholder="Enter location..."
           />
         </div>
 
@@ -181,10 +196,10 @@ export function JobFilters({ userTrades }: JobFiltersProps) {
             )}
             {location && (
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-sm rounded">
-                Location: {location}
+                Location: {location.displayText}
                 <button
                   onClick={() => {
-                    setLocation("");
+                    setLocation(null);
                     handleSearch();
                   }}
                   className="ml-1 hover:text-primary/80"
