@@ -18,8 +18,8 @@ export default async function DashboardLayout({
     return;
   }
 
-  // If no role, show onboarding flow instead of sidebar + content
-  if (!user.role) {
+  // If no role or invalid role, show onboarding flow instead of sidebar + content
+  if (!user.role || (user.role !== UserRole.CUSTOMER && user.role !== UserRole.TRADESPERSON)) {
     return (
       <div className="flex h-screen bg-background">
         <main className="flex-1 overflow-y-auto">
@@ -29,18 +29,7 @@ export default async function DashboardLayout({
     );
   }
 
-  // Validate role is one of the expected values
-  if (user.role !== UserRole.CUSTOMER && user.role !== UserRole.TRADESPERSON) {
-    return (
-      <div className="flex h-screen bg-background">
-        <main className="flex-1 overflow-y-auto">
-          <OnboardingFlow />
-        </main>
-      </div>
-    );
-  }
-
-  // User has role, show full dashboard
+  // User has valid role, show full dashboard
   const SidebarComponent =
     user.role === UserRole.CUSTOMER ? SidebarCustomer : SidebarTradesperson;
 
