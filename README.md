@@ -12,7 +12,6 @@ Need A Tradesman is a marketplace for homeowners to connect with vetted tradespe
 - **Redis** – caching, rate limiting and foundation for real‑time features
 - **Pusher** – real‑time chat and notifications
 - **Stripe** – planned escrow and payout system
-- **Pino** – structured logging with context and sensitive data redaction
 - **ESLint** – linting with strict configuration
 
 ## Features

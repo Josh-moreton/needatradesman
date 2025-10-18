@@ -14,8 +14,15 @@ export default async function DashboardLayout({
 
   // Authentication check (should be handled by middleware, but defensive)
   if (!user) {
-    redirect("/sign-in");
-    return;
+    // User is authenticated with Clerk but doesn't exist in our DB yet
+    // This happens when webhooks aren't configured - show onboarding to create user
+    return (
+      <div className="flex h-screen bg-background">
+        <main className="flex-1 overflow-y-auto">
+          <OnboardingFlow />
+        </main>
+      </div>
+    );
   }
 
   // Route based on role - clean state machine pattern
