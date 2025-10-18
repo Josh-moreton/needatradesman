@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
 
         const accountLink = await stripe.accountLinks.create({
             account: stripeAccountId,
-            refresh_url: `${origin}/tradesperson/dashboard/payouts?refresh=true`,
-            return_url: `${origin}/tradesperson/dashboard/payouts?onboarded=true`,
+            refresh_url: `${origin}/dashboard/payouts?refresh=true`,
+            return_url: `${origin}/dashboard/payouts?onboarded=true`,
             type: "account_onboarding",
         });
 

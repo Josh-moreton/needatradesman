@@ -132,7 +132,7 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
         // We don't have the customerId here, so just navigate and let the chat UI handle it, or optionally fetch job details if needed
         // For now, just navigate
       }
-      router.push(`/tradesperson/messages?jobId=${jobId}`);
+      router.push(`/dashboard/messages?jobId=${jobId}`);
     } catch (error) {
       logger.error({ error }, "Error starting chat");
       toast.error("Failed to start chat. Please try again.");

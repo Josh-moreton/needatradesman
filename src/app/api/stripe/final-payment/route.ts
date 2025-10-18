@@ -150,8 +150,8 @@ export async function POST(request: NextRequest) {
                     destination: tradesperson.stripeAccountId,
                 },
             },
-            success_url: `${origin}/customer/jobs/${jobId}?final_payment_success=true`,
-            cancel_url: `${origin}/customer/jobs/${jobId}?final_payment_cancelled=true`,
+            success_url: `${origin}/dashboard/jobs/${jobId}?final_payment_success=true`,
+            cancel_url: `${origin}/dashboard/jobs/${jobId}?final_payment_cancelled=true`,
             metadata: {
                 jobId: job.id,
                 applicationId: application.id,
