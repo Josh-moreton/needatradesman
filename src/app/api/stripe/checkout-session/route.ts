@@ -8,6 +8,8 @@ import { createLogger } from "@/lib/logger";
 const logger = createLogger("stripe-checkout-session");
 
 export async function POST(request: NextRequest) {
+    const correlationId = crypto.randomUUID();
+    
     const { userId } = await auth();
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,7 +18,22 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const { jobId, depositAmount, tradespersonId } = await request.json();
 
+    logger.info(
+        { 
+            correlationId,
+            userId,
+            jobId, 
+            tradespersonId,
+            depositAmount 
+        },
+        "Checkout session request received"
+    );
+
     if (!jobId || !depositAmount || !tradespersonId) {
+        logger.warn(
+            { correlationId, jobId, depositAmount, tradespersonId },
+            "Missing required fields in checkout session request"
+        );
         return NextResponse.json({
             error: "Missing required fields: jobId, depositAmount, tradespersonId"
         }, { status: 400 });
@@ -66,8 +83,26 @@ export async function POST(request: NextRequest) {
         let account;
         try {
             account = await stripe.accounts.retrieve(tradesperson.stripeAccountId);
+            logger.info(
+                {
+                    correlationId,
+                    accountId: tradesperson.stripeAccountId,
+                    chargesEnabled: account.charges_enabled,
+                    detailsSubmitted: account.details_submitted,
+                    cardPayments: account.capabilities?.card_payments,
+                    requirementsDue: account.requirements?.currently_due?.length || 0,
+                },
+                "Retrieved Stripe account"
+            );
         } catch (error) {
-            logger.error({ error }, "Failed to retrieve Stripe account");
+            logger.error(
+                { 
+                    correlationId,
+                    accountId: tradesperson.stripeAccountId,
+                    error 
+                },
+                "Failed to retrieve Stripe account"
+            );
             return NextResponse.json({
                 code: "STRIPE_ACCOUNT_RETRIEVAL_FAILED",
                 error: "Unable to verify tradesperson payment account"
@@ -76,6 +111,13 @@ export async function POST(request: NextRequest) {
 
         // Check account is fully onboarded and can accept payments
         if (!account.charges_enabled) {
+            logger.warn(
+                {
+                    correlationId,
+                    accountId: tradesperson.stripeAccountId,
+                },
+                "Stripe account does not have charges_enabled"
+            );
             return NextResponse.json({
                 code: "ACCOUNT_NOT_CHARGEABLE",
                 error: "Tradesperson payment account is not yet verified. Please ask them to complete their payout setup."
@@ -83,6 +125,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (!account.details_submitted) {
+            logger.warn(
+                {
+                    correlationId,
+                    accountId: tradesperson.stripeAccountId,
+                },
+                "Stripe account details not submitted"
+            );
             return NextResponse.json({
                 code: "ACCOUNT_DETAILS_INCOMPLETE",
                 error: "Tradesperson has not completed their account setup"
@@ -91,6 +140,14 @@ export async function POST(request: NextRequest) {
 
         // Check card_payments capability is active
         if (account.capabilities?.card_payments !== 'active') {
+            logger.warn(
+                {
+                    correlationId,
+                    accountId: tradesperson.stripeAccountId,
+                    cardPayments: account.capabilities?.card_payments,
+                },
+                "Stripe account card_payments capability not active"
+            );
             return NextResponse.json({
                 code: "ACCOUNT_NOT_CHARGEABLE",
                 error: "Tradesperson account cannot accept card payments yet. Please ask them to complete their verification."
@@ -101,6 +158,7 @@ export async function POST(request: NextRequest) {
         if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
             logger.warn(
                 { 
+                    correlationId,
                     accountId: tradesperson.stripeAccountId,
                     requirements: account.requirements.currently_due 
                 },
@@ -174,15 +232,36 @@ export async function POST(request: NextRequest) {
                 applicationType: "deposit",
                 applicationId: application.id,
                 platformFee: platformFee.toString(),
+                correlationId,
             },
             success_url: `${origin}/customer/jobs/${jobId}?payment_success=true`,
             cancel_url: `${origin}/customer/jobs/${jobId}?payment_cancelled=true`,
         });
 
+        logger.info(
+            {
+                correlationId,
+                sessionId: session.id,
+                jobId,
+                tradespersonId,
+                applicationId: application.id,
+                depositAmount,
+            },
+            "Checkout session created successfully"
+        );
+
         // Return the session URL
         return NextResponse.json({ url: session.url });
     } catch (error) {
-        logger.error({ error }, "Error creating checkout session");
+        logger.error(
+            { 
+                correlationId,
+                error,
+                jobId,
+                tradespersonId,
+            },
+            "Error creating checkout session"
+        );
         return NextResponse.json(
             { error: "Failed to create checkout session" },
             { status: 500 }
