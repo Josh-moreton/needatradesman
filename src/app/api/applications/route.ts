@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createApplicationSchema, UserRole } from "@/lib/schemas";
-import { applicationRateLimit, redis, CACHE_KEYS, CACHE_TTL, invalidateApplicationCaches, invalidateJobCaches, invalidateUserStats } from "@/lib/redis";
+import { applicationRateLimit, redis } from "@/lib/redis";
+import { unstable_cache, revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger('applications-api');
@@ -125,15 +126,15 @@ export async function POST(request: NextRequest) {
         if (redis) {
             try {
                 // Invalidate application caches for both tradesperson and customer
-                await Promise.all([
-                    invalidateApplicationCaches(user.id, UserRole.TRADESPERSON),
-                    invalidateApplicationCaches(application.job.customerId, UserRole.CUSTOMER),
-                    // Also invalidate job list caches as application count has changed
-                    invalidateJobCaches(),
-                    // Invalidate user stats for both users
-                    invalidateUserStats(user.id, UserRole.TRADESPERSON),
-                    invalidateUserStats(application.job.customerId, UserRole.CUSTOMER)
-                ]);
+                revalidateTag('applications');
+                revalidateTag(`applications-${user.id}`);
+                revalidateTag(`applications-${application.job.customerId}`);
+                // Also invalidate job list caches as application count has changed
+                revalidateTag('jobs');
+                revalidateTag('job-detail');
+                // Invalidate user stats for both users
+                revalidateTag(`user-stats-${user.id}`);
+                revalidateTag(`user-stats-${application.job.customerId}`);
                 logger.debug('Invalidated caches after application creation');
             } catch (cacheError) {
                 logger.error({ error: cacheError }, 'Cache invalidation error');
@@ -170,91 +171,83 @@ export async function GET() {
             return new NextResponse("User not found", { status: 404 });
         }
 
-        // Try to get from cache first
-        const cacheKey = CACHE_KEYS.USER_APPLICATIONS(user.id, user.role);
+        // Use unstable_cache for caching with Next.js
+        const getApplications = unstable_cache(
+            async (userId: string, role: string) => {
+                let applications;
 
-        if (redis) {
-            try {
-                const cached = await redis.get<string>(cacheKey);
-                if (cached) {
-                    logger.debug({ cacheKey }, 'Cache hit for applications');
-                    return NextResponse.json(JSON.parse(cached));
-                }
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache read error');
-            }
-        }
-
-        let applications;
-
-        if (user.role === UserRole.TRADESPERSON) {
-            // Get applications submitted by this tradesperson
-            applications = await prisma.application.findMany({
-                where: { tradespersonId: user.id },
-                include: {
-                    job: {
-                        select: {
-                            id: true,
-                            title: true,
-                            category: true,
-                            location: true,
-                            status: true,
-                            customer: {
+                if (role === UserRole.TRADESPERSON) {
+                    // Get applications submitted by this tradesperson
+                    applications = await prisma.application.findMany({
+                        where: { tradespersonId: userId },
+                        include: {
+                            job: {
                                 select: {
-                                    firstName: true,
-                                    lastName: true,
+                                    id: true,
+                                    title: true,
+                                    category: true,
+                                    location: true,
+                                    status: true,
+                                    customer: {
+                                        select: {
+                                            firstName: true,
+                                            lastName: true,
+                                        },
+                                    },
                                 },
                             },
                         },
-                    },
-                },
-                orderBy: { createdAt: "desc" },
-            });
-        } else if (user.role === UserRole.CUSTOMER) {
-            // Get applications for jobs posted by this customer
-            applications = await prisma.application.findMany({
-                where: {
-                    job: {
-                        customerId: user.id,
-                    },
-                },
-                include: {
-                    tradesperson: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            email: true,
+                        orderBy: { createdAt: "desc" },
+                    });
+                } else if (role === UserRole.CUSTOMER) {
+                    // Get applications for jobs posted by this customer
+                    applications = await prisma.application.findMany({
+                        where: {
+                            job: {
+                                customerId: userId,
+                            },
                         },
-                    },
-                    job: {
-                        select: {
-                            id: true,
-                            title: true,
-                            category: true,
-                            location: true,
-                            status: true,
+                        include: {
+                            tradesperson: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                    email: true,
+                                },
+                            },
+                            job: {
+                                select: {
+                                    id: true,
+                                    title: true,
+                                    category: true,
+                                    location: true,
+                                    status: true,
+                                },
+                            },
                         },
-                    },
-                },
-                orderBy: { createdAt: "desc" },
-            });
-        } else {
-            return new NextResponse("Invalid user role", { status: 403 });
-        }
+                        orderBy: { createdAt: "desc" },
+                    });
+                } else {
+                    throw new Error("Invalid user role");
+                }
 
-        // Cache the result
-        if (redis) {
-            try {
-                await redis.set(cacheKey, JSON.stringify(applications), { ex: CACHE_TTL.APPLICATIONS });
-                logger.debug({ cacheKey }, 'Cached applications');
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache write error');
+                return applications;
+            },
+            ['applications', user.id, user.role],
+            {
+                revalidate: 180, // 3 minutes for real-time updates
+                tags: ['applications', `applications-${user.id}`]
             }
-        }
+        );
+
+        const applications = await getApplications(user.id, user.role);
 
         return NextResponse.json(applications);
     } catch (error) {
         logger.error({ error }, "Error fetching applications");
+        if (error instanceof Error && error.message === "Invalid user role") {
+            return new NextResponse("Invalid user role", { status: 403 });
+        }
         return new NextResponse("Internal server error", { status: 500 });
     }
 }

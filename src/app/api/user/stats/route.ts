@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
-import { getCachedUserStats, cacheUserStats } from "@/lib/redis";
+import { unstable_cache } from "next/cache";
 
 import { createLogger } from "@/lib/logger";
 
@@ -16,117 +16,122 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Try to get stats from cache first
-        const cachedStats = await getCachedUserStats(user.id, user.role);
-        if (cachedStats) {
-            return NextResponse.json(cachedStats);
-        }
+        // Use unstable_cache for caching with Next.js
+        const getUserStats = unstable_cache(
+            async (userId: string, role: string) => {
+                let stats;
 
-        let stats;
-
-        if (user.role === UserRole.CUSTOMER) {
-            // Get customer stats
-            const [jobsCount, totalApplications, activeJobs, completedJobs] = await Promise.all([
-                prisma.job.count({
-                    where: { customerId: user.id }
-                }),
-                prisma.application.count({
-                    where: {
-                        job: {
-                            customerId: user.id
-                        }
-                    }
-                }),
-                prisma.job.count({
-                    where: {
-                        customerId: user.id,
-                        status: { in: ["OPEN", "IN_PROGRESS"] }
-                    }
-                }),
-                prisma.job.count({
-                    where: {
-                        customerId: user.id,
-                        status: "COMPLETED"
-                    }
-                })
-            ]);
-
-            stats = {
-                role: user.role,
-                totalJobs: jobsCount,
-                totalApplications,
-                activeJobs,
-                completedJobs,
-                recentActivity: {
-                    recentJobs: await prisma.job.findMany({
-                        where: { customerId: user.id },
-                        include: {
-                            _count: {
-                                select: { applications: true }
-                            }
-                        },
-                        orderBy: { createdAt: "desc" },
-                        take: 3
-                    })
-                }
-            };
-        } else if (user.role === UserRole.TRADESPERSON) {
-            // Get tradesperson stats
-            const [applicationsCount, acceptedApplications, pendingApplications, rejectedApplications] = await Promise.all([
-                prisma.application.count({
-                    where: { tradespersonId: user.id }
-                }),
-                prisma.application.count({
-                    where: {
-                        tradespersonId: user.id,
-                        status: "ACCEPTED"
-                    }
-                }),
-                prisma.application.count({
-                    where: {
-                        tradespersonId: user.id,
-                        status: "PENDING"
-                    }
-                }),
-                prisma.application.count({
-                    where: {
-                        tradespersonId: user.id,
-                        status: "REJECTED"
-                    }
-                })
-            ]);
-
-            stats = {
-                role: user.role,
-                totalApplications: applicationsCount,
-                acceptedApplications,
-                pendingApplications,
-                rejectedApplications,
-                successRate: applicationsCount > 0 ? Math.round((acceptedApplications / applicationsCount) * 100) : 0,
-                recentActivity: {
-                    recentApplications: await prisma.application.findMany({
-                        where: { tradespersonId: user.id },
-                        include: {
-                            job: {
-                                select: {
-                                    id: true,
-                                    title: true,
-                                    category: true,
-                                    status: true
+                if (role === UserRole.CUSTOMER) {
+                    // Get customer stats
+                    const [jobsCount, totalApplications, activeJobs, completedJobs] = await Promise.all([
+                        prisma.job.count({
+                            where: { customerId: userId }
+                        }),
+                        prisma.application.count({
+                            where: {
+                                job: {
+                                    customerId: userId
                                 }
                             }
-                        },
-                        orderBy: { createdAt: "desc" },
-                        take: 3
-                    })
-                }
-            };
-        } else {
-            return NextResponse.json({ error: "Invalid user role" }, { status: 403 });
-        }
+                        }),
+                        prisma.job.count({
+                            where: {
+                                customerId: userId,
+                                status: { in: ["OPEN", "IN_PROGRESS"] }
+                            }
+                        }),
+                        prisma.job.count({
+                            where: {
+                                customerId: userId,
+                                status: "COMPLETED"
+                            }
+                        })
+                    ]);
 
-        // Cache the stats
-        await cacheUserStats(user.id, user.role, stats);
+                    stats = {
+                        role,
+                        totalJobs: jobsCount,
+                        totalApplications,
+                        activeJobs,
+                        completedJobs,
+                        recentActivity: {
+                            recentJobs: await prisma.job.findMany({
+                                where: { customerId: userId },
+                                include: {
+                                    _count: {
+                                        select: { applications: true }
+                                    }
+                                },
+                                orderBy: { createdAt: "desc" },
+                                take: 3
+                            })
+                        }
+                    };
+                } else if (role === UserRole.TRADESPERSON) {
+                    // Get tradesperson stats
+                    const [applicationsCount, acceptedApplications, pendingApplications, rejectedApplications] = await Promise.all([
+                        prisma.application.count({
+                            where: { tradespersonId: userId }
+                        }),
+                        prisma.application.count({
+                            where: {
+                                tradespersonId: userId,
+                                status: "ACCEPTED"
+                            }
+                        }),
+                        prisma.application.count({
+                            where: {
+                                tradespersonId: userId,
+                                status: "PENDING"
+                            }
+                        }),
+                        prisma.application.count({
+                            where: {
+                                tradespersonId: userId,
+                                status: "REJECTED"
+                            }
+                        })
+                    ]);
+
+                    stats = {
+                        role,
+                        totalApplications: applicationsCount,
+                        acceptedApplications,
+                        pendingApplications,
+                        rejectedApplications,
+                        successRate: applicationsCount > 0 ? Math.round((acceptedApplications / applicationsCount) * 100) : 0,
+                        recentActivity: {
+                            recentApplications: await prisma.application.findMany({
+                                where: { tradespersonId: userId },
+                                include: {
+                                    job: {
+                                        select: {
+                                            id: true,
+                                            title: true,
+                                            category: true,
+                                            status: true
+                                        }
+                                    }
+                                },
+                                orderBy: { createdAt: "desc" },
+                                take: 3
+                            })
+                        }
+                    };
+                } else {
+                    throw new Error("Invalid user role");
+                }
+
+                return stats;
+            },
+            ['user-stats', user.id, user.role],
+            {
+                revalidate: 300, // 5 minutes
+                tags: ['user-stats', `user-stats-${user.id}`]
+            }
+        );
+
+        const stats = await getUserStats(user.id, user.role);
 
         return NextResponse.json(stats);
     } catch (error) {
