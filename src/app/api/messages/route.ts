@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { redis, messageRateLimit, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { redis, messageRateLimit } from "@/lib/redis";
 import { pusherServer, getConversationChannel, getUserChannel } from "@/lib/pusher";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
@@ -109,16 +109,16 @@ async function cacheMessageInRedis(message: MessageWithRelations, userId: string
 
     try {
         const participantIds = [userId, receiverId].sort((a, b) => a.localeCompare(b)).join(":");
-        const channelKey = CACHE_KEYS.CHAT_MESSAGES(jobId || "general", participantIds);
+        const channelKey = `chat:${jobId || "general"}:${participantIds}`;
         await redis.lpush(channelKey, JSON.stringify(message));
-        await redis.expire(channelKey, CACHE_TTL.MESSAGES);
+        await redis.expire(channelKey, 3600); // 1 hour TTL
 
         // Publish to Redis channel for real-time updates (future WebSocket implementation)
         await redis.publish(`chat:${jobId || "general"}`, JSON.stringify(message));
 
         // Clear conversation cache
-        await redis.del(CACHE_KEYS.USER_CONVERSATIONS(userId));
-        await redis.del(CACHE_KEYS.USER_CONVERSATIONS(receiverId));
+        await redis.del(`conversations:${userId}`);
+        await redis.del(`conversations:${receiverId}`);
 
         logger.debug('Message cached and published successfully');
     } catch (cacheError) {

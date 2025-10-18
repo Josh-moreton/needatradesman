@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType } from '@prisma/client'
+import { UserRole, JobCategory, MessageType } from '@prisma/client'
 
 // Allowed domains for attachment URLs (can be overridden via environment variable)
 const getAllowedDomains = (): string[] => {
@@ -108,4 +108,8 @@ export type CreateMessageInput = z.infer<typeof createMessageSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 
 // Export enums for easy access
-export { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType }
+export { UserRole } from '@prisma/client'
+export { JobCategory } from '@prisma/client'
+export { JobStatus } from '@prisma/client'
+export { ApplicationStatus } from '@prisma/client'
+export { MessageType } from '@prisma/client'

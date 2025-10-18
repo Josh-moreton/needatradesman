@@ -4,44 +4,39 @@ This document describes the logging system implemented in the Need A Tradesman a
 
 ## Overview
 
-The application uses [Pino](https://getpino.io/) for structured, high-performance logging. Pino was chosen for its:
-- **Performance**: 7x faster than Winston, optimized for serverless/Vercel environments
-- **Structured output**: JSON logs for easy parsing and aggregation
-- **Low overhead**: Minimal impact on application performance
-- **Serverless-friendly**: Optimized for cold starts and short-lived processes
+The application uses a **simplified console-based logger** that leverages Vercel's built-in logging infrastructure. This approach was chosen for:
+- **Vercel Integration**: Logs are automatically captured and aggregated in the Vercel Dashboard
+- **Turbopack Compatibility**: No worker thread issues with Next.js Turbopack mode
+- **Simplicity**: Minimal code, no external dependencies
+- **Zero Configuration**: Works out of the box with Vercel's observability platform
+- **Standard Pattern**: Follows Next.js best practices for serverless environments
+
+### Why We Moved Away from Pino
+
+Previously, we used Pino for logging, but encountered issues:
+- ⚠️ **Turbopack incompatibility** - Pretty-printing disabled due to worker thread issues
+- ⚠️ **Overkill** - Complex setup for our marketplace needs
+- ⚠️ **Non-standard for Next.js** - Vercel has built-in logging that works better
 
 ## Architecture
 
 ### Logger Configuration
 
-The logger is configured in `src/lib/logger.ts` with environment-aware settings:
+The logger is configured in `src/lib/logger.ts` as a thin wrapper around `console`:
 
-**Development Mode:**
-- Pretty-printed output with colors
-- Debug level logging enabled
-- Human-readable timestamps
-- All log metadata displayed
+**All Environments:**
+- Structured output with timestamps and context
+- Debug level only active in development
+- JSON-formatted metadata for easy parsing
+- Vercel automatically captures console.log/warn/error/debug
 
-**Production Mode:**
-- JSON structured output
-- Info level logging by default
-- Sensitive data automatically redacted
-- Machine-readable format for log aggregation
+### Data Security
 
-### Sensitive Data Redaction
-
-In production, the following fields are automatically redacted from logs:
-- `req.headers.authorization`
-- `req.headers.cookie`
-- `password`
-- `email`
-- `token`
-- `apiKey`
-- `secret`
-- `stripeToken`
-- `clerkId`
-
-Additional fields can be added to the redaction list in `src/lib/logger.ts`.
+The simplified logger doesn't log sensitive data by design:
+- Never log passwords, tokens, credit cards, or PII
+- API keys and secrets should be in environment variables
+- Clerk IDs and user emails should be used sparingly
+- Use user IDs instead of personal information when possible
 
 ## Usage
 
@@ -67,6 +62,8 @@ Use for detailed information useful during development:
 logger.debug({ params, query }, 'Processing request');
 logger.debug({ cacheKey }, 'Cache hit');
 ```
+
+**Note:** Debug logs only appear in development (NODE_ENV !== 'production')
 
 #### Info
 Use for general informational messages:
@@ -97,11 +94,14 @@ Always use the object-first format for structured logging:
 // ✅ Correct: Object with metadata first, message second
 logger.info({ userId, jobId, amount }, 'Payment processed');
 
-// ❌ Incorrect: Message first
-logger.info('Payment processed', { userId, jobId, amount });
+// ✅ Also correct: Message only
+logger.info('Server started on port 3000');
+
+// ✅ Also correct: Object only
+logger.error({ error, code: 'ECONNREFUSED' });
 ```
 
-This ensures metadata is properly indexed and searchable in log aggregation systems.
+The logger handles all three patterns seamlessly.
 
 ### Best Practices
 
@@ -139,68 +139,104 @@ This ensures metadata is properly indexed and searchable in log aggregation syst
 
 ## Environment Variables
 
-Control logging behavior with environment variables:
+The logger respects `NODE_ENV`:
+- **Development** (`NODE_ENV !== 'production'`): All log levels including debug
+- **Production** (`NODE_ENV === 'production'`): Info, warn, and error only (debug is suppressed)
 
-- `NODE_ENV`: Set to `production` for production logging mode
-- `LOG_LEVEL`: Override default log level (`debug`, `info`, `warn`, `error`)
+## Viewing Logs
 
-Example:
+### Development
+Logs appear in your terminal when running `pnpm dev`
+
+### Production (Vercel)
+
+**Vercel Dashboard:**
+1. Go to your project in Vercel Dashboard
+2. Click "Logs" tab
+3. Filter by function, date, or search text
+4. Search for specific contexts like `[stripe-webhook]`
+
+**Vercel CLI:**
 ```bash
-# Development
-NODE_ENV=development LOG_LEVEL=debug pnpm dev
+# View recent logs
+vercel logs
 
-# Production
-NODE_ENV=production LOG_LEVEL=info pnpm start
+# Follow logs in real-time
+vercel logs --follow
+
+# Filter by function
+vercel logs --output=function-name
+
+# View logs for specific deployment
+vercel logs <deployment-url>
 ```
 
 ## Production Integration
 
-### Vercel Log Drain
+### Vercel Log Drains (Optional)
 
-For production deployments on Vercel, configure Log Drain to forward logs to a monitoring service:
+For advanced logging needs, configure Log Drain to forward logs to a monitoring service:
 
 1. Go to Vercel Project Settings → Integrations → Log Drains
 2. Add a drain for your preferred service:
    - **Datadog**: Real-time monitoring and alerting
-   - **Better Stack**: Modern logging and error tracking
    - **Logflare**: Fast log search and analytics
    - **Axiom**: Serverless-native observability
+   - **Better Stack**: Modern logging and error tracking
 
 3. Configure the drain URL and authentication
 
-Logs will automatically be forwarded in JSON format.
+Logs will automatically be forwarded with full context.
 
 ### Log Analysis
 
-With structured JSON logs, you can:
-- Filter by context: `context:"stripe-webhook"`
-- Search by user: `userId:"user123"`
-- Track errors: `level:50`
-- Monitor specific operations: `msg:"Payment processed"`
+With the structured format, you can:
+- Filter by context: Search for `[stripe-webhook]`
+- Search by user: Search for `userId`
+- Track errors: Filter by `[ERROR]`
+- Monitor specific operations: Search for specific messages
 
 ### Alerting
 
-Set up alerts for critical conditions:
+Set up alerts in your log aggregation service:
 ```typescript
-// This will trigger alerts in production monitoring
+// Critical errors will be visible in monitoring
 logger.error({ error, severity: 'critical' }, 'Payment gateway down');
 ```
 
-## Migration from console.log
+## Migration Notes
 
-The codebase has been fully migrated from `console.log` to Pino. If you need to add logging:
+### From Pino to Console-Based Logger
 
-**Before:**
+The codebase has been migrated from Pino to a simplified console-based logger. The API remains the same, so existing code works without changes:
+
+**Before (Pino):**
 ```typescript
-console.log('User created:', userId);
-console.error('Error:', error);
-```
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('jobs-api');
 
-**After:**
-```typescript
 logger.info({ userId }, 'User created');
 logger.error({ error }, 'Failed to create user');
 ```
+
+**After (Console-based):**
+```typescript
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('jobs-api');
+
+logger.info({ userId }, 'User created');  // Same API!
+logger.error({ error }, 'Failed to create user');  // Same API!
+```
+
+No code changes needed - the simplified logger maintains API compatibility!
+
+### Benefits of the Migration
+
+- ✅ **Turbopack Compatible**: No worker thread issues
+- ✅ **Less Code**: ~60 lines instead of ~50 lines + 2 dependencies
+- ✅ **Zero Dependencies**: Removed `pino` and `pino-pretty`
+- ✅ **Better Vercel Integration**: Native console logging works seamlessly
+- ✅ **Same API**: No breaking changes to existing code
 
 ## Examples
 
@@ -286,23 +322,38 @@ export async function POST(request: Request) {
 
 ### Logs not appearing in development
 
-1. Check that `NODE_ENV` is not set to `production`
-2. Verify `LOG_LEVEL` is set to `debug` or not set at all
-3. Ensure `pino-pretty` is installed: `pnpm install pino-pretty`
+1. Check that you're running `pnpm dev`
+2. Verify logs are being called correctly: `logger.info('Test message')`
+3. Check browser console for client-side logs
 
-### Logs not in JSON format in production
+### Debug logs not appearing
 
-1. Verify `NODE_ENV=production` is set
-2. Check that `pino-pretty` transport is not enabled in production
+Debug logs are only shown in development. Ensure `NODE_ENV !== 'production'`.
 
-### Sensitive data appearing in logs
+### Logs not in Vercel Dashboard
 
-1. Add the field to the redaction list in `src/lib/logger.ts`
-2. Ensure you're running in production mode
-3. Verify the field path is correct (use dot notation for nested fields)
+1. Verify deployment is successful
+2. Check the "Logs" tab in Vercel Dashboard
+3. Ensure you're looking at the correct project and deployment
+4. Try the Vercel CLI: `vercel logs`
+
+## Implementation Details
+
+The logger is implemented in `src/lib/logger.ts` as a thin wrapper around console methods. It:
+- Adds timestamps in ISO 8601 format
+- Includes context in every log entry
+- Formats metadata as JSON
+- Suppresses debug logs in production
+- Maintains Pino-compatible API for backward compatibility
+
+Example output:
+```
+[2025-10-17T17:12:26.115Z] [jobs-api] [INFO] Job created successfully {"jobId":"456","userId":"user-789"}
+[2025-10-17T17:12:26.115Z] [stripe-webhook] [ERROR] Payment failed {"error":{...},"paymentId":"pi_123"}
+```
 
 ## Resources
 
-- [Pino Documentation](https://getpino.io/)
-- [Pino Best Practices](https://getpino.io/#/docs/best-practices)
+- [Vercel Runtime Logs Documentation](https://vercel.com/docs/observability/runtime-logs)
+- [Next.js Logging Best Practices](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation)
 - [Vercel Log Drains](https://vercel.com/docs/observability/log-drains)

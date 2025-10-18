@@ -46,7 +46,7 @@ export async function needsOnboarding() {
         })
 
         // User needs onboarding if they don't exist in our DB or don't have a role
-        return !user || !user.role
+        return !user?.role
     } catch (error) {
         logger.error({ error }, 'Error checking onboarding status')
         return true // Err on the side of requiring onboarding
