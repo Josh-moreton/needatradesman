@@ -149,6 +149,57 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
+model Ticket {
+  id             String         @id @default(cuid())
+  createdAt      DateTime       @default(now())
+  lastUpdatedAt  DateTime       @updatedAt
+  createdById    String
+  createdByEmail String
+  role           TicketRole
+  category       String
+  priority       TicketPriority @default(NORMAL)
+  subject        String
+  initialBody    String
+  status         TicketStatus   @default(OPEN)
+  assigneeId     String?
+  messages       TicketMessage[]
+
+  @@index([createdById])
+  @@index([status])
+  @@index([assigneeId])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id          String              @id @default(cuid())
+  createdAt   DateTime            @default(now())
+  ticketId    String
+  authorId    String
+  authorRole  String // "user" | "admin"
+  body        String
+  attachments TicketAttachment[]
+  ticket      Ticket              @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([authorId])
+  @@map("ticket_messages")
+}
+
+model TicketAttachment {
+  id          String        @id @default(cuid())
+  createdAt   DateTime      @default(now())
+  messageId   String
+  fileKey     String
+  fileName    String
+  bytes       Int
+  contentType String
+  message     TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("ticket_attachments")
+}
+
 // Enums
 enum UserRole {
   CUSTOMER
@@ -186,4 +237,23 @@ enum MessageType {
   TEXT
   IMAGE
   FILE
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketRole {
+  CUSTOMER
+  TRADESPERSON
 }
