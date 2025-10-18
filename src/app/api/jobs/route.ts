@@ -69,6 +69,52 @@ export async function POST(request: NextRequest) {
 
         // Extract location data from structured locationData if available
         const locationData = validatedData.locationData;
+
+        // Server-side verification: verify Place ID with Google Places API
+        if (locationData?.id) {
+            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+            if (apiKey) {
+                try {
+                    const verifyResponse = await fetch(
+                        `https://places.googleapis.com/v1/places/${locationData.id}?fields=id,formattedAddress,location&key=${apiKey}`,
+                        {
+                            headers: {
+                                'X-Goog-Api-Key': apiKey,
+                            },
+                        }
+                    );
+
+                    if (!verifyResponse.ok) {
+                        logger.warn({ placeId: locationData.id, status: verifyResponse.status }, 'Place ID verification failed');
+                        return new NextResponse("Invalid location: Place ID could not be verified", { status: 400 });
+                    }
+
+                    const placeDetails = await verifyResponse.json();
+                    logger.debug({ placeId: locationData.id, verified: true }, 'Place ID verified successfully');
+
+                    // Optionally: verify the coords match (within reasonable tolerance)
+                    if (placeDetails.location) {
+                        const latDiff = Math.abs(placeDetails.location.latitude - locationData.latitude);
+                        const lngDiff = Math.abs(placeDetails.location.longitude - locationData.longitude);
+                        if (latDiff > 0.01 || lngDiff > 0.01) {
+                            logger.warn({
+                                placeId: locationData.id,
+                                providedLat: locationData.latitude,
+                                providedLng: locationData.longitude,
+                                verifiedLat: placeDetails.location.latitude,
+                                verifiedLng: placeDetails.location.longitude,
+                            }, 'Location coordinates mismatch');
+                            return new NextResponse("Invalid location: Coordinates do not match Place ID", { status: 400 });
+                        }
+                    }
+                } catch (error) {
+                    logger.error({ error, placeId: locationData.id }, 'Error verifying Place ID');
+                    // Don't fail the request if verification fails due to network issues
+                    // but log it for monitoring
+                }
+            }
+        }
+
         // Always persist a non-empty location string for legacy search/display
         const locationString: string =
             (locationData?.displayText || locationData?.formattedAddress || validatedData.location || "").trim();

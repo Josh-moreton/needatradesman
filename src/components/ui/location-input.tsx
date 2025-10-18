@@ -78,33 +78,34 @@ export function LocationInput({
         if (!isMounted) return;
         const el = autocompleteElementRef.current;
         const attach = (element: GmpPlaceAutocompleteElement) => {
+          // Use gmp-select (not gmp-placeselect) - the correct event for Places (New)
           const handler = async (event: Event) => {
-            // Try all known shapes for the gmp-placeselect event
-            const anyEvent = event as unknown as {
-              place?: google.maps.places.Place
-              detail?: { place?: google.maps.places.Place }
-              target?: { place?: google.maps.places.Place }
-            }
-            const place = anyEvent.place || anyEvent.detail?.place || anyEvent.target?.place;
-            if (!place) {
+            const selectEvent = event as CustomEvent<{ placePrediction: google.maps.places.PlacePrediction }>;
+            const placePrediction = selectEvent.detail?.placePrediction;
+            
+            if (!placePrediction) {
               toast.error("Unable to get location details");
               return;
             }
+            
             try {
-              // Fetch minimal fields - Place ID is the key validation field
+              // Convert prediction to Place and fetch minimal fields
+              const place = placePrediction.toPlace();
               await place.fetchFields({
                 fields: [
-                  "id", // The Place ID - proof of valid selection
+                  "id", // Place ID in Places (New) - proof of valid selection
                   "formattedAddress",
                   "location",
                   "addressComponents",
                   "displayName",
                 ],
               });
+              
               if (!place.location || !place.id) {
                 toast.error("Unable to get location details");
                 return;
               }
+              
               const locationData = extractLocationDataFromPlace(place);
               onChangeRef.current(locationData);
             } catch (error) {
@@ -112,7 +113,7 @@ export function LocationInput({
               toast.error("Failed to get location details");
             }
           };
-          element.addEventListener("gmp-placeselect", handler as EventListener);
+          element.addEventListener("gmp-select", handler as EventListener);
           
           // Clear the selection if user types after selecting - text alone is meaningless
           const inputHandler = () => {
@@ -121,7 +122,7 @@ export function LocationInput({
           element.addEventListener("input", inputHandler as EventListener);
           
           cleanup = () => {
-            element.removeEventListener("gmp-placeselect", handler as EventListener);
+            element.removeEventListener("gmp-select", handler as EventListener);
             element.removeEventListener("input", inputHandler as EventListener);
           };
         };
@@ -213,7 +214,8 @@ export function LocationInput({
     const lat = result.geometry.location.lat();
     const lng = result.geometry.location.lng();
     const formattedAddress = result.formatted_address || "";
-    const placeId = result.place_id || ""; // Place ID from geocode result
+    // Geocoder uses legacy place_id field name (not place.id like Places New)
+    const placeId = result.place_id || "";
 
     let city: string | undefined;
     let postcode: string | undefined;
@@ -331,7 +333,7 @@ export function LocationInput({
           ref={(el: Element | null) => {
             autocompleteElementRef.current = el as GmpPlaceAutocompleteElement | null;
           }}
-          component-restrictions={JSON.stringify({ country: "gb" })}
+          included-region-codes={JSON.stringify(["gb"])}
           placeholder={placeholder}
           className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
         />
