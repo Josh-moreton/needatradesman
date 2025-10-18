@@ -68,7 +68,7 @@ export default function Header() {
                               className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
                               href={
                                 isTradesperson
-                                  ? "/tradesperson/jobs"
+                                  ? "/dashboard/jobs"
                                   : "/customer/jobs/new"
                               }
                             >
@@ -108,19 +108,19 @@ export default function Header() {
                         ) : isTradesperson ? (
                           <>
                             <ListItem
-                              href="/tradesperson/jobs"
+                              href="/dashboard/jobs"
                               title="Browse Jobs"
                             >
                               Find work opportunities in your area.
                             </ListItem>
                             <ListItem
-                              href="/tradesperson/my-responses"
+                              href="/dashboard/my-responses"
                               title="My Responses"
                             >
                               Track your job applications and responses.
                             </ListItem>
                             <ListItem
-                              href="/tradesperson/messages"
+                              href="/dashboard/messages"
                               title="Messages"
                             >
                               Communicate with customers.
@@ -172,7 +172,7 @@ export default function Header() {
                           isCustomer
                             ? "/customer/messages"
                             : isTradesperson
-                            ? "/tradesperson/messages"
+                            ? "/dashboard/messages"
                             : "/"
                         }
                         className={cn(
@@ -181,7 +181,7 @@ export default function Header() {
                             pathname?.startsWith("/customer/messages")) ||
                             (isTradesperson &&
                               pathname?.startsWith(
-                                "/tradesperson/messages"
+                                "/dashboard/messages"
                               ))) &&
                             "bg-accent text-accent-foreground"
                         )}

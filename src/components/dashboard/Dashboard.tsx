@@ -95,7 +95,7 @@ function TradespersonDashboard({ displayName }: Readonly<{ displayName: string }
             title="Find Jobs"
             description="Browse available job opportunities in your area and apply to jobs that match your skills"
             icon={<Search className="h-8 w-8" />}
-            href="/tradesperson/jobs"
+            href="/dashboard/jobs"
             buttonText="Browse Jobs"
             variant="primary"
           />
@@ -104,7 +104,7 @@ function TradespersonDashboard({ displayName }: Readonly<{ displayName: string }
             title="My Applications"
             description="Track your job applications, view responses, and manage your application status"
             icon={<FileText className="h-8 w-8" />}
-            href="/tradesperson/my-responses"
+            href="/dashboard/my-responses"
             buttonText="View Applications"
           />
 
@@ -112,7 +112,7 @@ function TradespersonDashboard({ displayName }: Readonly<{ displayName: string }
             title="Messages"
             description="Chat with potential customers, ask questions, and negotiate project details"
             icon={<MessageSquare className="h-8 w-8" />}
-            href="/tradesperson/messages"
+            href="/dashboard/messages"
             buttonText="View Messages"
           />
 

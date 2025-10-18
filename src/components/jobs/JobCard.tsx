@@ -131,11 +131,11 @@ export function JobCard({ job, variant = "public" }: JobCardProps) {
           ) : (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/tradesperson/jobs/${job.id}`}>View Details</Link>
+                <Link href={`/dashboard/jobs/${job.id}`}>View Details</Link>
               </Button>
               {job.status === "OPEN" && (
                 <Button size="sm" asChild>
-                  <Link href={`/tradesperson/jobs/${job.id}/apply`}>
+                  <Link href={`/dashboard/jobs/${job.id}/apply`}>
                     Respond Now
                   </Link>
                 </Button>
