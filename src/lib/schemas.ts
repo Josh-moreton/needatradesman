@@ -38,8 +38,10 @@ export const attachmentSchema = z.object({
 });
 
 // Location data schema for structured location input
+// Validate on Place ID presence - the only proof of a valid selection
 export const locationDataSchema = z.object({
-    displayText: z.string().min(1, 'Location is required'),
+    id: z.string().min(1, 'Please select a location from the dropdown'),
+    displayText: z.string(),
     formattedAddress: z.string(),
     latitude: z.number(),
     longitude: z.number(),
@@ -53,18 +55,29 @@ export const createJobSchema = z.object({
     description: z.string().min(10, 'Description must be at least 10 characters').max(1000, 'Description too long'),
     category: z.nativeEnum(JobCategory),
     // Accept either a simple string or structured location data; validation below ensures one exists
-    location: z.string().optional(), // Legacy support
-    locationData: locationDataSchema.optional(), // Structured location data
+    location: z.string().optional(), // Legacy support - will be populated from locationData
+    locationData: locationDataSchema.optional(), // Structured location data with Place ID
     budget: z.number().positive('Budget must be positive').optional(),
     attachments: z.array(attachmentSchema).max(5, 'Maximum 5 attachments allowed').optional(),
 }).superRefine((data, ctx) => {
-    const hasLocationString = typeof data.location === 'string' && data.location.trim().length > 0
-    const hasStructured = !!data.locationData
-    if (!hasLocationString && !hasStructured) {
+    // Validate on Place ID presence - the only proof of a valid selection from autocomplete
+    const hasValidLocation = !!data.locationData?.id
+
+    // Debug logging for development
+    if (globalThis.window !== undefined && process.env.NODE_ENV === 'development') {
+        console.log('[Job Schema Validation]', {
+            hasValidLocation,
+            placeId: data.locationData?.id,
+            location: data.location,
+            locationData: data.locationData,
+        });
+    }
+
+    if (!hasValidLocation) {
         // Attach the error to locationData since our UI is bound to that field
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Location is required',
+            message: 'Please select a location from the dropdown',
             path: ['locationData'],
         })
     }

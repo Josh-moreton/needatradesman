@@ -38,6 +38,7 @@ model Job {
   description                   String
   category                      JobCategory
   location                      String // Legacy text field for display
+  placeId                       String? // Google Places ID for validation and future verification
   latitude                      Float? // For distance-based searches
   longitude                     Float? // For distance-based searches
   formattedAddress              String? // Full address from Google Places

@@ -7,6 +7,7 @@ import { Navigation } from "lucide-react";
 import { toast } from "sonner";
 
 export interface LocationData {
+  id: string; // Place ID - the only proof of valid selection
   displayText: string;
   formattedAddress: string;
   latitude: number;
@@ -22,9 +23,6 @@ interface LocationInputProps {
   disabled?: boolean;
   className?: string;
 }
-
-// The gmp-placeselect event is a CustomEvent whose detail contains the Place
-type PlaceSelectEvent = CustomEvent<{ place: google.maps.places.Place | undefined }>
 
 interface GmpPlaceAutocompleteElement extends HTMLElement {
   value?: string;
@@ -93,15 +91,17 @@ export function LocationInput({
               return;
             }
             try {
+              // Fetch minimal fields - Place ID is the key validation field
               await place.fetchFields({
                 fields: [
+                  "id", // The Place ID - proof of valid selection
                   "formattedAddress",
                   "location",
                   "addressComponents",
                   "displayName",
                 ],
               });
-              if (!place.location) {
+              if (!place.location || !place.id) {
                 toast.error("Unable to get location details");
                 return;
               }
@@ -113,7 +113,17 @@ export function LocationInput({
             }
           };
           element.addEventListener("gmp-placeselect", handler as EventListener);
-          cleanup = () => element.removeEventListener("gmp-placeselect", handler as EventListener);
+          
+          // Clear the selection if user types after selecting - text alone is meaningless
+          const inputHandler = () => {
+            onChangeRef.current(null);
+          };
+          element.addEventListener("input", inputHandler as EventListener);
+          
+          cleanup = () => {
+            element.removeEventListener("gmp-placeselect", handler as EventListener);
+            element.removeEventListener("input", inputHandler as EventListener);
+          };
         };
 
         if (!el) {
@@ -166,6 +176,7 @@ export function LocationInput({
     const lat = place.location!.lat();
     const lng = place.location!.lng();
     const formattedAddress = place.formattedAddress || "";
+    const placeId = place.id || ""; // Place ID - the key validation field
 
     let city: string | undefined;
     let postcode: string | undefined;
@@ -186,6 +197,7 @@ export function LocationInput({
     const displayText = postcode || city || place.displayName || formattedAddress.split(",")[0];
 
     return {
+      id: placeId,
       displayText,
       formattedAddress,
       latitude: lat,
@@ -201,6 +213,7 @@ export function LocationInput({
     const lat = result.geometry.location.lat();
     const lng = result.geometry.location.lng();
     const formattedAddress = result.formatted_address || "";
+    const placeId = result.place_id || ""; // Place ID from geocode result
 
     let city: string | undefined;
     let postcode: string | undefined;
@@ -220,6 +233,7 @@ export function LocationInput({
     const displayText = postcode || city || formattedAddress.split(",")[0];
 
     return {
+      id: placeId,
       displayText,
       formattedAddress,
       latitude: lat,

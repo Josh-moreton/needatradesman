@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
                 description: validatedData.description,
                 category: validatedData.category,
                 location: locationString,
+                placeId: locationData?.id, // Store Place ID for validation and future verification
                 latitude: locationData?.latitude,
                 longitude: locationData?.longitude,
                 formattedAddress: locationData?.formattedAddress,
