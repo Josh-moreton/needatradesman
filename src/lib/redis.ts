@@ -74,24 +74,6 @@ export const webhookRateLimit = redis
     })
     : null;
 
-export const ticketCreateRateLimit = redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(3, '24 h'), // 3 tickets per 24 hours
-        prefix: 'rl:ticketCreate',
-        analytics: true,
-    })
-    : null;
-
-export const ticketMessageRateLimit = redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(3, '10 s'), // burst of 3, then 1 per 10s
-        prefix: 'rl:ticketMessage',
-        analytics: true,
-    })
-    : null;
-
 // Cache utilities
 export const CACHE_KEYS = {
     JOBS_LIST: (filters?: string) => `jobs:list:${filters || 'all'}`,

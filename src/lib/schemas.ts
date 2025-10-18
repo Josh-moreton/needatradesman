@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType, TicketStatus, TicketPriority, TicketRole } from '@prisma/client'
+import { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType } from '@prisma/client'
 
 // Allowed domains for attachment URLs (can be overridden via environment variable)
 const getAllowedDomains = (): string[] => {
@@ -98,24 +98,6 @@ export const updateUserSchema = z.object({
     trades: z.array(z.nativeEnum(JobCategory)).min(1, 'At least one trade must be selected').optional(),
 })
 
-// Ticket schemas
-export const createTicketSchema = z.object({
-    category: z.string().min(1, 'Category is required').max(100, 'Category too long'),
-    priority: z.nativeEnum(TicketPriority),
-    subject: z.string().min(1, 'Subject is required').max(200, 'Subject too long'),
-    body: z.string().min(10, 'Description must be at least 10 characters').max(5000, 'Description too long'),
-})
-
-export const createTicketMessageSchema = z.object({
-    body: z.string().min(1, 'Message cannot be empty').max(5000, 'Message too long'),
-})
-
-export const updateTicketSchema = z.object({
-    status: z.nativeEnum(TicketStatus).optional(),
-    priority: z.nativeEnum(TicketPriority).optional(),
-    assigneeId: z.string().cuid().nullable().optional(),
-})
-
 // Type exports
 export type Attachment = z.infer<typeof attachmentSchema>
 export type LocationData = z.infer<typeof locationDataSchema>
@@ -124,9 +106,6 @@ export type CreateApplicationInput = z.infer<typeof createApplicationSchema>
 export type QuoteItem = z.infer<typeof quoteItemSchema>
 export type CreateMessageInput = z.infer<typeof createMessageSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
-export type CreateTicketInput = z.infer<typeof createTicketSchema>
-export type CreateTicketMessageInput = z.infer<typeof createTicketMessageSchema>
-export type UpdateTicketInput = z.infer<typeof updateTicketSchema>
 
 // Export enums for easy access
-export { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType, TicketStatus, TicketPriority, TicketRole }
+export { UserRole, JobCategory, JobStatus, ApplicationStatus, MessageType }
