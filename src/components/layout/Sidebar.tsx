@@ -13,9 +13,9 @@ export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
 
   const customerLinks = [
-    { href: "/customer/jobs/new", label: "Post Job" },
-    { href: "/customer/jobs/my-jobs", label: "My Jobs" },
-    { href: "/customer/messages", label: "Messages" },
+    { href: "/dashboard/jobs/new", label: "Post Job" },
+    { href: "/dashboard/my-jobs", label: "My Jobs" },
+    { href: "/dashboard/messages", label: "Messages" },
   ];
 
   const tradespersonLinks = [

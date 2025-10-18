@@ -69,7 +69,7 @@ export default function Header() {
                               href={
                                 isTradesperson
                                   ? "/dashboard/jobs"
-                                  : "/customer/jobs/new"
+                                  : "/dashboard/jobs/new"
                               }
                             >
                               <div className="mb-2 mt-4 text-lg font-medium">
@@ -86,20 +86,20 @@ export default function Header() {
                         {isCustomer ? (
                           <>
                             <ListItem
-                              href="/customer/jobs/new"
+                              href="/dashboard/jobs/new"
                               title="Post a Job"
                             >
                               Create a new job posting to find skilled
                               tradespeople.
                             </ListItem>
                             <ListItem
-                              href="/customer/jobs/my-jobs"
+                              href="/dashboard/my-jobs"
                               title="My Jobs"
                             >
                               Manage your posted jobs and view applications.
                             </ListItem>
                             <ListItem
-                              href="/customer/messages"
+                              href="/dashboard/messages"
                               title="Messages"
                             >
                               Communicate with tradespeople.
@@ -170,7 +170,7 @@ export default function Header() {
                       <Link
                         href={
                           isCustomer
-                            ? "/customer/messages"
+                            ? "/dashboard/messages"
                             : isTradesperson
                             ? "/dashboard/messages"
                             : "/"
@@ -178,7 +178,7 @@ export default function Header() {
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
                           ((isCustomer &&
-                            pathname?.startsWith("/customer/messages")) ||
+                            pathname?.startsWith("/dashboard/messages")) ||
                             (isTradesperson &&
                               pathname?.startsWith(
                                 "/dashboard/messages"
