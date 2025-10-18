@@ -25,26 +25,29 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const user = await getCurrentUser();
 
-  // These checks are also in layout, but adding here for extra security
+  // Layout guarantees user exists and has a valid role (CUSTOMER or TRADESPERSON)
+  // PENDING users see OnboardingFlow instead of this page
   if (!user) {
     redirect("/sign-in");
     return;
   }
 
-  if (!user.role) {
-    redirect("/onboarding");
-    return;
-  }
-
-  // Role-based dashboard rendering
-  if (user.role === UserRole.CUSTOMER) {
-    return <CustomerDashboardPage user={user} />;
-  } else if (user.role === UserRole.TRADESPERSON) {
-    return <TradespersonDashboardPage user={user} />;
-  } else {
-    // Invalid role - redirect to onboarding
-    redirect("/onboarding");
-    return;
+  // Render role-specific dashboard
+  switch (user.role) {
+    case UserRole.CUSTOMER:
+      return <CustomerDashboardPage user={user} />;
+    
+    case UserRole.TRADESPERSON:
+      return <TradespersonDashboardPage user={user} />;
+    
+    case UserRole.PENDING:
+      // Should never reach here - layout handles PENDING users
+      redirect("/dashboard");
+      break;
+    
+    default:
+      // Should never reach here - all roles are handled
+      redirect("/dashboard");
   }
 }
 

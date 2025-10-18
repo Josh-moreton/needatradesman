@@ -14,10 +14,8 @@ export default async function DashboardMyResponsesPage() {
     return;
   }
 
-  if (!user.role) {
-    redirect("/onboarding");
-    return;
-  }
+  // The layout handles the onboarding flow if user.role is null
+  // If we reach here, user has a role (layout ensures this)
 
   // Only tradespeople should see this page
   if (user.role !== UserRole.TRADESPERSON) {

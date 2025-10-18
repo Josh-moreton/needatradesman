@@ -40,7 +40,7 @@ export default async function DashboardErrorPage() {
                   Complete your account setup to continue
                 </p>
                 <Button asChild className="w-full">
-                  <Link href="/onboarding">Complete Setup</Link>
+                  <Link href="/dashboard">Complete Setup</Link>
                 </Button>
               </>
             ) : (
@@ -49,7 +49,7 @@ export default async function DashboardErrorPage() {
                   Your account role is not recognized. Please contact support.
                 </p>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/onboarding">Reset Account</Link>
+                  <Link href="/dashboard">Reset Account</Link>
                 </Button>
               </>
             )}
