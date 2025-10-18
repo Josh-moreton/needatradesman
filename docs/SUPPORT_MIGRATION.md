@@ -124,6 +124,8 @@ pnpm prisma migrate reset
 
 After migration, verify the tables exist:
 
+**For PostgreSQL (using psql):**
+
 ```sql
 -- List all tables
 \dt
@@ -133,6 +135,20 @@ After migration, verify the tables exist:
 
 -- Check indexes
 \di tickets_*
+```
+
+**Database-agnostic verification:**
+
+```sql
+-- Check if tables exist
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('tickets', 'ticket_messages', 'ticket_attachments');
+
+-- Count records (should be 0 initially)
+SELECT COUNT(*) FROM tickets;
+SELECT COUNT(*) FROM ticket_messages;
+SELECT COUNT(*) FROM ticket_attachments;
 ```
 
 ## Environment Variables

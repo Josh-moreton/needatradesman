@@ -46,9 +46,10 @@ The support ticketing system provides a comprehensive solution for customers and
 - Prevents spam and abuse
 - Uses sliding window algorithm via Upstash
 
-**Ticket Messages**: Burst of 3, then 1 per 10 seconds per user per ticket
+**Ticket Messages**: 3 messages per 10 seconds per user per ticket
 - Prevents message flooding
 - Rate limit key includes both user and ticket ID
+- Allows burst of 3 messages, then cooldown
 
 ### API Routes
 
@@ -105,7 +106,12 @@ Currently uses environment variable `ADMIN_USER_IDS` (comma-separated Clerk user
 ADMIN_USER_IDS=user_xxxxxxxxxxxxx,user_yyyyyyyyyyyyy
 ```
 
-**Future Enhancement**: Use Clerk publicMetadata with role-based access control.
+**⚠️ Security Note**: This is a temporary V1 implementation. For production use, implement proper role-based access control via:
+- Clerk publicMetadata with admin role flag
+- Database UserRole enum with ADMIN value
+- Admin management UI for granting/revoking privileges
+
+**Future Enhancement**: Implement proper RBAC with database-backed admin roles and audit logging.
 
 ### UI Components
 
@@ -180,8 +186,11 @@ Admins can:
 - View all tickets at `/admin/support`
 - Filter by status, category, priority, assignee
 - Update ticket status and priority
+- Assign tickets to themselves or other admins (via assigneeId field)
 - Respond without rate limits
 - See statistics (open, pending, resolved counts)
+
+**Note**: V1 implementation does not include a UI for ticket assignment. Admins can only update status and priority through the UI. Ticket assignment functionality (assigneeId field) is schema-ready but requires additional UI implementation in V2.
 
 ## Rate Limit Handling
 
