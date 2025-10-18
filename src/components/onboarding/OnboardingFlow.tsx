@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { UserRole, JobCategory } from "@prisma/client"; // Use Prisma enum instead
 import {
   Card,
@@ -25,7 +24,6 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
   const { user } = useUser();
-  const router = useRouter();
 
   // Avoid client-side redirects based on Clerk metadata to prevent loops.
   // Server route (/onboarding) already gates using DB role and redirects when complete.
@@ -51,10 +49,11 @@ export default function OnboardingFlow() {
           // Reload user to fetch updated publicMetadata from Clerk
           await user?.reload();
 
-          logger.debug("User data reloaded, refreshing page...");
+          logger.debug("User data reloaded, redirecting to dashboard...");
 
-          // Refresh the current page to trigger layout re-render
-          router.refresh();
+          // Use replace instead of refresh to force a full page reload
+          // This ensures the server re-queries the database for the updated role
+          window.location.href = "/dashboard";
         } else {
           const errorText = await response.text();
           logger.error(
@@ -111,11 +110,12 @@ export default function OnboardingFlow() {
         await user?.reload();
 
         logger.debug(
-          "[OnboardingFlow] User data reloaded, refreshing page..."
+          "[OnboardingFlow] User data reloaded, redirecting to dashboard..."
         );
 
-        // Refresh the current page to trigger layout re-render
-        router.refresh();
+        // Use replace instead of refresh to force a full page reload
+        // This ensures the server re-queries the database for the updated role
+        window.location.href = "/dashboard";
       } else {
         const errorText = await response.text();
         logger.error(

@@ -16,7 +16,7 @@ model User {
   email           String        @unique
   firstName       String?
   lastName        String?
-  role            UserRole
+  role            UserRole      @default(PENDING)
   trades          JobCategory[] // For tradespeople - selected trade categories
   stripeAccountId String? // Stripe Connect account ID for tradespeople
   createdAt       DateTime      @default(now())
@@ -152,6 +152,7 @@ model WebhookEvent {
 
 // Enums
 enum UserRole {
+  PENDING      // User has not completed onboarding
   CUSTOMER
   TRADESPERSON
 }

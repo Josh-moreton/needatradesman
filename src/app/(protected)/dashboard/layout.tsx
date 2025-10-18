@@ -12,31 +12,44 @@ export default async function DashboardLayout({
 }) {
   const user = await getCurrentUser();
 
-  // Authentication check
+  // Authentication check (should be handled by middleware, but defensive)
   if (!user) {
     redirect("/sign-in");
     return;
   }
 
-  // If no role or invalid role, show onboarding flow instead of sidebar + content
-  if (!user.role || (user.role !== UserRole.CUSTOMER && user.role !== UserRole.TRADESPERSON)) {
-    return (
-      <div className="flex h-screen bg-background">
-        <main className="flex-1 overflow-y-auto">
-          <OnboardingFlow />
-        </main>
-      </div>
-    );
+  // Route based on role - clean state machine pattern
+  switch (user.role) {
+    case UserRole.PENDING:
+      // User needs to complete onboarding
+      return (
+        <div className="flex h-screen bg-background">
+          <main className="flex-1 overflow-y-auto">
+            <OnboardingFlow />
+          </main>
+        </div>
+      );
+
+    case UserRole.CUSTOMER:
+      // Customer dashboard with sidebar
+      return (
+        <div className="flex h-screen bg-background">
+          <SidebarCustomer user={user} />
+          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+        </div>
+      );
+
+    case UserRole.TRADESPERSON:
+      // Tradesperson dashboard with sidebar
+      return (
+        <div className="flex h-screen bg-background">
+          <SidebarTradesperson user={user} />
+          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+        </div>
+      );
+
+    default:
+      // Invalid role - should never happen, but defensive
+      redirect("/sign-in");
   }
-
-  // User has valid role, show full dashboard
-  const SidebarComponent =
-    user.role === UserRole.CUSTOMER ? SidebarCustomer : SidebarTradesperson;
-
-  return (
-    <div className="flex h-screen bg-background">
-      <SidebarComponent user={user} />
-      <main className="flex-1 overflow-y-auto bg-background">{children}</main>
-    </div>
-  );
 }
