@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { randomUUID } from "crypto";
 
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-checkout-session");
 
 export async function POST(request: NextRequest) {
-    const correlationId = crypto.randomUUID();
+    const correlationId = randomUUID();
     
     const { userId } = await auth();
     if (!userId) {
