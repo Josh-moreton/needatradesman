@@ -81,7 +81,7 @@ export default function DashboardPayoutsPage() {
             </CardHeader>
             <CardContent className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
-                We&apos;re working hard to bring you a seamless payout experience.
+                We're working hard to bring you a seamless payout experience.
               </p>
               <p className="text-sm text-muted-foreground">
                 Check back soon for updates!
