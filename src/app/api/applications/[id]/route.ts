@@ -5,12 +5,76 @@ import { UserRole } from "@/lib/schemas";
 import { z } from "zod";
 import { revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
+import { serializeApplication } from "@/lib/dto";
 
 const logger = createLogger("applications-id-api");
 
 const updateResponseSchema = z.object({
     status: z.enum(["ACCEPTED", "REJECTED"]),
 });
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const resolvedParams = await params;
+
+        // Get the application and verify access
+        const application = await prisma.application.findUnique({
+            where: { id: resolvedParams.id },
+            include: {
+                job: {
+                    select: { 
+                        id: true,
+                        title: true,
+                        customerId: true,
+                    },
+                },
+                tradesperson: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        if (!application) {
+            return NextResponse.json({ error: "Application not found" }, { status: 404 });
+        }
+
+        // Verify the user has access to this application
+        // Either the customer who owns the job or the tradesperson who applied
+        if (
+            application.job.customerId !== user.id &&
+            application.tradespersonId !== user.id
+        ) {
+            return NextResponse.json(
+                { error: "You do not have access to this application" },
+                { status: 403 }
+            );
+        }
+
+        // Serialize the application to remove Decimal types
+        const serialized = serializeApplication(application);
+
+        return NextResponse.json(serialized);
+    } catch (error) {
+        logger.error({ error }, "Error fetching application");
+        return NextResponse.json(
+            { error: "Failed to fetch application" },
+            { status: 500 }
+        );
+    }
+}
 
 export async function PATCH(
     request: NextRequest,

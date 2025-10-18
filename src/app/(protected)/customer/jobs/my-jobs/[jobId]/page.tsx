@@ -7,6 +7,7 @@ import { UserRole } from "@/lib/schemas";
 import { ManageResponsesClient } from "./ManageResponsesClient";
 import { createLogger } from '@/lib/logger';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { serializeApplication } from "@/lib/dto";
 
 const logger = createLogger('customer-manage-job');
 const metadataLogger = createLogger('customer-manage-job-metadata');
@@ -103,9 +104,15 @@ export default async function ManageResponsesPage({
       notFound();
     }
 
+    // Serialize applications to remove Decimal types before passing to client
+    const serializedJob = {
+      ...job,
+      applications: job.applications.map(serializeApplication),
+    };
+
     return (
       <ErrorBoundary>
-        <ManageResponsesClient job={job} />
+        <ManageResponsesClient job={serializedJob} />
       </ErrorBoundary>
     );
   } catch (error) {

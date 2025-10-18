@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         } catch (error) {
             logger.error({ error }, "Failed to retrieve Stripe account");
             return NextResponse.json({
+                code: "STRIPE_ACCOUNT_RETRIEVAL_FAILED",
                 error: "Unable to verify tradesperson payment account"
             }, { status: 500 });
         }
@@ -76,14 +77,39 @@ export async function POST(request: NextRequest) {
         // Check account is fully onboarded and can accept payments
         if (!account.charges_enabled) {
             return NextResponse.json({
+                code: "ACCOUNT_NOT_CHARGEABLE",
                 error: "Tradesperson payment account is not yet verified. Please ask them to complete their payout setup."
-            }, { status: 400 });
+            }, { status: 409 });
         }
 
         if (!account.details_submitted) {
             return NextResponse.json({
+                code: "ACCOUNT_DETAILS_INCOMPLETE",
                 error: "Tradesperson has not completed their account setup"
-            }, { status: 400 });
+            }, { status: 409 });
+        }
+
+        // Check card_payments capability is active
+        if (account.capabilities?.card_payments !== 'active') {
+            return NextResponse.json({
+                code: "ACCOUNT_NOT_CHARGEABLE",
+                error: "Tradesperson account cannot accept card payments yet. Please ask them to complete their verification."
+            }, { status: 409 });
+        }
+
+        // Check for outstanding requirements
+        if (account.requirements?.currently_due && account.requirements.currently_due.length > 0) {
+            logger.warn(
+                { 
+                    accountId: tradesperson.stripeAccountId,
+                    requirements: account.requirements.currently_due 
+                },
+                "Stripe account has outstanding requirements"
+            );
+            return NextResponse.json({
+                code: "ACCOUNT_REQUIREMENTS_PENDING",
+                error: "Tradesperson account has pending verification requirements. Please ask them to complete their account setup."
+            }, { status: 409 });
         }
 
         // Determine the application

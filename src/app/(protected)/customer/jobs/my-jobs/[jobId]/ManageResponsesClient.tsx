@@ -15,7 +15,6 @@ import { ArrowLeft, MessageSquare, Clock, CheckCircle, X } from "lucide-react";
 import Link from "next/link";
 import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
 
-import { Decimal } from "@prisma/client/runtime/library";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('manage-responses-client');
@@ -27,7 +26,7 @@ interface Job {
   applications: Array<{
     id: string;
     message: string;
-    quote: Decimal | null;
+    quote: string | null; // Changed from Decimal to string
     status: string;
     requiresDeposit: boolean;
     depositPercentage: number;
@@ -53,7 +52,7 @@ interface AcceptRejectButtonsProps {
 interface PayDepositButtonProps {
   jobId: string;
   tradespersonId: string;
-  quote: Decimal | null;
+  quote: string | null; // Changed from Decimal to string
   depositPercentage: number;
   jobTitle: string;
   onPaymentComplete: () => void;
@@ -69,7 +68,9 @@ function PayDepositButton({
 }: PayDepositButtonProps) {
   const [showDepositModal, setShowDepositModal] = useState(false);
 
-  const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
+  // Convert quote string to number for calculation
+  const quoteValue = quote ? parseFloat(quote) : 0;
+  const depositAmount = quoteValue ? (quoteValue * depositPercentage) / 100 : 0;
 
   const handleClose = () => {
     setShowDepositModal(false);
@@ -109,7 +110,7 @@ function AcceptRejectButtons({
     id: string;
     requiresDeposit: boolean;
     depositPercentage: number;
-    quote: Decimal | null;
+    quote: string | null; // Changed from Decimal to string
     tradesperson: { id: string };
     job: { id: string; title: string };
   } | null>(null);
@@ -170,8 +171,10 @@ function AcceptRejectButtons({
   };
 
   // Calculate the deposit amount if we have application data
-  const depositAmount = applicationData?.quote
-    ? (applicationData.depositPercentage * Number(applicationData.quote)) / 100
+  // Convert quote string to number for calculation
+  const quoteValue = applicationData?.quote ? parseFloat(applicationData.quote) : 0;
+  const depositAmount = applicationData && quoteValue
+    ? (applicationData.depositPercentage * quoteValue) / 100
     : 0;
 
   return (
@@ -229,9 +232,10 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
     }
   };
 
-  const formatBudget = (budget: Decimal | null) => {
+  const formatBudget = (budget: string | null) => {
     if (!budget) return null;
-    return `£${Number(budget).toFixed(0)}`;
+    const value = parseFloat(budget);
+    return `£${value.toFixed(0)}`;
   };
 
   const getTradespersonName = (
