@@ -108,10 +108,10 @@ export async function POST(request: NextRequest) {
                         }
                     } else {
                         const errorText = await verifyResponse.text();
-                        logger.warn({ 
-                            placeId: locationData.id, 
+                        logger.warn({
+                            placeId: locationData.id,
                             status: verifyResponse.status,
-                            error: errorText 
+                            error: errorText
                         }, 'Place ID verification failed');
                         // Don't fail the request - log and continue
                         // The client-side already validated this is a real Place
