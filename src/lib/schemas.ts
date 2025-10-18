@@ -101,7 +101,7 @@ export const updateUserSchema = z.object({
 // Ticket schemas
 export const createTicketSchema = z.object({
     category: z.string().min(1, 'Category is required').max(100, 'Category too long'),
-    priority: z.nativeEnum(TicketPriority).default(TicketPriority.NORMAL),
+    priority: z.nativeEnum(TicketPriority),
     subject: z.string().min(1, 'Subject is required').max(200, 'Subject too long'),
     body: z.string().min(10, 'Description must be at least 10 characters').max(5000, 'Description too long'),
 })
