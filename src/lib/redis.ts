@@ -74,138 +74,143 @@ export const webhookRateLimit = redis
     })
     : null;
 
-// Safe wrapper functions for Redis operations
-// These provide consistent error handling and logging for all Redis operations
+// Cache utilities
+export const CACHE_KEYS = {
+    JOBS_LIST: (filters?: string) => `jobs:list:${filters || 'all'}`,
+    JOB_DETAIL: (jobId: string) => `job:detail:${jobId}`,
+    USER_CONVERSATIONS: (userId: string) => `conversations:${userId}`,
+    CHAT_MESSAGES: (jobId: string, participants: string) => `chat:${jobId}:${participants}`,
+    USER_APPLICATIONS: (userId: string, role: string) => `applications:${role}:${userId}`,
+    USER_STATS: (userId: string, role: string) => `stats:${role}:${userId}`,
+} as const;
 
-/**
- * Safely get a value from Redis
- * @param key - The Redis key
- * @returns The value or null if error or not found
- */
-export async function safeRedisGet<T>(key: string): Promise<T | null> {
+export const CACHE_TTL = {
+    JOBS_LIST: 180, // 3 minutes for real-time feel
+    JOB_DETAIL: 300, // 5 minutes
+    CONVERSATIONS: 60, // 1 minute
+    MESSAGES: 3600, // 1 hour
+    APPLICATIONS: 180, // 3 minutes for real-time updates
+    USER_STATS: 300, // 5 minutes
+} as const;
+
+// Helper functions for cache management
+export const invalidateJobCaches = async () => {
+    if (!redis) return;
+
+    try {
+        // Invalidate common job list cache patterns
+        const commonCacheKeys = [
+            'jobs:list:all:all:all:1',
+            'jobs:list:all:all:all:2',
+            'jobs:list:all:all:all:3',
+            'jobs:list:all',
+        ];
+
+        // Add category-specific cache keys (common categories)
+        const categories = ['ELECTRICAL', 'PLUMBING', 'CARPENTRY', 'PAINTING', 'GARDENING', 'GENERAL'];
+        categories.forEach(category => {
+            commonCacheKeys.push(`jobs:list:${category}:all:all:1`);
+            commonCacheKeys.push(`jobs:list:${category}:all:all:2`);
+        });
+
+        // Delete all common cache keys
+        await Promise.all(commonCacheKeys.map(key => redis!.del(key)));
+
+        logger.debug({ keyCount: commonCacheKeys.length }, 'Invalidated job list caches');
+    } catch (error) {
+        logger.error({ error }, 'Error invalidating job caches');
+    }
+};
+
+export const invalidateApplicationCaches = async (userId: string, role: string) => {
+    if (!redis) return;
+
+    try {
+        const cacheKey = CACHE_KEYS.USER_APPLICATIONS(userId, role);
+        await redis.del(cacheKey);
+        logger.debug({ userId }, 'Invalidated application cache');
+    } catch (error) {
+        logger.error({ error }, 'Error invalidating application cache');
+    }
+};
+
+export const invalidateJobDetailCache = async (jobId: string) => {
+    if (!redis) return;
+
+    try {
+        const cacheKey = CACHE_KEYS.JOB_DETAIL(jobId);
+        await redis.del(cacheKey);
+        logger.debug({ jobId }, 'Invalidated job detail cache');
+    } catch (error) {
+        logger.error({ error }, 'Error invalidating job detail cache');
+    }
+};
+
+export const cacheUserStats = async (userId: string, role: string, data: unknown) => {
+    if (!redis) return;
+
+    try {
+        const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
+        await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL.USER_STATS });
+        logger.debug({ cacheKey }, 'Cached user stats');
+    } catch (error) {
+        logger.error({ error }, 'Error caching user stats');
+    }
+};
+
+export const getCachedUserStats = async (userId: string, role: string) => {
     if (!redis) return null;
-    try {
-        return await redis.get<T>(key);
-    } catch (error) {
-        logger.error({ error, key }, 'Redis GET error');
-        return null;
-    }
-}
 
-/**
- * Safely set a value in Redis with expiry
- * @param key - The Redis key
- * @param value - The value to set
- * @param expirySeconds - Expiry time in seconds (optional)
- * @returns true if successful, false otherwise
- */
-export async function safeRedisSet(
-    key: string,
-    value: string | number | boolean | object,
-    expirySeconds?: number
-): Promise<boolean> {
-    if (!redis) return false;
     try {
-        if (expirySeconds !== undefined) {
-            await redis.set(key, value, { ex: expirySeconds });
-        } else {
-            await redis.set(key, value);
+        const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
+        const cached = await redis.get<string>(cacheKey);
+        if (cached) {
+            logger.debug({ cacheKey }, 'Cache hit for user stats');
+            return cached;
         }
-        return true;
     } catch (error) {
-        logger.error({ error, key }, 'Redis SET error');
-        return false;
+        logger.error({ error }, 'Error getting cached user stats');
     }
-}
+    return null;
+};
 
-/**
- * Safely delete one or more keys from Redis
- * @param keys - The Redis key(s) to delete
- * @returns true if successful, false otherwise
- */
-export async function safeRedisDel(...keys: string[]): Promise<boolean> {
-    if (!redis) return false;
+export const invalidateUserStats = async (userId: string, role: string) => {
+    if (!redis) return;
+
     try {
-        if (keys.length === 1) {
-            await redis.del(keys[0]);
-        } else {
-            await Promise.all(keys.map(key => redis!.del(key)));
+        const cacheKey = CACHE_KEYS.USER_STATS(userId, role);
+        await redis.del(cacheKey);
+        logger.debug({ userId }, 'Invalidated user stats cache');
+    } catch (error) {
+        logger.error({ error }, 'Error invalidating user stats cache');
+    }
+};
+
+export const cacheJobsList = async (key: string, data: unknown, ttl: number = CACHE_TTL.JOBS_LIST) => {
+    if (!redis) return;
+
+    try {
+        await redis.set(key, JSON.stringify(data), { ex: ttl });
+        logger.debug({ key }, 'Cached jobs list');
+    } catch (error) {
+        logger.error({ error }, 'Error caching jobs list');
+    }
+};
+
+export const getCachedJobsList = async (key: string) => {
+    if (!redis) return null;
+
+    try {
+        const cached = await redis.get<string>(key);
+        if (cached) {
+            logger.debug({ key }, 'Cache hit for jobs list');
+            return cached;
         }
-        return true;
     } catch (error) {
-        logger.error({ error, keys }, 'Redis DEL error');
-        return false;
+        logger.error({ error }, 'Error getting cached jobs list');
     }
-}
-
-/**
- * Safely push values to a Redis list
- * @param key - The Redis key
- * @param values - The values to push
- * @returns true if successful, false otherwise
- */
-export async function safeRedisLpush(key: string, ...values: (string | number)[]): Promise<boolean> {
-    if (!redis) return false;
-    try {
-        await redis.lpush(key, ...values);
-        return true;
-    } catch (error) {
-        logger.error({ error, key }, 'Redis LPUSH error');
-        return false;
-    }
-}
-
-/**
- * Safely set expiry on a Redis key
- * @param key - The Redis key
- * @param seconds - Expiry time in seconds
- * @returns true if successful, false otherwise
- */
-export async function safeRedisExpire(key: string, seconds: number): Promise<boolean> {
-    if (!redis) return false;
-    try {
-        await redis.expire(key, seconds);
-        return true;
-    } catch (error) {
-        logger.error({ error, key, seconds }, 'Redis EXPIRE error');
-        return false;
-    }
-}
-
-/**
- * Safely publish a message to a Redis channel
- * @param channel - The channel name
- * @param message - The message to publish
- * @returns true if successful, false otherwise
- */
-export async function safeRedisPublish(channel: string, message: string): Promise<boolean> {
-    if (!redis) return false;
-    try {
-        await redis.publish(channel, message);
-        return true;
-    } catch (error) {
-        logger.error({ error, channel }, 'Redis PUBLISH error');
-        return false;
-    }
-}
-
-/**
- * Check if Redis is connected and healthy
- * @returns true if connected, false otherwise
- */
-export async function isRedisHealthy(): Promise<boolean> {
-    if (!redis) return false;
-    try {
-        const testKey = `health:check:${Date.now()}`;
-        await redis.set(testKey, 'ok', { ex: 5 });
-        const result = await redis.get<string>(testKey);
-        await redis.del(testKey);
-        return result === 'ok';
-    } catch (error) {
-        logger.error({ error }, 'Redis health check failed');
-        return false;
-    }
-}
+    return null;
+};
 
 // Webhook security and idempotency helpers
 const WEBHOOK_FAILURE_THRESHOLD = 10;
