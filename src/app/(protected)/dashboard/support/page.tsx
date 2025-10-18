@@ -11,16 +11,19 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="container max-w-4xl py-8 space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Support Center</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto px-4 py-8 max-w-6xl bg-background min-h-screen">
+      {/* Welcome Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">
+          Support Center
+        </h1>
+        <p className="text-muted-foreground text-lg">
           We&apos;re here to help! Get in touch with our support team through live chat.
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-primary" />
@@ -40,7 +43,7 @@ export default function SupportPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-primary" />
@@ -52,7 +55,7 @@ export default function SupportPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full" asChild>
-              <a href="mailto:support@needatradesman.com">
+              <a href="mailto:support@needatradesman.co.uk">
                 Email Us
               </a>
             </Button>
@@ -60,7 +63,7 @@ export default function SupportPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="mt-8">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Book className="h-5 w-5 text-primary" />
