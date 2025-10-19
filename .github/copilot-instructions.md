@@ -22,6 +22,23 @@ This project is a Next.js 15 (App Router) marketplace connecting customers and t
 - Role/Onboarding: role is stored on our `User` model (enum). Route-level role gating is usually done in page components, not middleware.
 - Quote templates: CRUD API at `src/app/api/quote-templates/**`. Frontend integration via `src/components/quotes/QuoteBuilder.tsx` and `TemplateModal.tsx`.
 
+## SEO and structured data
+- **Always add structured data (JSON-LD)** when creating or updating pages. Use helpers from `src/lib/seo/schema.ts`.
+- **Page type mapping**:
+  - Homepage: `orgSchema()` + `websiteSchema()` combined with `combineSchemas()`
+  - Trade/service pages (e.g., `/services/plumbing/london`): `serviceSchema()` with `trade`, `location`, `priceRange`, and `areaServed`
+  - Provider profiles: `providerSchema()` with `HomeAndConstructionBusiness` type. **CRITICAL**: Only include reviews ABOUT the third-party tradesperson, never self-serving reviews about the marketplace.
+  - FAQ/help pages: `faqSchema()` with Q&A pairs
+  - How-to guides: `howToSchema()` with step-by-step instructions
+- **Metadata requirements**: Every page needs proper `<title>`, meta description, and Open Graph tags. Use Next.js `metadata` export in server components.
+- **URL structure**: Use clean, descriptive slugs (e.g., `/services/electrical/manchester` not `/service?id=123`). Include location and trade keywords.
+- **Content guidelines**:
+  - H1 must be unique per page and include primary keyword
+  - Include location + trade in titles for service pages (e.g., "Electricians in Manchester")
+  - Add descriptive alt text to all images
+  - Use semantic HTML (proper heading hierarchy, lists, etc.)
+- **See `src/lib/seo/README.md`** for complete JSON-LD documentation and `src/lib/seo/examples.ts` for copy-paste patterns.
+
 ## Key workflows (commands)
 - Dev: `pnpm install` then `pnpm dev` (TurboPack). App at http://localhost:3000.
 - Build: `pnpm build` (runs `prisma generate --no-engine` then `next build`). Start with `pnpm start`.
@@ -44,7 +61,7 @@ Migrations
   - Validates requesting customer owns the job, pulls the accepted application, builds a one-line item session with deposit amount and computed percentage. Stores `jobId`, `tradespersonId`, and `applicationId` in `metadata`.
 
 ## Data model (selected)
-- User: `role` (CUSTOMER|TRADESPERSON), `clerkId`, optional `stripeAccountId`, relations to jobs, applications, messages, quoteTemplates.
+- User: `role` (CUSTOMER|TRADESPERSON|PENDING), `clerkId`, optional `stripeAccountId`, relations to jobs, applications, messages, quoteTemplates.
 - Job: title, description, category, budget (Decimal), status, attachments (JSON string), customerId, acceptedTradespersonId, payment flags, timestamps.
 - Application: message, optional quote (Decimal) or `quoteItems` (Json), `requiresDeposit`, `depositPercentage`, status, jobId, tradespersonId.
 - QuoteTemplate/Item: per-user named template; items store description and Decimal `price`.
@@ -60,6 +77,7 @@ Migrations
 - Prefer Zod schemas in `src/lib/schemas.ts` and reuse existing patterns.
 - For money: store decimals with Prisma Decimal in DB; convert to Number safely before UI/Stripe. Always multiply by 100 for Stripe `unit_amount`.
 - Keep UI accessible and consistent with shadcn components; mount toasts via `sonner`.
+- **For new pages**: Add appropriate JSON-LD structured data using `<JsonLd />` component. Export Next.js `metadata` with title, description, and OpenGraph tags. Use semantic HTML with proper heading hierarchy.
 
 ## Useful references
 - Prisma schema: `prisma/schema.prisma`
@@ -68,5 +86,6 @@ Migrations
 - Redis helpers: `src/lib/redis.ts`
 - Pusher: `src/lib/pusher.ts`
 - Quote UI: `src/components/quotes/*`
+- SEO/JSON-LD: `src/lib/seo/schema.ts` (builders), `src/lib/seo/README.md` (docs), `src/lib/seo/examples.ts` (patterns)
 
 If something is unclear (e.g., payment edge cases, onboarding flow), leave a short comment in code and ask in the PR description. Keep changes scoped and runnable with the scripts above.
