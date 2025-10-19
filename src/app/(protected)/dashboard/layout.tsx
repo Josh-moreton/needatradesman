@@ -42,7 +42,7 @@ export default async function DashboardLayout({
       return (
         <div className="flex h-screen bg-background">
           <SidebarCustomer user={user} />
-          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+          <main className="flex-1 overflow-y-auto bg-background pt-14 md:pt-0">{children}</main>
         </div>
       );
 
@@ -51,7 +51,7 @@ export default async function DashboardLayout({
       return (
         <div className="flex h-screen bg-background">
           <SidebarTradesperson user={user} />
-          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
+          <main className="flex-1 overflow-y-auto bg-background pt-14 md:pt-0">{children}</main>
         </div>
       );
 
