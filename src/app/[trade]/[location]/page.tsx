@@ -10,6 +10,7 @@ import {
   parseLocationSlug,
   TRADE_PLURAL_NAMES,
   TRADE_SERVICE_NAMES,
+  TRADE_SLUGS,
   getNearbyAreas,
   getRelatedTrades,
   getSlugFromTrade,
@@ -23,7 +24,8 @@ import {
   checkPageQuality,
 } from "@/lib/programmatic-data";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { serviceSchema } from "@/lib/seo/schema";
+import { serviceSchema, faqSchema, combineSchemas } from "@/lib/seo/schema";
+import { getFAQsForTradeLocation } from "@/lib/trade-faqs";
 import Link from "next/link";
 
 interface PageProps {
@@ -35,6 +37,28 @@ interface PageProps {
 
 // Revalidate every 4 hours (ISR)
 export const revalidate = 14400;
+
+// Generate static params for most popular trade×location combinations
+export async function generateStaticParams() {
+  const trades = Object.keys(TRADE_SLUGS) as (keyof typeof TRADE_SLUGS)[];
+  const topCities = ["London", "Birmingham", "Manchester", "Glasgow", "Edinburgh"];
+
+  const params: { trade: string; location: string }[] = [];
+
+  for (const tradeKey of trades) {
+    const trade = tradeKey as keyof typeof TRADE_SLUGS;
+    const tradeSlug = TRADE_SLUGS[trade];
+    
+    for (const city of topCities) {
+      params.push({
+        trade: tradeSlug,
+        location: normalizeLocationSlug(city),
+      });
+    }
+  }
+
+  return params;
+}
 
 export async function generateMetadata({
   params,
@@ -93,8 +117,11 @@ export default async function TradeLocationPage({ params }: PageProps) {
   const tradeName = TRADE_PLURAL_NAMES[trade];
   const tradeServiceName = TRADE_SERVICE_NAMES[trade];
 
+  // Get FAQs for this trade×location
+  const faqs = getFAQsForTradeLocation(trade, location);
+
   // Generate structured data
-  const schema = serviceSchema({
+  const serviceSchemaData = serviceSchema({
     trade,
     location,
     priceRange: pricing
@@ -106,13 +133,16 @@ export default async function TradeLocationPage({ params }: PageProps) {
     url: `https://needatradesman.com/${tradeSlug}/${locationSlug}`,
   });
 
+  const faqSchemaData = faqSchema(faqs);
+  const combinedSchema = combineSchemas([serviceSchemaData, faqSchemaData]);
+
   // Get related content for internal linking
   const nearbyAreas = getNearbyAreas(location);
   const relatedTrades = getRelatedTrades(trade);
 
   return (
     <>
-      <JsonLd data={schema} />
+      <JsonLd data={combinedSchema} />
 
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
@@ -339,6 +369,41 @@ export default async function TradeLocationPage({ params }: PageProps) {
                 >
                   {TRADE_PLURAL_NAMES[relatedTrade]}
                 </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* FAQ Section */}
+        {faqs.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-6">
+              Frequently Asked Questions
+            </h2>
+            <div className="space-y-4">
+              {faqs.slice(0, 5).map((faq, index) => (
+                <details
+                  key={index}
+                  className="group rounded-lg border bg-card p-4"
+                >
+                  <summary className="flex cursor-pointer items-center justify-between font-medium">
+                    <span>{faq.question}</span>
+                    <svg
+                      className="h-5 w-5 transition-transform group-open:rotate-180"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </summary>
+                  <p className="mt-4 text-sm text-muted-foreground">{faq.answer}</p>
+                </details>
               ))}
             </div>
           </section>
