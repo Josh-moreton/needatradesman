@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-connect-status");
@@ -8,14 +8,14 @@ const logger = createLogger("stripe-connect-status");
 import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 
 export async function GET() {
-    const { userId } = await auth();
+    const session = await auth();
 
-    if (!userId) {
+    if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Fetch user from DB
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
 
     if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });

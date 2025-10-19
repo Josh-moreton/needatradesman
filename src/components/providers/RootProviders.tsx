@@ -1,7 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import ClerkThemeProvider from "@/components/providers/ClerkThemeProvider";
+import AuthSessionProvider from "@/components/providers/ClerkThemeProvider";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "sonner";
@@ -21,12 +21,12 @@ export default function RootProviders({ children, userRole = null }: RootProvide
       enableSystem={false}
       disableTransitionOnChange
     >
-      <ClerkThemeProvider>
+      <AuthSessionProvider>
         <Header userRole={userRole} />
         <main className="min-h-screen">{children}</main>
         <Footer />
         <Toaster position="top-center" />
-      </ClerkThemeProvider>
+      </AuthSessionProvider>
     </ThemeProvider>
   );
 }

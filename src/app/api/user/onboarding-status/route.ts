@@ -1,29 +1,41 @@
 import { NextResponse } from 'next/server'
-import { auth, clerkClient } from '@clerk/nextjs/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 
 const logger = createLogger('user-onboarding-status');
 
 export async function POST() {
     try {
-        const { userId } = await auth()
+        const session = await auth()
 
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             )
         }
 
-        const client = await clerkClient()
+        // Get the user from the database
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: {
+                role: true,
+                onboardingComplete: true,
+            }
+        })
 
-        // Force refresh the user's metadata
-        const user = await client.users.getUser(userId)
+        if (!user) {
+            return NextResponse.json(
+                { error: 'User not found' },
+                { status: 404 }
+            )
+        }
 
         return NextResponse.json({
             success: true,
-            metadata: user.publicMetadata,
-            onboardingComplete: user.publicMetadata?.onboardingComplete || false
+            onboardingComplete: user.onboardingComplete,
+            role: user.role,
         })
     } catch (error) {
         logger.error({ error }, 'Error checking onboarding status')
