@@ -18,22 +18,117 @@ import {
   SignInButton,
   SignUpButton,
   UserButton,
+  useUser,
 } from "@clerk/nextjs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import {
+  Menu,
+  Home,
+  PlusCircle,
+  FileText,
+  MessageSquare,
+  HelpCircle,
+  Briefcase,
+  BarChart3,
+  DollarSign,
+} from "lucide-react";
+import { UserRole } from "@prisma/client";
 
 export default function Header() {
   const pathname = usePathname();
-  // Theme hydration fix: Only show ThemeToggle after mount
+  const { user: clerkUser, isLoaded } = useUser();
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
-  // Determine user role based on current path
-  const isCustomer = pathname?.startsWith("/customer");
-  const isTradesperson = pathname?.startsWith("/tradesperson");
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch user role from our database
+  useEffect(() => {
+    if (isLoaded && clerkUser) {
+      fetch("/api/user/me")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.role) {
+            setUserRole(data.role);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user role:", error);
+        });
+    }
+  }, [isLoaded, clerkUser]);
+
+  const isCustomer = userRole === UserRole.CUSTOMER;
+  const isTradesperson = userRole === UserRole.TRADESPERSON;
+
+  // Navigation links for customers
+  const customerLinks = [
+    { href: "/dashboard", label: "Home", icon: Home },
+    { href: "/dashboard/jobs/new", label: "Post Job", icon: PlusCircle },
+    { href: "/dashboard/my-jobs", label: "My Jobs", icon: FileText },
+    { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+    { href: "/dashboard/support", label: "Support", icon: HelpCircle },
+  ];
+
+  // Navigation links for tradespeople
+  const tradespersonLinks = [
+    { href: "/dashboard", label: "Home", icon: Home },
+    { href: "/dashboard/jobs", label: "Browse Jobs", icon: Briefcase },
+    { href: "/dashboard/my-responses", label: "My Responses", icon: FileText },
+    { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+    { href: "/dashboard/quote-templates", label: "Quote Templates", icon: BarChart3 },
+    { href: "/dashboard/payouts", label: "Payouts", icon: DollarSign },
+    { href: "/dashboard/support", label: "Support", icon: HelpCircle },
+  ];
+
+  const currentLinks = isCustomer ? customerLinks : isTradesperson ? tradespersonLinks : [];
+
+  // Mobile menu component
+  const MobileMenu = () => (
+    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle navigation menu</span>
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72 p-0">
+        <SheetHeader className="border-b px-6 py-4">
+          <SheetTitle className="text-left">
+            {isCustomer ? "Customer" : isTradesperson ? "Tradesperson" : "Menu"}
+          </SheetTitle>
+        </SheetHeader>
+        <nav className="flex flex-col p-4">
+          {currentLinks.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileMenuOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                pathname === href && "bg-accent text-accent-foreground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -41,8 +136,11 @@ export default function Header() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* This div contains the flex layout for the header items */}
         <div className="relative flex h-14 items-center justify-between">
-          {/* Left Section: Logo */}
-          <div className="flex items-center">
+          {/* Left Section: Mobile Menu + Logo */}
+          <div className="flex items-center gap-2">
+            <SignedIn>
+              <MobileMenu />
+            </SignedIn>
             <Link href="/" className="flex items-center space-x-2">
               <div className="hidden md:flex">
                 <Logo variant="auto" size="md" priority />
