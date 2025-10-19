@@ -81,6 +81,10 @@ export default async function ManageResponsesPage({
         title: true,
         status: true,
         depositPaid: true,
+        depositCaptured: true,
+        depositCapturedAt: true,
+        depositCancelledAt: true,
+        depositPaymentIntentId: true,
         finalPaid: true,
         budget: true,
         applications: {

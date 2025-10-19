@@ -25,6 +25,10 @@ interface Job {
   title: string;
   status: string;
   depositPaid: boolean;
+  depositCaptured: boolean;
+  depositCapturedAt: Date | null;
+  depositCancelledAt: Date | null;
+  depositPaymentIntentId: string | null;
   finalPaid: boolean;
   budget: Decimal | null;
   applications: Array<{
@@ -224,12 +228,15 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const canShowPaymentFlow = (): boolean => {
     if (!acceptedApplication || job.finalPaid) return false;
     
-    // Show payment flow if deposit required and paid, or no deposit required and job accepted
-    return (acceptedApplication.requiresDeposit && job.depositPaid) || 
+    // Show payment flow if deposit required and captured, or no deposit required and job accepted
+    return (acceptedApplication.requiresDeposit && job.depositCaptured) || 
            (!acceptedApplication.requiresDeposit && job.status !== "OPEN");
   };
   
   const shouldShowPaymentFlow = canShowPaymentFlow();
+
+  // Check if deposit is held (paid but not captured)
+  const isDepositHeld = job.depositPaid && !job.depositCaptured && !job.depositCancelledAt;
 
   // Debug: Log job details
   console.log("Job details:", {
@@ -341,6 +348,62 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
     }
   };
 
+  // Handle capturing held deposit payment
+  const handleCapturePayment = async () => {
+    if (!confirm("Release the deposit payment to the tradesperson? This confirms work will proceed.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/stripe/capture-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || "Failed to capture payment");
+        return;
+      }
+
+      // Refresh to show updated status
+      router.refresh();
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      logger.error({ error }, "Failed to capture payment");
+      alert("Failed to capture payment. Please try again.");
+    }
+  };
+
+  // Handle canceling held deposit payment
+  const handleCancelPayment = async () => {
+    if (!confirm("Cancel the held deposit payment? This will reopen the job and reset all applications. The payment authorization will be cancelled and no funds will be charged.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/stripe/cancel-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || "Failed to cancel payment");
+        return;
+      }
+
+      // Refresh to show updated status
+      router.refresh();
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      logger.error({ error }, "Failed to cancel payment");
+      alert("Failed to cancel payment. Please try again.");
+    }
+  };
+
   // Helper to ensure a conversation exists, creating it if needed
   const ensureConversationAndNavigate = async (
     jobId: string,
@@ -397,6 +460,42 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* Payment Hold Status */}
+      {isDepositHeld && (
+        <Card className="mb-6 border-yellow-500/20 bg-yellow-500/5">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold">Payment Held</h3>
+                  <Badge variant="outline" className="text-yellow-700 border-yellow-700">
+                    Awaiting Capture
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  The deposit payment has been authorized and is currently on hold. You can:
+                </p>
+                <ul className="list-disc list-inside text-sm text-muted-foreground mb-4 space-y-1">
+                  <li><strong>Release Payment:</strong> Confirm work will proceed and transfer funds to tradesperson</li>
+                  <li><strong>Cancel Payment:</strong> Cancel the authorization if work won&apos;t proceed (no charge)</li>
+                  <li><strong>Auto-capture:</strong> Payment will be automatically captured after 7 days if not manually released or cancelled</li>
+                </ul>
+                <div className="flex gap-2">
+                  <Button onClick={handleCapturePayment} variant="default">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Release Payment
+                  </Button>
+                  <Button onClick={handleCancelPayment} variant="destructive">
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel Payment
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Job Actions */}
       {shouldShowPaymentFlow && (

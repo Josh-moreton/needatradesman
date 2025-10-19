@@ -88,12 +88,13 @@ export async function POST(request: NextRequest) {
             amount: capturedPayment.amount
         }, "Payment captured successfully");
 
-        // Update job status to mark deposit as captured
+        // Update job status to mark deposit as captured and move to IN_PROGRESS
         await prisma.job.update({
             where: { id: jobId },
             data: {
                 depositCaptured: true,
                 depositCapturedAt: new Date(),
+                status: "IN_PROGRESS",
             },
         });
 
