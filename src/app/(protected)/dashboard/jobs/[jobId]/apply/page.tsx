@@ -52,8 +52,8 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
       include: {
         customer: {
           select: {
-            firstName: true,
-            lastName: true,
+            name: true,
+            
           },
         },
       },

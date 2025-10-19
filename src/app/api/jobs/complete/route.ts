@@ -17,7 +17,9 @@ const logger = createLogger("complete-job");
  */
 export async function POST(request: NextRequest) {
     try {
-        const { userId } = await auth();
+        const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.user.id;
 
         if (!userId) {
             return NextResponse.json(
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
 
         // Get the user from database
         const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
+            where: { id: userId },
         });
 
         if (!user) {

@@ -16,14 +16,16 @@ const logger = createLogger("jobs-api");
 export async function POST(request: NextRequest) {
     try {
         // Check authentication
-        const { userId } = await auth();
+        const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.user.id;
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
         // Get user from database and verify role
         const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
+            where: { id: userId },
         });
 
         if (!user) {
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
         // Rate limiting for job posting (use clerkId to avoid reuse of internal IDs)
         if (jobPostingRateLimit) {
             try {
-                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(user.clerkId);
+                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(user.id);
 
                 if (!success) {
                     const resetDate = new Date(reset);
@@ -267,8 +269,8 @@ export async function GET(request: NextRequest) {
                         include: {
                             customer: {
                                 select: {
-                                    firstName: true,
-                                    lastName: true,
+                                    name: true,
+                                    
                                 },
                             },
                             _count: {

@@ -6,10 +6,12 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { userId } = await auth();
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.user.id;
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse("User not found", { status: 404 });
 
     const { id } = await params;
@@ -35,10 +37,12 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { userId } = await auth();
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.user.id;
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse("User not found", { status: 404 });
 
     const { id } = await params;
@@ -68,10 +72,12 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { userId } = await auth();
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.user.id;
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse("User not found", { status: 404 });
 
     const { id } = await params;

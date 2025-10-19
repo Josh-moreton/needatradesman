@@ -12,7 +12,9 @@ export async function POST(
     { params }: { params: Promise<{ jobId: string }> }
 ) {
     try {
-        const { userId } = await auth();
+        const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session.user.id;
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -20,7 +22,7 @@ export async function POST(
         const { jobId } = await params;
 
         // Fetch user from DB
-        const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+        const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }

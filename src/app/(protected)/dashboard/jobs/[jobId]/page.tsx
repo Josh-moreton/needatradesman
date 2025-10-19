@@ -124,8 +124,8 @@ export default async function JobDetailPage({
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
+            
           },
         },
         applications: {
@@ -133,8 +133,8 @@ export default async function JobDetailPage({
             tradesperson: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
+                name: true,
+                
                 email: true,
               },
             },
