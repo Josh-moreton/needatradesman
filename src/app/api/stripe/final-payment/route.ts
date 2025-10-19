@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
@@ -7,10 +7,12 @@ import { createLogger } from "@/lib/logger";
 const logger = createLogger("stripe-final-payment");
 
 export async function POST(request: NextRequest) {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await auth();
+    if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.user.id;
 
     // Parse request body
     const { jobId } = await request.json();
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     try {
         // Fetch user from DB
-        const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+        const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify that the requesting user is the customer of this job
-        if (job.customer.clerkId !== userId) {
+        if (job.customer.id !== userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 

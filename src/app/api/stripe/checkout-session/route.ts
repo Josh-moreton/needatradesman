@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-checkout-session");
 
 export async function POST(request: NextRequest) {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await auth();
+    if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.user.id;
 
     // Parse request body
     const { jobId, depositAmount, tradespersonId } = await request.json();
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify that the requesting user is the customer of this job
-        if (job.customer.clerkId !== userId) {
+        if (job.customer.id !== userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
