@@ -158,11 +158,11 @@ export async function POST(request: NextRequest) {
                                 throw new Error('Job already has accepted tradesperson');
                             }
 
-                            // 2. Update job status and store payment information atomically
+                            // 2. Store payment information (payment is held, not captured yet)
+                            // Status stays OPEN until payment is captured manually
                             await tx.job.update({
                                 where: { id: jobId },
                                 data: {
-                                    status: "IN_PROGRESS",
                                     depositPaid: true,
                                     depositPaymentIntentId: session.payment_intent as string,
                                     acceptedTradespersonId: tradespersonId,
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
                             jobId,
                             tradespersonId,
                             sessionId: session.id
-                        }, "Deposit payment processed successfully");
+                        }, "Deposit payment authorized (held) successfully");
                     } catch (transactionError) {
                         logger.error({
                             jobId,
@@ -247,6 +247,73 @@ export async function POST(request: NextRequest) {
                         // Transaction will rollback automatically
                         // Consider alerting admin here for non-race-condition errors
                     }
+                }
+
+                break;
+            }
+
+            case "payment_intent.amount_capturable_updated": {
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+                // Find job with this payment intent
+                const job = await prisma.job.findFirst({
+                    where: { depositPaymentIntentId: paymentIntent.id }
+                });
+
+                if (job) {
+                    logger.info({
+                        jobId: job.id,
+                        paymentIntentId: paymentIntent.id,
+                        status: paymentIntent.status
+                    }, "Payment intent amount capturable updated");
+                }
+
+                break;
+            }
+
+            case "payment_intent.canceled": {
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+                // Find job with this payment intent
+                const job = await prisma.job.findFirst({
+                    where: { depositPaymentIntentId: paymentIntent.id }
+                });
+
+                if (job && !job.depositCancelledAt) {
+                    // Update job to reflect cancellation
+                    await prisma.job.update({
+                        where: { id: job.id },
+                        data: {
+                            depositCancelledAt: new Date(),
+                            depositPaid: false,
+                            status: "OPEN",
+                            acceptedTradespersonId: null,
+                        },
+                    });
+
+                    logger.info({
+                        jobId: job.id,
+                        paymentIntentId: paymentIntent.id
+                    }, "Payment intent cancelled via webhook");
+                }
+
+                break;
+            }
+
+            case "payment_intent.payment_failed": {
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+                // Find job with this payment intent
+                const job = await prisma.job.findFirst({
+                    where: { depositPaymentIntentId: paymentIntent.id }
+                });
+
+                if (job) {
+                    logger.error({
+                        jobId: job.id,
+                        paymentIntentId: paymentIntent.id,
+                        lastPaymentError: paymentIntent.last_payment_error
+                    }, "Payment intent failed");
                 }
 
                 break;

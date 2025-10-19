@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
                 transfer_data: {
                     destination: tradesperson.stripeAccountId,
                 },
+                capture_method: "manual", // Enable manual capture for payment hold
             },
             metadata: {
                 jobId: job.id,

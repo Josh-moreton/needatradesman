@@ -50,6 +50,9 @@ model Job {
   customerId                    String
   depositPaid                   Boolean     @default(false)
   depositPaymentIntentId        String?     @unique // Ensure each payment intent is used only once
+  depositCaptured               Boolean     @default(false) // Track if deposit payment was captured
+  depositCapturedAt             DateTime? // When deposit was captured
+  depositCancelledAt            DateTime? // When deposit authorization was cancelled
   finalPaid                     Boolean     @default(false)
   finalPaymentIntentId          String?     @unique // Ensure each payment intent is used only once
   acceptedTradespersonId        String?
