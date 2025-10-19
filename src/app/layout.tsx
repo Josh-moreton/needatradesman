@@ -97,6 +97,7 @@ export default function RootLayout({
             <CrispChat />
           </RootProviders>
           <Analytics />
+          <SpeedInsights />
         </ErrorBoundary>
       </body>
     </html>
