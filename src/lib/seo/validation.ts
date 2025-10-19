@@ -163,10 +163,12 @@ export function validateServiceSchema(schema: unknown): {
 export function validateLocalBusinessSchema(schema: unknown): {
   valid: boolean;
   errors: string[];
+  warnings?: string[];
 } {
   const { valid: basicValid, errors } = validateSchema(schema);
   if (!basicValid) return { valid: false, errors };
 
+  const warnings: string[] = [];
   const schemaObj = schema as Record<string, unknown>;
 
   // HomeAndConstructionBusiness is a subclass of LocalBusiness
@@ -185,14 +187,15 @@ export function validateLocalBusinessSchema(schema: unknown): {
 
   // Warn if address is missing (recommended for local SEO)
   if (!schemaObj.address) {
-    errors.push(
-      "Warning: LocalBusiness should include address for better local SEO"
+    warnings.push(
+      "LocalBusiness should include address for better local SEO"
     );
   }
 
   return {
     valid: errors.length === 0,
     errors,
+    warnings: warnings.length > 0 ? warnings : undefined,
   };
 }
 
