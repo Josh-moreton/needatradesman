@@ -219,10 +219,17 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
 
   // Find the accepted application to check deposit requirements
   const acceptedApplication = job.applications.find(app => app.status === "ACCEPTED");
-  const shouldShowPaymentFlow = acceptedApplication && !job.finalPaid && (
-    (acceptedApplication.requiresDeposit && job.depositPaid) || // Deposit required and paid
-    (!acceptedApplication.requiresDeposit && job.status !== "OPEN") // No deposit required and job accepted
-  );
+  
+  // Helper to determine if payment flow should be shown
+  const canShowPaymentFlow = (): boolean => {
+    if (!acceptedApplication || job.finalPaid) return false;
+    
+    // Show payment flow if deposit required and paid, or no deposit required and job accepted
+    return (acceptedApplication.requiresDeposit && job.depositPaid) || 
+           (!acceptedApplication.requiresDeposit && job.status !== "OPEN");
+  };
+  
+  const shouldShowPaymentFlow = canShowPaymentFlow();
 
   // Debug: Log job details
   console.log("Job details:", {

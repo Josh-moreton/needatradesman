@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         }
 
         let finalAmount: number;
-        let depositAmount: number;
+        let depositAmount = 0; // Initialize to 0 for no-deposit scenarios
 
         if (application.requiresDeposit) {
             // Deposit was required - calculate remaining balance after deposit
@@ -136,6 +136,14 @@ export async function POST(request: NextRequest) {
         // Get origin for success/cancel URLs
         const origin = request.headers.get("origin") || "http://localhost:3000";
 
+        // Prepare payment descriptions
+        const paymentName = application.requiresDeposit 
+            ? `Final Payment - ${job.title}` 
+            : `Full Payment - ${job.title}`;
+        const paymentDescription = application.requiresDeposit
+            ? `Remaining balance for completed job: ${job.title}`
+            : `Full payment for completed job: ${job.title}`;
+
         // Create a Checkout Session for final payment with Connect
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card", "klarna", "afterpay_clearpay"],
@@ -145,12 +153,8 @@ export async function POST(request: NextRequest) {
                     price_data: {
                         currency: "gbp",
                         product_data: {
-                            name: application.requiresDeposit 
-                                ? `Final Payment - ${job.title}` 
-                                : `Full Payment - ${job.title}`,
-                            description: application.requiresDeposit
-                                ? `Remaining balance for completed job: ${job.title}`
-                                : `Full payment for completed job: ${job.title}`,
+                            name: paymentName,
+                            description: paymentDescription,
                         },
                         unit_amount: formattedAmount,
                     },
