@@ -45,11 +45,11 @@ export async function generateMetadata({
   return {
     title,
     description,
-    // Set noindex if profile is incomplete
+    // Set noindex if profile is incomplete, but keep follow for link equity
     robots:
       provider.isPublished && isComplete
         ? { index: true, follow: true }
-        : { index: false, follow: false },
+        : { index: false, follow: true },
     openGraph: {
       title,
       description,

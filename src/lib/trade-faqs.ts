@@ -177,9 +177,9 @@ export function getFAQsForTradeLocation(
 ): FAQItem[] {
   const baseFAQs = getFAQsForTrade(trade);
 
-  // Customize FAQs by injecting location where relevant
+  // Customize FAQs by injecting location where relevant (only standalone 'local' words)
   return baseFAQs.map((faq) => ({
-    question: faq.question.replace(/local/gi, `${location}`),
+    question: faq.question.replace(/\blocal\b/gi, `${location}`),
     answer: faq.answer,
   }));
 }

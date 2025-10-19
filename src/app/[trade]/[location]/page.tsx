@@ -82,10 +82,10 @@ export async function generateMetadata({
   return {
     title,
     description,
-    // Set noindex if page doesn't meet quality threshold
+    // Set noindex if page doesn't meet quality threshold, but keep follow for link equity
     robots: quality.shouldPublish
       ? { index: true, follow: true }
-      : { index: false, follow: false },
+      : { index: false, follow: true },
     openGraph: {
       title,
       description,
