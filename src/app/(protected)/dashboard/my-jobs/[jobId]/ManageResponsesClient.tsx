@@ -23,7 +23,10 @@ const logger = createLogger('manage-responses-client');
 interface Job {
   id: string;
   title: string;
+  status: string;
   depositPaid: boolean;
+  finalPaid: boolean;
+  budget: Decimal | null;
   applications: Array<{
     id: string;
     message: string;
@@ -214,6 +217,14 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const [chatLoading, setChatLoading] = useState<string | null>(null);
   const router = useRouter();
 
+  // Debug: Log job details
+  console.log("Job details:", {
+    id: job.id,
+    status: job.status,
+    depositPaid: job.depositPaid,
+    finalPaid: job.finalPaid,
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -255,6 +266,60 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
 
   const handleStatusChange = () => {
     setRefreshKey((prev) => prev + 1);
+  };
+
+  // Handle completing job and initiating final payment
+  const handleCompleteJob = async () => {
+    if (!confirm("Are you sure the work is complete and satisfactory? This will allow you to pay the final balance.")) {
+      return;
+    }
+
+    try {
+      // Mark job as complete
+      const response = await fetch("/api/jobs/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || "Failed to complete job");
+        return;
+      }
+
+      // Refresh to show updated status
+      router.refresh();
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      logger.error({ error }, "Failed to complete job");
+      alert("Failed to complete job. Please try again.");
+    }
+  };
+
+  // Handle final payment
+  const handleFinalPayment = async () => {
+    try {
+      const response = await fetch("/api/stripe/final-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || "Failed to initiate payment");
+        return;
+      }
+
+      const { url } = await response.json();
+      if (url) {
+        globalThis.location.href = url;
+      }
+    } catch (error) {
+      logger.error({ error }, "Failed to initiate final payment");
+      alert("Failed to initiate payment. Please try again.");
+    }
   };
 
   // Helper to ensure a conversation exists, creating it if needed
@@ -313,6 +378,45 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* Job Actions */}
+      {job.depositPaid && !job.finalPaid && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2">Complete Job & Pay Final Balance</h3>
+                {job.status === "IN_PROGRESS" && (
+                  <p className="text-muted-foreground mb-4">
+                    Once the work is complete and satisfactory, mark the job as complete and pay the remaining balance to the tradesperson.
+                  </p>
+                )}
+                {job.status === "COMPLETED" && (
+                  <p className="text-muted-foreground mb-4">
+                    Job is marked as complete. Process the final payment to release the remaining balance to the tradesperson.
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  {job.status === "IN_PROGRESS" && (
+                    <Button onClick={handleCompleteJob}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Mark Job Complete
+                    </Button>
+                  )}
+                  {job.status === "COMPLETED" && (
+                    <Button onClick={handleFinalPayment}>
+                      💳 Pay Final Balance
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <Badge variant="outline" className="text-primary">
+                Status: {job.status.replace("_", " ")}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Responses */}
       <div className="space-y-4" key={refreshKey}>

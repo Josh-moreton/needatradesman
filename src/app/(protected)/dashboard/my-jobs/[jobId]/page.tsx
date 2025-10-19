@@ -79,7 +79,10 @@ export default async function ManageResponsesPage({
       select: {
         id: true,
         title: true,
+        status: true,
         depositPaid: true,
+        finalPaid: true,
+        budget: true,
         applications: {
           include: {
             tradesperson: {
