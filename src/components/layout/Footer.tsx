@@ -6,8 +6,8 @@ import { Logo } from "@/components/ui/logo";
 export default function Footer() {
   return (
     <footer className="border-t bg-card/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8">
           {/* Logo and Description */}
           <div className="col-span-1 md:col-span-2">
             <Link href="/" className="inline-block mb-4">
@@ -21,8 +21,8 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
-            <ul className="space-y-3">
+            <h3 className="font-semibold text-foreground mb-3 sm:mb-4">Quick Links</h3>
+            <ul className="space-y-2 sm:space-y-3">
               <li>
                 <Link
                   href="/sign-up"
@@ -52,8 +52,8 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Support</h3>
-            <ul className="space-y-3">
+            <h3 className="font-semibold text-foreground mb-3 sm:mb-4">Support</h3>
+            <ul className="space-y-2 sm:space-y-3">
               <li>
                 <Link
                   href="#"
@@ -83,7 +83,7 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t mt-8 pt-8 text-center">
+        <div className="border-t mt-6 pt-6 sm:mt-8 sm:pt-8 text-center">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Need A Tradesman. All rights reserved.
           </p>
