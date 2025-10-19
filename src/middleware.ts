@@ -24,6 +24,7 @@ const isPublicRoute = createRouteMatcher([
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
+    '/debug-auth', // Debug page to diagnose auth issues
     '/api/webhooks(.*)', // Clerk webhooks must be public for external services
     '/api/stripe/webhook(.*)', // Stripe webhooks must be public
 ])
