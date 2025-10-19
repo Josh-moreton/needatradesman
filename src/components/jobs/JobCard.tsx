@@ -20,8 +20,7 @@ interface JobCardProps {
     readonly status: string;
     readonly createdAt: Date;
     readonly customer?: {
-      readonly firstName: string | null;
-      readonly lastName: string | null;
+      readonly name: string | null;
     };
     readonly _count?: {
       readonly applications: number;
@@ -55,10 +54,7 @@ export function JobCard({ job, variant = "public" }: JobCardProps) {
 
   const getCustomerName = () => {
     if (!job.customer) return "Anonymous";
-    const { firstName, lastName } = job.customer;
-    if (firstName && lastName) return `${firstName} ${lastName}`;
-    if (firstName) return firstName;
-    return "Anonymous";
+    return job.customer.name || "Anonymous";
   };
 
   return (

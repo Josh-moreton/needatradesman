@@ -37,8 +37,7 @@ interface Job {
     createdAt: Date;
     tradesperson: {
       id: string;
-      firstName: string | null;
-      lastName: string | null;
+      name: string | null;
       email: string;
     };
   }>;
@@ -267,8 +266,8 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const getTradespersonName = (
     tradesperson: Job["applications"][0]["tradesperson"]
   ) => {
-    if (tradesperson.firstName && tradesperson.lastName) {
-      return `${tradesperson.firstName} ${tradesperson.lastName}`;
+    if (tradesperson.name || "Anonymous"
+      return `${tradesperson.name || "Anonymous"
     }
     return tradesperson.email;
   };
