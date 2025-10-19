@@ -4,6 +4,8 @@ import "./globals.css";
 import RootProviders from "@/components/providers/RootProviders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CrispChat } from "@/components/support/CrispChat";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -94,6 +96,7 @@ export default function RootLayout({
             {children}
             <CrispChat />
           </RootProviders>
+          <Analytics />
         </ErrorBoundary>
       </body>
     </html>
