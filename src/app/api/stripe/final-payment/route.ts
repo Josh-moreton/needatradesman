@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
         // Create a Checkout Session for final payment with Connect
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
+            payment_method_types: ["card", "klarna", "afterpay_clearpay"],
             mode: "payment",
             line_items: [
                 {
