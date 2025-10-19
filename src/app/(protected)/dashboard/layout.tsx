@@ -1,8 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
-import { redirect } from "next/navigation";
-import { SidebarCustomer } from "@/components/layout/SidebarCustomer";
-import { SidebarTradesperson } from "@/components/layout/SidebarTradesperson";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
 export default async function DashboardLayout({
@@ -17,46 +14,30 @@ export default async function DashboardLayout({
     // User is authenticated with Clerk but doesn't exist in our DB yet
     // This happens when webhooks aren't configured - show onboarding to create user
     return (
-      <div className="flex h-screen bg-background">
-        <main className="flex-1 overflow-y-auto">
+      <div className="flex min-h-screen bg-background">
+        <main className="flex-1">
           <OnboardingFlow />
         </main>
       </div>
     );
   }
 
-  // Route based on role - clean state machine pattern
-  switch (user.role) {
-    case UserRole.PENDING:
-      // User needs to complete onboarding
-      return (
-        <div className="flex h-screen bg-background">
-          <main className="flex-1 overflow-y-auto">
-            <OnboardingFlow />
-          </main>
-        </div>
-      );
-
-    case UserRole.CUSTOMER:
-      // Customer dashboard with sidebar
-      return (
-        <div className="flex h-screen bg-background">
-          <SidebarCustomer user={user} />
-          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
-        </div>
-      );
-
-    case UserRole.TRADESPERSON:
-      // Tradesperson dashboard with sidebar
-      return (
-        <div className="flex h-screen bg-background">
-          <SidebarTradesperson user={user} />
-          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
-        </div>
-      );
-
-    default:
-      // Invalid role - should never happen, but defensive
-      redirect("/sign-in");
+  // If user needs onboarding, show onboarding flow
+  if (user.role === UserRole.PENDING) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <main className="flex-1">
+          <OnboardingFlow />
+        </main>
+      </div>
+    );
   }
+
+  // User is authenticated and has completed onboarding - render dashboard content
+  // Header component (in root layout) handles all navigation
+  return (
+    <div className="flex min-h-screen bg-background">
+      <main className="flex-1 w-full">{children}</main>
+    </div>
+  );
 }

@@ -6,8 +6,14 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "sonner";
 import { ReactNode } from "react";
+import { UserRole } from "@prisma/client";
 
-export default function RootProviders({ children }: { children: ReactNode }) {
+interface RootProvidersProps {
+  children: ReactNode;
+  userRole?: UserRole | null;
+}
+
+export default function RootProviders({ children, userRole = null }: RootProvidersProps) {
   return (
     <ThemeProvider
       attribute="class"
@@ -16,7 +22,7 @@ export default function RootProviders({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <ClerkThemeProvider>
-        <Header />
+        <Header userRole={userRole} />
         <main className="min-h-screen">{children}</main>
         <Footer />
         <Toaster position="top-center" />
