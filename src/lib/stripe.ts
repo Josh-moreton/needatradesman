@@ -11,13 +11,10 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export const STRIPE_CONFIG = {
     currency: 'gbp',
-    paymentMethods: ['card'],
-    mode: 'payment',
-    // Platform fee configuration
-    platformFeePercentage: 10, // 10% platform fee
-    // Stripe fee: 1.4% + 20p per transaction (standard UK rate)
-    stripeFeePercentage: 1.4,
-    stripeFeeFixed: 0.2, // in GBP
+    // Platform commission - the percentage fee you charge on each transaction
+    // Note: Set low (1%) initially to gain market traction
+    // Industry standard: 5-20% (Airbnb ~15%, Uber ~25%, Upwork ~20%)
+    platformFeePercentage: 10,
 } as const
 
 /**
