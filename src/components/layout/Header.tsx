@@ -18,7 +18,6 @@ import {
   SignInButton,
   SignUpButton,
   UserButton,
-  useUser,
 } from "@clerk/nextjs";
 import {
   Sheet,
@@ -43,37 +42,23 @@ import {
 } from "lucide-react";
 import { UserRole } from "@prisma/client";
 
-export default function Header() {
+interface HeaderProps {
+  userRole?: UserRole | null;
+}
+
+export default function Header({ userRole = null }: HeaderProps) {
   const pathname = usePathname();
-  const { user: clerkUser, isLoaded } = useUser();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
+  const isCustomer = userRole === UserRole.CUSTOMER;
+  const isTradesperson = userRole === UserRole.TRADESPERSON;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Fetch user role from our database
-  useEffect(() => {
-    if (isLoaded && clerkUser) {
-      fetch("/api/user/me")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.role) {
-            setUserRole(data.role);
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching user role:", error);
-        });
-    }
-  }, [isLoaded, clerkUser]);
-
-  const isCustomer = userRole === UserRole.CUSTOMER;
-  const isTradesperson = userRole === UserRole.TRADESPERSON;
-
-  // Navigation links for customers
+  // Navigation links - simple arrays based on role
   const customerLinks = [
     { href: "/dashboard", label: "Home", icon: Home },
     { href: "/dashboard/jobs/new", label: "Post Job", icon: PlusCircle },
@@ -82,7 +67,6 @@ export default function Header() {
     { href: "/dashboard/support", label: "Support", icon: HelpCircle },
   ];
 
-  // Navigation links for tradespeople
   const tradespersonLinks = [
     { href: "/dashboard", label: "Home", icon: Home },
     { href: "/dashboard/jobs", label: "Browse Jobs", icon: Briefcase },
@@ -93,42 +77,7 @@ export default function Header() {
     { href: "/dashboard/support", label: "Support", icon: HelpCircle },
   ];
 
-  const currentLinks = isCustomer ? customerLinks : isTradesperson ? tradespersonLinks : [];
-
-  // Mobile menu component
-  const MobileMenu = () => (
-    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle navigation menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-0">
-        <SheetHeader className="border-b px-6 py-4">
-          <SheetTitle className="text-left">
-            {isCustomer ? "Customer" : isTradesperson ? "Tradesperson" : "Menu"}
-          </SheetTitle>
-        </SheetHeader>
-        <nav className="flex flex-col p-4">
-          {currentLinks.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                pathname === href && "bg-accent text-accent-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
-        </nav>
-      </SheetContent>
-    </Sheet>
-  );
+  const navLinks = isCustomer ? customerLinks : isTradesperson ? tradespersonLinks : [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -139,7 +88,37 @@ export default function Header() {
           {/* Left Section: Mobile Menu + Logo */}
           <div className="flex items-center gap-2">
             <SignedIn>
-              <MobileMenu />
+              {navLinks.length > 0 && (
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="md:hidden">
+                      <Menu className="h-5 w-5" />
+                      <span className="sr-only">Toggle menu</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-72 p-0">
+                    <SheetHeader className="border-b px-6 py-4">
+                      <SheetTitle className="text-left">Menu</SheetTitle>
+                    </SheetHeader>
+                    <nav className="flex flex-col p-4">
+                      {navLinks.map(({ href, label, icon: Icon }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                            pathname === href && "bg-accent text-accent-foreground"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {label}
+                        </Link>
+                      ))}
+                    </nav>
+                  </SheetContent>
+                </Sheet>
+              )}
             </SignedIn>
             <Link href="/" className="flex items-center space-x-2">
               <div className="hidden md:flex">
@@ -244,17 +223,10 @@ export default function Header() {
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
                       <Link
-                        href={
-                          isCustomer
-                            ? "/customer"
-                            : isTradesperson
-                            ? "/tradesperson"
-                            : "/"
-                        }
+                        href="/dashboard"
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
-                          ((isCustomer && pathname === "/customer") ||
-                            (isTradesperson && pathname === "/tradesperson")) &&
+                          pathname === "/dashboard" &&
                             "bg-accent text-accent-foreground"
                         )}
                       >
@@ -266,25 +238,63 @@ export default function Header() {
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
                       <Link
-                        href={
-                          isCustomer
-                            ? "/dashboard/messages"
-                            : isTradesperson
-                            ? "/dashboard/messages"
-                            : "/"
-                        }
+                        href="/dashboard/messages"
                         className={cn(
                           "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
-                          ((isCustomer &&
-                            pathname?.startsWith("/dashboard/messages")) ||
-                            (isTradesperson &&
-                              pathname?.startsWith(
-                                "/dashboard/messages"
-                              ))) &&
+                          pathname?.startsWith("/dashboard/messages") &&
                             "bg-accent text-accent-foreground"
                         )}
                       >
                         Messages
+                      </Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+
+                  {isTradesperson && (
+                    <>
+                      <NavigationMenuItem>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/dashboard/quote-templates"
+                            className={cn(
+                              "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                              pathname === "/dashboard/quote-templates" &&
+                                "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            Quote Templates
+                          </Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+
+                      <NavigationMenuItem>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/dashboard/payouts"
+                            className={cn(
+                              "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                              pathname === "/dashboard/payouts" &&
+                                "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            Payouts
+                          </Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+                    </>
+                  )}
+
+                  <NavigationMenuItem>
+                    <NavigationMenuLink asChild>
+                      <Link
+                        href="/dashboard/support"
+                        className={cn(
+                          "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                          pathname === "/dashboard/support" &&
+                            "bg-accent text-accent-foreground"
+                        )}
+                      >
+                        Support
                       </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>

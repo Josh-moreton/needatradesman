@@ -4,6 +4,7 @@ import "./globals.css";
 import RootProviders from "@/components/providers/RootProviders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CrispChat } from "@/components/support/CrispChat";
+import { getCurrentUser } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,11 +59,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get user role from our database (not Clerk metadata)
+  const user = await getCurrentUser();
+  const userRole = user?.role || null;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -90,7 +95,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ErrorBoundary>
-          <RootProviders>
+          <RootProviders userRole={userRole}>
             {children}
             <CrispChat />
           </RootProviders>
