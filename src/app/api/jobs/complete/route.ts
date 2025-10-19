@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get the job
+        // Get the job with accepted application to check deposit requirement
         const job = await prisma.job.findUnique({
             where: { id: jobId },
             include: {
@@ -91,18 +91,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if deposit was paid (should be in progress)
-        if (!job.depositPaid) {
-            return NextResponse.json(
-                { error: "Job must have deposit paid before completion" },
-                { status: 400 }
-            );
-        }
-
         // Check if there's an accepted tradesperson
         if (!job.acceptedTradespersonId || job.applications.length === 0) {
             return NextResponse.json(
                 { error: "No accepted tradesperson for this job" },
+                { status: 400 }
+            );
+        }
+
+        // Get the accepted application to check deposit requirement
+        const acceptedApplication = job.applications[0];
+
+        // Check if deposit was paid when required
+        if (acceptedApplication.requiresDeposit && !job.depositPaid) {
+            return NextResponse.json(
+                { error: "Job must have deposit paid before completion" },
                 { status: 400 }
             );
         }
