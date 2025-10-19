@@ -1,4 +1,4 @@
-# Need A Tradesman
+# Need A Tradesman.
 
 Need A Tradesman is a marketplace for homeowners to connect with vetted tradespeople. Customers can post jobs and manage responses while tradespeople browse open jobs and send quotes. Real‑time messaging and notifications keep both sides in sync.
 
