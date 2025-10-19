@@ -585,12 +585,12 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                     >
                       {application.status}
                     </Badge>
-                    {application.status === "ACCEPTED" && isDepositHeld && (
+                    {application.status === "ACCEPTED" && application.requiresDeposit && isDepositHeld && (
                       <Badge variant="outline" className="text-yellow-700 border-yellow-700">
                         Payment Held
                       </Badge>
                     )}
-                    {application.status === "ACCEPTED" && job.depositCaptured && (
+                    {application.status === "ACCEPTED" && application.requiresDeposit && job.depositCaptured && (
                       <Badge variant="outline" className="text-green-700 border-green-700">
                         Payment Captured
                       </Badge>
