@@ -5,6 +5,8 @@ import RootProviders from "@/components/providers/RootProviders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CrispChat } from "@/components/support/CrispChat";
 import { getCurrentUser } from "@/lib/auth";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -99,6 +101,8 @@ export default async function RootLayout({
             {children}
             <CrispChat />
           </RootProviders>
+          <Analytics />
+          <SpeedInsights />
         </ErrorBoundary>
       </body>
     </html>
