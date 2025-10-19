@@ -217,12 +217,24 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const [chatLoading, setChatLoading] = useState<string | null>(null);
   const router = useRouter();
 
+  // Find the accepted application to check deposit requirements
+  const acceptedApplication = job.applications.find(app => app.status === "ACCEPTED");
+  const shouldShowPaymentFlow = acceptedApplication && !job.finalPaid && (
+    (acceptedApplication.requiresDeposit && job.depositPaid) || // Deposit required and paid
+    (!acceptedApplication.requiresDeposit && job.status !== "OPEN") // No deposit required and job accepted
+  );
+
   // Debug: Log job details
   console.log("Job details:", {
     id: job.id,
     status: job.status,
     depositPaid: job.depositPaid,
     finalPaid: job.finalPaid,
+    acceptedApplication: acceptedApplication ? {
+      requiresDeposit: acceptedApplication.requiresDeposit,
+      depositPercentage: acceptedApplication.depositPercentage
+    } : null,
+    shouldShowPaymentFlow
   });
 
   const getStatusColor = (status: string) => {
@@ -380,20 +392,28 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
       </Card>
 
       {/* Job Actions */}
-      {job.depositPaid && !job.finalPaid && (
+      {shouldShowPaymentFlow && (
         <Card className="mb-6 border-primary/20 bg-primary/5">
           <CardContent className="p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-2">Complete Job & Pay Final Balance</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  {acceptedApplication?.requiresDeposit 
+                    ? "Complete Job & Pay Final Balance" 
+                    : "Complete Job & Make Payment"}
+                </h3>
                 {job.status === "IN_PROGRESS" && (
                   <p className="text-muted-foreground mb-4">
-                    Once the work is complete and satisfactory, mark the job as complete and pay the remaining balance to the tradesperson.
+                    {acceptedApplication?.requiresDeposit
+                      ? "Once the work is complete and satisfactory, mark the job as complete and pay the remaining balance to the tradesperson."
+                      : "Once the work is complete and satisfactory, mark the job as complete and pay the full amount to the tradesperson."}
                   </p>
                 )}
                 {job.status === "COMPLETED" && (
                   <p className="text-muted-foreground mb-4">
-                    Job is marked as complete. Process the final payment to release the remaining balance to the tradesperson.
+                    {acceptedApplication?.requiresDeposit
+                      ? "Job is marked as complete. Process the final payment to release the remaining balance to the tradesperson."
+                      : "Job is marked as complete. Process the payment to release the full amount to the tradesperson."}
                   </p>
                 )}
                 <div className="flex gap-2">
@@ -405,7 +425,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                   )}
                   {job.status === "COMPLETED" && (
                     <Button onClick={handleFinalPayment}>
-                      💳 Pay Final Balance
+                      💳 {acceptedApplication?.requiresDeposit ? "Pay Final Balance" : "Pay Full Amount"}
                     </Button>
                   )}
                 </div>

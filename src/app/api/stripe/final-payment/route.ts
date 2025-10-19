@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Calculate final payment amount (remaining balance after deposit)
+        // Calculate final payment amount
         const fullAmount = application.quote || job.budget;
         if (!fullAmount) {
             return NextResponse.json(
@@ -84,23 +84,32 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Calculate deposit amount (assuming 50% or from application settings)
-        const depositPercentage = application.depositPercentage / 100;
-        const depositAmount = Number(fullAmount) * depositPercentage;
-        const remainingAmount = Number(fullAmount) - depositAmount;
+        let finalAmount: number;
+        let depositAmount: number;
 
-        if (remainingAmount <= 0) {
-            return NextResponse.json(
-                { error: "No remaining balance to pay" },
-                { status: 400 }
-            );
+        if (application.requiresDeposit) {
+            // Deposit was required - calculate remaining balance after deposit
+            const depositPercentage = application.depositPercentage / 100;
+            depositAmount = Number(fullAmount) * depositPercentage;
+            finalAmount = Number(fullAmount) - depositAmount;
+
+            if (finalAmount <= 0) {
+                return NextResponse.json(
+                    { error: "No remaining balance to pay" },
+                    { status: 400 }
+                );
+            }
+        } else {
+            // No deposit required - pay the full amount
+            depositAmount = 0;
+            finalAmount = Number(fullAmount);
         }
 
         // Format for Stripe (amount in cents/pennies)
-        const formattedAmount = Math.round(remainingAmount * 100);
+        const formattedAmount = Math.round(finalAmount * 100);
 
         // Calculate platform fee for final payment
-        const platformFee = calculatePlatformFee(remainingAmount);
+        const platformFee = calculatePlatformFee(finalAmount);
 
         // Verify tradesperson's Stripe account is still active
         const tradesperson = application.tradesperson;
@@ -136,8 +145,12 @@ export async function POST(request: NextRequest) {
                     price_data: {
                         currency: "gbp",
                         product_data: {
-                            name: `Final Payment - ${job.title}`,
-                            description: `Remaining balance for completed job: ${job.title}`,
+                            name: application.requiresDeposit 
+                                ? `Final Payment - ${job.title}` 
+                                : `Full Payment - ${job.title}`,
+                            description: application.requiresDeposit
+                                ? `Remaining balance for completed job: ${job.title}`
+                                : `Full payment for completed job: ${job.title}`,
                         },
                         unit_amount: formattedAmount,
                     },
@@ -158,15 +171,16 @@ export async function POST(request: NextRequest) {
                 tradespersonId: application.tradespersonId,
                 applicationType: "final_payment",  // Fixed: matches webhook check
                 depositAmount: depositAmount.toString(),
-                finalAmount: remainingAmount.toString(),
+                finalAmount: finalAmount.toString(),
                 platformFee: platformFee.toString(),
+                requiresDeposit: application.requiresDeposit.toString(),
             },
         });
 
         return NextResponse.json({
             sessionId: session.id,
             url: session.url,
-            amount: remainingAmount
+            amount: finalAmount
         });
 
     } catch (error) {
