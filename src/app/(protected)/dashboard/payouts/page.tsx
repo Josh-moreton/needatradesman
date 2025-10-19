@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PayoutSetupCard } from "@/components/payouts/PayoutSetupCard";
+import { PayoutHistory } from "@/components/payouts/PayoutHistory";
 import {
   Card,
   CardContent,
@@ -104,18 +105,9 @@ export default function DashboardPayoutsPage() {
             </div>
 
             {status === "verified" && (
-              <Card className="p-4">
-                <CardHeader>
-                  <CardTitle>Payout History</CardTitle>
-                  <CardDescription>View your recent payouts</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Your payouts will appear here once you start receiving
-                    payments.
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="p-4">
+                <PayoutHistory />
+              </div>
             )}
           </div>
         )}
