@@ -86,7 +86,7 @@ export default function SupportPage() {
           <div>
             <h3 className="font-medium mb-1">How do payments work?</h3>
             <p className="text-sm text-muted-foreground">
-              When you accept a tradesperson&apos;s application, you&apos;ll be prompted to pay a deposit (typically 50%). Once the job is completed and both parties confirm, the remaining payment is processed and released to the tradesperson.
+              When you accept a tradesperson&apos;s application, you&apos;ll be prompted to pay a deposit (percentage set by the tradesperson, commonly 25-50%). Once the job is completed and both parties confirm, the remaining payment is processed and released to the tradesperson.
             </p>
           </div>
           <div>

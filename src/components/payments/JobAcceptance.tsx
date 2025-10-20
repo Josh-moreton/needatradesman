@@ -11,6 +11,7 @@ interface JobAcceptanceProps {
   tradespersonId: string;
   jobTitle: string;
   quote: number;
+  depositPercentage?: number;
 }
 
 export function JobAcceptance({
@@ -18,11 +19,12 @@ export function JobAcceptance({
   tradespersonId,
   jobTitle,
   quote,
+  depositPercentage = 50,
 }: JobAcceptanceProps) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
-  // Calculate deposit as 50% of the quote
-  const depositAmount = quote * 0.5;
+  // Calculate deposit based on the configured percentage
+  const depositAmount = (quote * depositPercentage) / 100;
   
   // Calculate customer platform fee using centralized function
   const depositCustomerFeeInPence = calculateCustomerFee(depositAmount);
@@ -44,7 +46,7 @@ export function JobAcceptance({
               <span className="font-medium">£{quote.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm mt-2 pt-2 border-t">
-              <span>Deposit (50%):</span>
+              <span>Deposit ({depositPercentage}%):</span>
               <span className="font-medium">£{depositAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-muted-foreground">
@@ -60,9 +62,9 @@ export function JobAcceptance({
           <div className="text-sm text-muted-foreground">
             <p>By accepting this quote, you agree to:</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Pay a 50% deposit plus {STRIPE_CONFIG.customerFeePercentage}% platform fee to secure your booking</li>
+              <li>Pay a {depositPercentage}% deposit plus {STRIPE_CONFIG.customerFeePercentage}% platform fee to secure your booking</li>
               <li>Funds will be held securely until job completion</li>
-              <li>The remaining 50% plus {STRIPE_CONFIG.customerFeePercentage}% platform fee will be due after job completion</li>
+              <li>The remaining {100 - depositPercentage}% plus {STRIPE_CONFIG.customerFeePercentage}% platform fee will be due after job completion</li>
               <li>The tradesperson receives the quote amount minus a {STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</li>
             </ul>
           </div>
