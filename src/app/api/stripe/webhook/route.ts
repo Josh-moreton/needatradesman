@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { ChargeModel } from "@prisma/client";
 import { headers } from "next/headers";
 import { createLogger } from "@/lib/logger";
 import {
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
                                     // New payment tracking fields
                                     depositChargeId: paymentIntent.latest_charge as string | null,
                                     transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
-                                    chargeModel: 'DESTINATION_CHARGE',
+                                    chargeModel: ChargeModel.DESTINATION_CHARGE,
                                     depositReleasedAt: new Date(), // Transfer created immediately with destination charges
                                 },
                             });
