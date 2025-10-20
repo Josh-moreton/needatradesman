@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
         const { role, trades } = setRoleSchema.parse(body)
 
         // Update user's role and trades, and mark onboarding as complete
-        const updateData: Record<string, unknown> = { 
+        const updateData: Record<string, unknown> = {
             role,
             onboardingComplete: true
         };
-        
+
         if (trades && role === UserRole.TRADESPERSON) {
             updateData.trades = trades;
         }
