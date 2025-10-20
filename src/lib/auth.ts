@@ -1,3 +1,14 @@
+/**
+ * @deprecated This file is deprecated. Use @/lib/auth-gate instead.
+ * 
+ * Migration:
+ * - getCurrentUser() → getAuthGate()
+ * - requireAuth() → requireAuthGate()
+ * 
+ * This file is kept for reference only. All new code should use auth-gate.ts
+ * which properly separates authentication (Clerk) from authorization (PrismaDB).
+ */
+
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from './prisma'
 import { createLogger } from './logger'
