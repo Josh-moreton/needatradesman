@@ -214,7 +214,7 @@ export function ResponseForm({ jobId, userId }: ResponseFormProps) {
                 />
               </FormControl>
               <FormDescription>
-                Provide an estimated quote in GBP for the work (optional)
+                Provide an estimated quote in GBP for the work. You will receive this amount minus a 4% platform fee. The customer pays the quote plus a 6% platform fee.
               </FormDescription>
               <FormMessage />
             </FormItem>

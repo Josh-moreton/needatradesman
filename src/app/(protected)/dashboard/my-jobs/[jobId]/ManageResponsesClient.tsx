@@ -73,6 +73,10 @@ function PayDepositButton({
   const [showDepositModal, setShowDepositModal] = useState(false);
 
   const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
+  
+  // Calculate customer platform fee (6% of deposit)
+  const customerFee = depositAmount * 0.06;
+  const totalDue = depositAmount + customerFee;
 
   const handleClose = () => {
     setShowDepositModal(false);
@@ -87,7 +91,7 @@ function PayDepositButton({
         variant="default"
         onClick={() => setShowDepositModal(true)}
       >
-        💳 Pay Deposit (£{depositAmount.toFixed(2)})
+        💳 Pay Deposit (£{totalDue.toFixed(2)})
       </Button>
 
       <DepositPaymentModal
