@@ -82,6 +82,8 @@ Refund after transfer: Requires transfer reversal
 
 ## Feature Flag Branching
 
+Note: Environment variable is `FEATURE_SC_AND_T`, accessed in code as `FEATURES.USE_SC_AND_T`
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │         Customer initiates payment                      │
@@ -89,7 +91,9 @@ Refund after transfer: Requires transfer reversal
                      │
                      │
          ┌───────────▼───────────┐
-         │  FEATURE_SC_AND_T?    │
+         │ FEATURES.USE_SC_AND_T?│
+         │  (env: FEATURE_SC_AND │
+         │       _T)              │
          └───────────┬───────────┘
                      │
          ┌───────────┴───────────┐
@@ -185,14 +189,16 @@ AFTER RELEASE:
 
 ## Rollout Strategy
 
+Environment variable: `FEATURE_SC_AND_T` (accessed in code via `FEATURES.USE_SC_AND_T`)
+
 ```
 Week 1: Deploy with Feature OFF
-  ├─ FEATURE_SC_AND_T=false
+  ├─ FEATURE_SC_AND_T=false (default)
   ├─ Monitor for regressions
   └─ Verify existing flow works
 
 Week 2: Enable for 10%
-  ├─ FEATURE_SC_AND_T=true for 10%
+  ├─ FEATURE_SC_AND_T=true for 10% of traffic
   ├─ Monitor metrics
   └─ Gather feedback
 
@@ -201,6 +207,6 @@ Week 3: Gradual Increase
   └─ Continue monitoring
 
 Week 4: Full Migration
-  ├─ FEATURE_SC_AND_T=true for all
+  ├─ FEATURE_SC_AND_T=true for all traffic
   └─ Plan removal of old code
 ```
