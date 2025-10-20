@@ -24,9 +24,11 @@ Need A Tradesman is a marketplace for homeowners to connect with vetted tradespe
   - Browse jobs filtered by trade and location
   - Submit applications and quotes
   - Dashboard with quick stats and recent activity
+  - Access training and qualifications through NeedaTradesman Academy
+  - Stripe Capital financing for professional development
 - Messaging system with live updates via Pusher and Redis
 - Comprehensive caching and rate limiting through Redis
-- Planned payment workflow using Stripe Connect
+- Payment workflow using Stripe Connect with escrow and payouts
 
 ## Development
 
