@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
@@ -119,9 +120,16 @@ export async function POST(request: NextRequest) {
         // Calculate platform fee (10% of deposit)
         const platformFee = calculatePlatformFee(deposit);
 
+        // Determine available payment methods
+        // Enable bank transfer (BACS) for deposits >= £1000
+        const paymentMethodTypes = ["card", "klarna", "afterpay_clearpay"] as const;
+        const allPaymentMethods = deposit >= 1000 
+            ? [...paymentMethodTypes, "bacs_debit"] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
+            : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
+
         // Create a Checkout Session with Stripe Connect
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card", "klarna", "afterpay_clearpay"],
+            payment_method_types: allPaymentMethods,
             mode: "payment",
             line_items: [
                 {
