@@ -171,8 +171,6 @@ model Provider {
   website           String?
   // Service areas
   serviceAreas      String[] // Array of cities/regions served
-  // Hours
-  openingHours      Json? // Store as JSON structure
   // Accreditations
   accreditations    String[] // e.g., ["Gas Safe", "NICEIC"]
   gaseSafeNumber    String?
@@ -183,36 +181,22 @@ model Provider {
   // Reviews aggregation
   averageRating     Decimal? // Calculated field
   reviewCount       Int       @default(0)
-  // Availability
-  nextAvailable     DateTime? // Next available appointment slot
+  // Activity tracking
+  responseTimeHours Int?      @default(24) // Average response time in hours
+  jobsCompleted     Int       @default(0) // Total jobs completed
+  lastActive        DateTime? // Last activity timestamp
   // Metadata
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  availability ProviderAvailability[]
-  reviews      ProviderReview[]
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews ProviderReview[]
 
   @@index([slug])
   @@index([isPublished])
   @@index([addressLocality, trades])
+  @@index([lastActive])
   @@map("providers")
-}
-
-model ProviderAvailability {
-  id         String   @id @default(cuid())
-  providerId String
-  date       DateTime // Date of availability
-  startTime  String // e.g., "09:00"
-  endTime    String // e.g., "17:00"
-  isBooked   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([providerId, date, isBooked])
-  @@map("provider_availability")
 }
 
 model ProviderReview {
@@ -232,26 +216,6 @@ model ProviderReview {
   @@index([providerId, isPublished])
   @@index([rating])
   @@map("provider_reviews")
-}
-
-model PricingQuartile {
-  id             String      @id @default(cuid())
-  trade          JobCategory
-  location       String // City or region name
-  locationType   String      @default("city") // "city", "region", "postcode"
-  // Price ranges (in GBP)
-  q1             Decimal // 25th percentile
-  q2             Decimal // 50th percentile (median)
-  q3             Decimal // 75th percentile
-  unit           String      @default("job") // "job", "hour", "sqm", etc.
-  sampleSize     Int // Number of jobs used to calculate
-  lastCalculated DateTime    @default(now())
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  @@unique([trade, location, locationType])
-  @@index([trade, location])
-  @@map("pricing_quartiles")
 }
 
 model LocalRule {

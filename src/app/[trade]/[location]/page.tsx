@@ -9,7 +9,6 @@ import {
   getTradeFromSlug,
   parseLocationSlug,
   TRADE_PLURAL_NAMES,
-  TRADE_SERVICE_NAMES,
   TRADE_SLUGS,
   getNearbyAreas,
   getRelatedTrades,
@@ -17,8 +16,7 @@ import {
   normalizeLocationSlug,
 } from "@/lib/trade-location";
 import {
-  getPricingQuartiles,
-  getNextAvailableSlots,
+  getMarketplaceActivity,
   getProvidersForLocation,
   getLocalRules,
   checkPageQuality,
@@ -105,9 +103,8 @@ export default async function TradeLocationPage({ params }: PageProps) {
   }
 
   // Fetch all data in parallel
-  const [pricing, availability, providers, rules, quality] = await Promise.all([
-    getPricingQuartiles(trade, location),
-    getNextAvailableSlots(trade, location, 3),
+  const [activity, providers, rules, quality] = await Promise.all([
+    getMarketplaceActivity(trade, location),
     getProvidersForLocation(trade, location, 6),
     getLocalRules(trade, location),
     checkPageQuality(trade, location),
@@ -115,7 +112,6 @@ export default async function TradeLocationPage({ params }: PageProps) {
 
   // If page doesn't meet quality threshold, still render but with noindex (set in metadata)
   const tradeName = TRADE_PLURAL_NAMES[trade];
-  const tradeServiceName = TRADE_SERVICE_NAMES[trade];
 
   // Get FAQs for this trade×location
   const faqs = getFAQsForTradeLocation(trade, location);
@@ -124,12 +120,7 @@ export default async function TradeLocationPage({ params }: PageProps) {
   const serviceSchemaData = serviceSchema({
     trade,
     location,
-    priceRange: pricing
-      ? `£${Math.round(pricing.q1)}-£${Math.round(pricing.q3)}`
-      : undefined,
-    priceUnit: pricing?.unit,
     areaServed: location,
-    availability: availability.length > 0 ? "https://schema.org/InStock" : undefined,
     url: `https://needatradesman.com/${tradeSlug}/${locationSlug}`,
   });
 
@@ -192,62 +183,46 @@ export default async function TradeLocationPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Price Range Card */}
-        {pricing && (
+        {/* Marketplace Activity Stats */}
+        {activity && (
           <section className="mb-12">
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-2xl font-semibold mb-4">
-                Typical {tradeServiceName} Costs in {location}
-              </h2>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Low</div>
-                  <div className="text-2xl font-bold">
-                    £{Math.round(pricing.q1)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Average</div>
-                  <div className="text-2xl font-bold">
-                    £{Math.round(pricing.q2)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">High</div>
-                  <div className="text-2xl font-bold">
-                    £{Math.round(pricing.q3)}
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Per {pricing.unit} • Based on {pricing.sampleSize} recent jobs
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* Availability Widget */}
-        {availability.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-2xl font-semibold mb-4">
-              Next Available Appointments
+            <h2 className="text-2xl font-semibold mb-6">
+              Local {tradeName} Activity
             </h2>
             <div className="grid gap-4 md:grid-cols-3">
-              {availability.map((slot, index) => (
-                <div key={index} className="rounded-lg border bg-card p-4">
-                  <div className="font-medium">{slot.providerName}</div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {slot.date.toLocaleDateString("en-GB", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </div>
-                  <div className="text-sm">
-                    {slot.startTime} - {slot.endTime}
-                  </div>
+              <div className="rounded-lg border bg-card p-6">
+                <div className="text-sm text-muted-foreground mb-2">
+                  Active {tradeName}
                 </div>
-              ))}
+                <div className="text-3xl font-bold mb-1">
+                  {activity.activeProviders}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Ready to quote in the last 30 days
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-6">
+                <div className="text-sm text-muted-foreground mb-2">
+                  Recent Jobs
+                </div>
+                <div className="text-3xl font-bold mb-1">
+                  {activity.recentJobs}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Posted in the last 30 days
+                </div>
+              </div>
+              <div className="rounded-lg border bg-card p-6">
+                <div className="text-sm text-muted-foreground mb-2">
+                  Avg Response Time
+                </div>
+                <div className="text-3xl font-bold mb-1">
+                  {activity.avgResponseTime}h
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Typical time to receive quotes
+                </div>
+              </div>
             </div>
           </section>
         )}

@@ -9,8 +9,7 @@ import { redis } from "./redis";
 
 // Cache TTLs
 const CACHE_TTL = {
-  PRICING: 86400, // 24 hours
-  AVAILABILITY: 3600, // 1 hour
+  ACTIVITY: 3600, // 1 hour
   PROVIDERS: 7200, // 2 hours
   LOCAL_RULES: 604800, // 7 days
 };
@@ -18,102 +17,87 @@ const CACHE_TTL = {
 // Publication gate thresholds
 export const PUBLICATION_THRESHOLDS = {
   MIN_PROVIDERS: 3,
-  MIN_DATA_POINTS: 2, // Need at least 2 of: pricing, availability, local rules
+  MIN_DATA_POINTS: 2, // Need at least 2 of: activity stats, local rules, provider reviews
 };
 
 // ============================================================================
-// Pricing Data
+// Marketplace Activity Data
 // ============================================================================
 
-export interface PricingData {
-  q1: number;
-  q2: number;
-  q3: number;
-  unit: string;
-  sampleSize: number;
+export interface MarketplaceActivity {
+  activeProviders: number; // Providers active in last 30 days
+  recentJobs: number; // Jobs posted in last 30 days
+  avgResponseTime: number; // Average response time in hours
 }
 
-export async function getPricingQuartiles(
+export async function getMarketplaceActivity(
   trade: JobCategory,
   location: string
-): Promise<PricingData | null> {
-  const cacheKey = `pricing:${trade}:${location.toLowerCase()}`;
+): Promise<MarketplaceActivity | null> {
+  const cacheKey = `activity:${trade}:${location.toLowerCase()}`;
 
   // Try cache first
   if (redis) {
     const cached = await redis.get(cacheKey);
     if (cached && typeof cached === "string") {
-      return JSON.parse(cached) as PricingData;
+      return JSON.parse(cached) as MarketplaceActivity;
     }
   }
 
-  // Fetch from database
-  const pricing = await prisma.pricingQuartile.findFirst({
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  // Count active providers (published and active in last 30 days)
+  const activeProvidersCount = await prisma.provider.count({
     where: {
-      trade,
-      location: {
-        equals: location,
-        mode: "insensitive",
+      trades: {
+        has: trade,
       },
-    },
-    orderBy: {
-      lastCalculated: "desc",
+      isPublished: true,
+      OR: [
+        {
+          addressLocality: {
+            equals: location,
+            mode: "insensitive",
+          },
+        },
+        {
+          serviceAreas: {
+            hasSome: [location],
+          },
+        },
+      ],
+      lastActive: {
+        gte: thirtyDaysAgo,
+      },
     },
   });
 
-  if (!pricing) {
-    return null;
-  }
+  // Count recent jobs in this trade/location
+  const recentJobsCount = await prisma.job.count({
+    where: {
+      category: trade,
+      OR: [
+        {
+          city: {
+            equals: location,
+            mode: "insensitive",
+          },
+        },
+        {
+          location: {
+            contains: location,
+            mode: "insensitive",
+          },
+        },
+      ],
+      createdAt: {
+        gte: thirtyDaysAgo,
+      },
+    },
+  });
 
-  const data: PricingData = {
-    q1: pricing.q1.toNumber(),
-    q2: pricing.q2.toNumber(),
-    q3: pricing.q3.toNumber(),
-    unit: pricing.unit,
-    sampleSize: pricing.sampleSize,
-  };
-
-  // Cache the result
-  if (redis) {
-    await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL.PRICING });
-  }
-
-  return data;
-}
-
-// ============================================================================
-// Availability Data
-// ============================================================================
-
-export interface AvailabilitySlot {
-  providerId: string;
-  providerName: string;
-  date: Date;
-  startTime: string;
-  endTime: string;
-}
-
-export async function getNextAvailableSlots(
-  trade: JobCategory,
-  location: string,
-  limit = 3
-): Promise<AvailabilitySlot[]> {
-  const cacheKey = `availability:${trade}:${location.toLowerCase()}:${limit}`;
-
-  // Try cache first
-  if (redis) {
-    const cached = await redis.get(cacheKey);
-    if (cached && typeof cached === "string") {
-      const parsed = JSON.parse(cached) as AvailabilitySlot[];
-      // Deserialize dates
-      return parsed.map((slot) => ({
-        ...slot,
-        date: new Date(slot.date),
-      }));
-    }
-  }
-
-  // Fetch providers in the area for this trade
+  // Get average response time from providers in this area
   const providers = await prisma.provider.findMany({
     where: {
       trades: {
@@ -133,59 +117,35 @@ export async function getNextAvailableSlots(
           },
         },
       ],
+      responseTimeHours: {
+        not: null,
+      },
     },
     select: {
-      id: true,
-      businessName: true,
+      responseTimeHours: true,
     },
   });
 
-  if (providers.length === 0) {
-    return [];
-  }
+  const avgResponseTime =
+    providers.length > 0
+      ? Math.round(
+          providers.reduce((sum, p) => sum + (p.responseTimeHours || 24), 0) /
+            providers.length
+        )
+      : 24;
 
-  const providerIds = providers.map((p) => p.id);
+  const data: MarketplaceActivity = {
+    activeProviders: activeProvidersCount,
+    recentJobs: recentJobsCount,
+    avgResponseTime,
+  };
 
-  // Fetch availability
-  const now = new Date();
-  const slots = await prisma.providerAvailability.findMany({
-    where: {
-      providerId: {
-        in: providerIds,
-      },
-      date: {
-        gte: now,
-      },
-      isBooked: false,
-    },
-    orderBy: {
-      date: "asc",
-    },
-    take: limit,
-    include: {
-      provider: {
-        select: {
-          id: true,
-          businessName: true,
-        },
-      },
-    },
-  });
-
-  const result: AvailabilitySlot[] = slots.map((slot) => ({
-    providerId: slot.provider.id,
-    providerName: slot.provider.businessName,
-    date: slot.date,
-    startTime: slot.startTime,
-    endTime: slot.endTime,
-  }));
-
-  // Cache for shorter time
+  // Cache the result
   if (redis) {
-    await redis.set(cacheKey, JSON.stringify(result), { ex: CACHE_TTL.AVAILABILITY });
+    await redis.set(cacheKey, JSON.stringify(data), { ex: CACHE_TTL.ACTIVITY });
   }
 
-  return result;
+  return data;
 }
 
 // ============================================================================
@@ -351,9 +311,9 @@ export async function getLocalRules(
 export interface PageQualityMetrics {
   hasProviders: boolean;
   providerCount: number;
-  hasPricing: boolean;
-  hasAvailability: boolean;
+  hasActivity: boolean;
   hasLocalRules: boolean;
+  hasReviews: boolean;
   dataPointCount: number;
   shouldPublish: boolean;
 }
@@ -363,23 +323,24 @@ export async function checkPageQuality(
   location: string
 ): Promise<PageQualityMetrics> {
   // Fetch all data in parallel
-  const [providers, pricing, availability, rules] = await Promise.all([
+  const [providers, activity, rules] = await Promise.all([
     getProvidersForLocation(trade, location, 10), // Check more than minimum
-    getPricingQuartiles(trade, location),
-    getNextAvailableSlots(trade, location, 1), // Just check if any exist
+    getMarketplaceActivity(trade, location),
     getLocalRules(trade, location),
   ]);
 
   const hasProviders = providers.length >= PUBLICATION_THRESHOLDS.MIN_PROVIDERS;
-  const hasPricing = pricing !== null;
-  const hasAvailability = availability.length > 0;
+  const hasActivity = activity !== null && activity.activeProviders > 0;
   const hasLocalRules = rules.length > 0;
+  
+  // Check if any providers have reviews
+  const hasReviews = providers.some(p => p.reviewCount > 0);
 
   // Count data points (excluding providers which is mandatory)
   let dataPointCount = 0;
-  if (hasPricing) dataPointCount++;
-  if (hasAvailability) dataPointCount++;
+  if (hasActivity) dataPointCount++;
   if (hasLocalRules) dataPointCount++;
+  if (hasReviews) dataPointCount++;
 
   const shouldPublish =
     hasProviders && dataPointCount >= PUBLICATION_THRESHOLDS.MIN_DATA_POINTS;
@@ -387,9 +348,9 @@ export async function checkPageQuality(
   return {
     hasProviders,
     providerCount: providers.length,
-    hasPricing,
-    hasAvailability,
+    hasActivity,
     hasLocalRules,
+    hasReviews,
     dataPointCount,
     shouldPublish,
   };
@@ -415,7 +376,6 @@ export interface ProviderProfile {
   email: string | null;
   website: string | null;
   serviceAreas: string[];
-  openingHours: unknown;
   accreditations: string[];
   gaseSafeNumber: string | null;
   niceicNumber: string | null;
@@ -423,7 +383,9 @@ export interface ProviderProfile {
   coverImage: string | null;
   averageRating: number | null;
   reviewCount: number;
-  nextAvailable: Date | null;
+  responseTimeHours: number | null;
+  jobsCompleted: number;
+  lastActive: Date | null;
   isPublished: boolean;
 }
 
@@ -464,7 +426,6 @@ export async function getProviderBySlug(
     email: provider.email,
     website: provider.website,
     serviceAreas: provider.serviceAreas,
-    openingHours: provider.openingHours,
     accreditations: provider.accreditations,
     gaseSafeNumber: provider.gaseSafeNumber,
     niceicNumber: provider.niceicNumber,
@@ -472,7 +433,9 @@ export async function getProviderBySlug(
     coverImage: provider.coverImage,
     averageRating: provider.averageRating?.toNumber() || null,
     reviewCount: provider.reviewCount,
-    nextAvailable: provider.nextAvailable,
+    responseTimeHours: provider.responseTimeHours,
+    jobsCompleted: provider.jobsCompleted,
+    lastActive: provider.lastActive,
     isPublished: provider.isPublished,
   };
 }
@@ -525,8 +488,7 @@ export async function invalidateTradeLocationCache(
 
   const locationLower = location.toLowerCase();
   const keys = [
-    `pricing:${trade}:${locationLower}`,
-    `availability:${trade}:${locationLower}:*`,
+    `activity:${trade}:${locationLower}`,
     `providers:${trade}:${locationLower}:*`,
     `rules:${trade}:${locationLower}`,
   ];

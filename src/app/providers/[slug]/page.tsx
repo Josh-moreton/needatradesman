@@ -449,28 +449,38 @@ export default async function ProviderPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* Next Available */}
-        {provider.nextAvailable && (
-          <section className="mb-8">
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-xl font-semibold mb-2">Next Available</h2>
-              <p className="text-muted-foreground">
-                {provider.nextAvailable.toLocaleDateString("en-GB", {
-                  weekday: "long",
+        {/* Activity Stats */}
+        <section className="mb-8">
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-xl font-semibold mb-4">Activity & Performance</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <div className="text-sm text-muted-foreground">Jobs Completed</div>
+                <div className="text-2xl font-bold">{provider.jobsCompleted}</div>
+              </div>
+              {provider.responseTimeHours && (
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    Avg Response Time
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {provider.responseTimeHours}h
+                  </div>
+                </div>
+              )}
+            </div>
+            {provider.lastActive && (
+              <p className="text-sm text-muted-foreground mt-4">
+                Last active:{" "}
+                {provider.lastActive.toLocaleDateString("en-GB", {
                   day: "numeric",
-                  month: "long",
+                  month: "short",
                   year: "numeric",
                 })}
               </p>
-              <Link
-                href="/onboarding"
-                className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-              >
-                Book Now
-              </Link>
-            </div>
-          </section>
-        )}
+            )}
+          </div>
+        </section>
       </div>
     </>
   );
