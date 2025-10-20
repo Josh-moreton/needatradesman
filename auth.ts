@@ -28,7 +28,7 @@ declare module "next-auth" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { 
+  session: {
     strategy: "database",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
@@ -36,17 +36,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Email({
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM || "Need A Tradesman <noreply@needatradesman.co.uk>",
-      maxAge: 10 * 60, // Magic links valid for 10 minutes
     }),
     // Google OAuth (optional - only if credentials are configured)
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? [
-          Google({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            allowDangerousEmailAccountLinking: true,
-          }),
-        ]
+        Google({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          allowDangerousEmailAccountLinking: true,
+        }),
+      ]
       : []),
   ],
   callbacks: {
@@ -54,8 +53,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Enrich session from database (our source of truth for authorization)
       if (session.user) {
         session.user.id = user.id;
-        session.user.role = user.role as UserRole;
-        session.user.onboardingComplete = user.onboardingComplete as boolean;
+        session.user.role = user.role;
+        session.user.onboardingComplete = user.onboardingComplete;
         session.user.stripeAccountId = user.stripeAccountId as string | null;
       }
       return session;
