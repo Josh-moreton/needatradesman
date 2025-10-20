@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createLogger } from '@/lib/logger';
+import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
 
 const logger = createLogger('final-payment-modal');
 
@@ -38,8 +39,9 @@ export function FinalPaymentModal({
 
   const remainingAmount = fullAmount - depositAmount;
   
-  // Calculate customer platform fee (6% of remaining amount)
-  const customerFee = remainingAmount * 0.06;
+  // Calculate customer platform fee using centralized function
+  const customerFeeInPence = calculateCustomerFee(remainingAmount);
+  const customerFee = customerFeeInPence / 100; // Convert pence to pounds for display
   const totalDue = remainingAmount + customerFee;
 
   const handlePayment = async () => {
@@ -102,7 +104,7 @@ export function FinalPaymentModal({
                 <span className="font-medium">£{remainingAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Platform Fee (6%):</span>
+                <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
                 <span>£{customerFee.toFixed(2)}</span>
               </div>
               <hr />
@@ -119,8 +121,8 @@ export function FinalPaymentModal({
             <p className="font-medium mb-1">Payment Details:</p>
             <ul className="space-y-1 text-xs">
               <li>• This is the final payment for your completed job</li>
-              <li>• Includes a 6% platform fee on the remaining balance</li>
-              <li>• The tradesperson receives the balance minus a 4% platform fee</li>
+              <li>• Includes a {STRIPE_CONFIG.customerFeePercentage}% platform fee on the remaining balance</li>
+              <li>• The tradesperson receives the balance minus a {STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</li>
               <li>• Funds will be transferred to the tradesperson upon payment</li>
               <li>• You&apos;ll receive a confirmation email after payment</li>
             </ul>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { createLogger } from '@/lib/logger';
+import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
 
 const logger = createLogger('deposit-payment-modal');
 
@@ -35,8 +36,9 @@ export function DepositPaymentModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Calculate customer platform fee (6% of deposit)
-  const customerFee = depositAmount * 0.06;
+  // Calculate customer platform fee using centralized function
+  const customerFeeInPence = calculateCustomerFee(depositAmount);
+  const customerFee = customerFeeInPence / 100; // Convert pence to pounds for display
   const totalAmount = depositAmount + customerFee;
 
   const handlePayment = async () => {
@@ -100,7 +102,7 @@ export function DepositPaymentModal({
                 </span>
               </li>
               <li className="flex justify-between text-muted-foreground">
-                <span>Platform Fee (6%):</span>
+                <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
                 <span>£{customerFee?.toFixed(2)}</span>
               </li>
               <li className="flex justify-between font-semibold pt-2 mt-2 border-t">
