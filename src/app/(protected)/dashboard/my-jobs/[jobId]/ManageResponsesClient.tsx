@@ -497,6 +497,11 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                         Quote: {formatBudget(application.quote)}
                       </Badge>
                     )}
+                    {application.requiresDeposit && application.quote && (
+                      <Badge variant="secondary" className="text-xs">
+                        {application.depositPercentage}% deposit
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -508,6 +513,35 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                       {application.message}
                     </p>
                   </div>
+
+                  {application.quote && (
+                    <div className="bg-muted/50 rounded-md p-3">
+                      <h4 className="font-medium text-sm mb-2">Payment Details</h4>
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span>Total Quote:</span>
+                          <span className="font-medium">{formatBudget(application.quote)}</span>
+                        </div>
+                        {application.requiresDeposit && (
+                          <>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Deposit ({application.depositPercentage}%):</span>
+                              <span>£{((Number(application.quote) * application.depositPercentage) / 100).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Final Payment ({100 - application.depositPercentage}%):</span>
+                              <span>£{((Number(application.quote) * (100 - application.depositPercentage)) / 100).toFixed(2)}</span>
+                            </div>
+                          </>
+                        )}
+                        {!application.requiresDeposit && (
+                          <div className="text-muted-foreground text-xs">
+                            No deposit required - full payment after job completion
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-2 pt-2">
                     <Button
