@@ -12,13 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Logo } from "@/components/ui/logo";
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-} from "@clerk/nextjs";
+import SignOutButton from "@/components/auth/SignOutButton";
 import {
   Sheet,
   SheetContent,
@@ -87,7 +81,8 @@ export default function Header({ userRole = null }: HeaderProps) {
         <div className="relative flex h-14 items-center justify-between">
           {/* Left Section: Mobile Menu + Logo */}
           <div className="flex items-center gap-2">
-            <SignedIn>
+            {userRole && userRole !== UserRole.PENDING && (
+              <>
               {navLinks.length > 0 && (
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
@@ -119,7 +114,8 @@ export default function Header({ userRole = null }: HeaderProps) {
                   </SheetContent>
                 </Sheet>
               )}
-            </SignedIn>
+              </>
+            )}
             <Link href="/" className="flex items-center space-x-2">
               <div className="hidden md:flex">
                 <Logo variant="auto" size="md" priority />
@@ -134,7 +130,8 @@ export default function Header({ userRole = null }: HeaderProps) {
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <NavigationMenu className="hidden md:flex">
               <NavigationMenuList>
-                <SignedIn>
+                {userRole && userRole !== UserRole.PENDING && (
+                  <>
                   <NavigationMenuItem>
                     <NavigationMenuTrigger>Jobs</NavigationMenuTrigger>
                     <NavigationMenuContent>
@@ -298,7 +295,8 @@ export default function Header({ userRole = null }: HeaderProps) {
                       </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
-                </SignedIn>
+                  </>
+                )}
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -307,25 +305,20 @@ export default function Header({ userRole = null }: HeaderProps) {
           <div className="flex items-center">
             <nav className="flex items-center space-x-2">
               {mounted && <ThemeToggle />}
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <Button variant="ghost" size="sm">
-                    Sign In
-                  </Button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <Button size="sm">Get Started</Button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "h-8 w-8",
-                    },
-                  }}
-                />
-              </SignedIn>
+              {!userRole ? (
+                <>
+                  <Link href="/signin">
+                    <Button variant="ghost" size="sm">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/signin">
+                    <Button size="sm">Get Started</Button>
+                  </Link>
+                </>
+              ) : (
+                <SignOutButton />
+              )}
             </nav>
           </div>
         </div>

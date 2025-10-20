@@ -2,7 +2,7 @@
  * Middleware Pattern (The Right Way)
  * 
  * Middleware should ONLY:
- * 1. Check if auth cookie exists
+ * 1. Check if auth session exists
  * 2. Route between public and protected areas
  * 
  * Middleware should NOT:
@@ -14,38 +14,56 @@
  * 
  * References:
  * - https://nextjs.org/docs/app/building-your-application/routing/middleware
- * - https://clerk.com/docs/references/nextjs/clerk-middleware
+ * - https://authjs.dev/getting-started/session-management/protecting
  */
 
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-// Public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)',
-    '/api/webhooks(.*)', // Clerk webhooks must be public for external services
-    '/api/stripe/webhook(.*)', // Stripe webhooks must be public
-])
+// Edge-safe middleware: only checks for presence of Auth.js session cookie.
+// Do NOT import '@/auth' here to avoid bundling Node-only providers (nodemailer).
+export function middleware(req: NextRequest) {
+  const { nextUrl } = req;
+  const sessionCookie =
+    req.cookies.get("__Secure-authjs.session-token")?.value ||
+    req.cookies.get("authjs.session-token")?.value;
+  const isAuthenticated = Boolean(sessionCookie);
 
-export default clerkMiddleware(
-    async (auth, req) => {
-        // Allow public routes without any checks
-        if (isPublicRoute(req)) {
-            return
-        }
+  // Public routes that don't require authentication
+  const publicPaths = [
+    "/",
+    "/signin",
+    "/signup",
+    "/api/auth",
+    "/api/webhooks",
+    "/api/stripe/webhook",
+  ];
 
-        // Protect all other routes - Clerk handles the redirect to sign-in
-        // This just checks if the auth cookie exists, nothing more
-        await auth.protect()
-    }
-)
+  const isPublicPath = publicPaths.some((path) =>
+    nextUrl.pathname.startsWith(path)
+  );
+
+  // Allow public routes
+  if (isPublicPath) {
+    return NextResponse.next();
+  }
+
+  // Redirect to signin if not authenticated
+  if (!isAuthenticated) {
+    const signInUrl = new URL("/signin", nextUrl.origin);
+    signInUrl.searchParams.set("callbackUrl", nextUrl.pathname + nextUrl.search);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  // Allow authenticated users to proceed
+  return NextResponse.next();
+}
 
 export const config = {
-    matcher: [
-        // Skip Next.js internals and all static files, unless found in search params
-        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-        // Always run for API routes
-        '/(api|trpc)(.*)',
-    ],
-}
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};

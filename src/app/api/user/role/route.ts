@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth, currentUser, clerkClient } from '@clerk/nextjs/server'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 
 const logger = createLogger('user-role-api');
 
@@ -16,130 +16,45 @@ const setRoleSchema = z.object({
 export async function POST(request: NextRequest) {
     try {
         // Get the authenticated user
-        const { userId } = await auth()
+        const session = await auth()
 
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             )
         }
 
+        const userId = session.user.id
+
         // Parse and validate the request body
         const body = await request.json()
         const { role, trades } = setRoleSchema.parse(body)
 
-        // Check if user already exists in our database
-        const existingUser = await prisma.user.findUnique({
-            where: { clerkId: userId }
-        })
+        // Update user's role and trades, and mark onboarding as complete
+        const updateData: Record<string, unknown> = {
+            role,
+            onboardingComplete: true
+        };
 
-        if (existingUser) {
-            // Update existing user's role and trades (if provided)
-            const updateData: Record<string, unknown> = { role };
-            if (trades && role === UserRole.TRADESPERSON) {
-                updateData.trades = trades;
-            }
-
-            const updatedUser = await prisma.user.update({
-                where: { clerkId: userId },
-                data: updateData
-            });
-
-            // Set onboarding complete metadata in Clerk
-            const client = await clerkClient();
-            await client.users.updateUserMetadata(userId, {
-                publicMetadata: {
-                    onboardingComplete: true,
-                    role: role
-                }
-            });
-
-            // Invalidate the auth gate cache so the layout picks up the new user immediately
-            revalidateTag(`user:${userId}`)
-            revalidateTag('user-gate')
-
-            return NextResponse.json({
-                success: true,
-                user: updatedUser
-            });
-        } else {
-            // Fetch user info from Clerk
-            const clerkUser = await currentUser();
-            if (!clerkUser) {
-                return NextResponse.json({ error: 'Clerk user not found' }, { status: 404 });
-            }
-            const email = clerkUser.emailAddresses?.[0]?.emailAddress || clerkUser.primaryEmailAddress?.emailAddress;
-            const firstName = clerkUser.firstName || null;
-            const lastName = clerkUser.lastName || null;
-            if (!email) {
-                return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
-            }
-            // Check if a user with this email already exists (unique constraint)
-            const userByEmail = await prisma.user.findUnique({ where: { email } });
-            if (userByEmail) {
-                // Update the user with the new clerkId and other info
-                const updatedUser = await prisma.user.update({
-                    where: { email },
-                    data: {
-                        clerkId: userId,
-                        firstName,
-                        lastName,
-                        role,
-                        ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
-                    }
-                });
-
-                // Set onboarding complete metadata in Clerk
-                const client = await clerkClient();
-                await client.users.updateUserMetadata(userId, {
-                    publicMetadata: {
-                        onboardingComplete: true,
-                        role: role
-                    }
-                });
-
-                // Invalidate the auth gate cache so the layout picks up the new user immediately
-                revalidateTag(`user:${userId}`)
-                revalidateTag('user-gate')
-
-                return NextResponse.json({
-                    success: true,
-                    user: updatedUser
-                });
-            }
-            // Create new user record
-            const createData = {
-                clerkId: userId,
-                email,
-                firstName,
-                lastName,
-                role,
-                ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
-            };
-
-            const newUser = await prisma.user.create({
-                data: createData
-            });
-
-            // Set onboarding complete metadata in Clerk
-            const client = await clerkClient();
-            await client.users.updateUserMetadata(userId, {
-                publicMetadata: {
-                    onboardingComplete: true,
-                    role: role
-                }
-            });
-
-            // Invalidate the auth gate cache so the layout picks up the new user immediately
-            revalidateTag(`user:${userId}`)
-            revalidateTag('user-gate')
-
-            return NextResponse.json({
-                success: true,
-                user: newUser
-            });
+        if (trades && role === UserRole.TRADESPERSON) {
+            updateData.trades = trades;
         }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: updateData
+        });
+
+        // Invalidate caches so the layout picks up the new user immediately
+        revalidateTag(`user:${userId}`)
+        revalidateTag('user-gate')
+        revalidatePath('/', 'layout') // Force root layout to refetch
+
+        return NextResponse.json({
+            success: true,
+            user: updatedUser
+        });
     } catch (error) {
         logger.error({ error }, 'Error setting user role');
 

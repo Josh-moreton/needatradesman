@@ -1,22 +1,26 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-payouts-api");
 
+export const runtime = "nodejs";
+
 export async function GET() {
     try {
-        const { userId } = await auth();
+        const session = await auth();
 
-        if (!userId) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        const userId = session.user.id;
+
         // Get the current user with their Stripe account
         const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
+            where: { id: userId },
             select: {
                 id: true,
                 role: true,
