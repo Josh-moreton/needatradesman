@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
@@ -137,16 +138,23 @@ export async function POST(request: NextRequest) {
         const origin = request.headers.get("origin") || "http://localhost:3000";
 
         // Prepare payment descriptions
-        const paymentName = application.requiresDeposit 
-            ? `Final Payment - ${job.title}` 
+        const paymentName = application.requiresDeposit
+            ? `Final Payment - ${job.title}`
             : `Full Payment - ${job.title}`;
         const paymentDescription = application.requiresDeposit
             ? `Remaining balance for completed job: ${job.title}`
             : `Full payment for completed job: ${job.title}`;
 
+        // Determine available payment methods
+        // Enable bank transfer (BACS) for payments >= £1000
+        const paymentMethodTypes = ["card", "klarna", "afterpay_clearpay"] as const;
+        const allPaymentMethods = finalAmount >= 1000
+            ? [...paymentMethodTypes, "bacs_debit"] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
+            : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
+
         // Create a Checkout Session for final payment with Connect
         const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card", "klarna", "afterpay_clearpay"],
+            payment_method_types: allPaymentMethods,
             mode: "payment",
             line_items: [
                 {
