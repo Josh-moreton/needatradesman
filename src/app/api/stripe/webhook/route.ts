@@ -15,8 +15,6 @@ import {
 const logger = createLogger('stripe-webhook');
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
     try {
         // Get client identifier for rate limiting and failure tracking

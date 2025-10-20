@@ -52,9 +52,8 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
       include: {
         customer: {
           select: {
-            id: true,
-            name: true,
-            email: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -84,7 +83,10 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
 
     const getCustomerName = () => {
       if (!job.customer) return "Anonymous";
-      return job.customer.name || "Anonymous";
+      const { firstName, lastName } = job.customer;
+      if (firstName && lastName) return `${firstName} ${lastName}`;
+      if (firstName) return firstName;
+      return "Anonymous";
     };
 
     const formatBudget = (budget: unknown) => {

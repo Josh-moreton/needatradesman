@@ -14,10 +14,10 @@ const logger = createLogger("messages-api");
 type MessageWithRelations = Prisma.MessageGetPayload<{
     include: {
         sender: {
-            select: { id: true; name: true; email: true };
+            select: { id: true; firstName: true; lastName: true; email: true };
         };
         receiver: {
-            select: { id: true; name: true; email: true };
+            select: { id: true; firstName: true; lastName: true; email: true };
         };
         job: {
             select: { id: true; title: true };
@@ -143,7 +143,9 @@ async function sendPusherNotifications(message: MessageWithRelations, userId: st
         await pusherServer.trigger(getUserChannel(receiverId), "message-notification", {
             messageId: message.id,
             senderId: userId,
-            senderName: message.sender.name || message.sender.email,
+            senderName: message.sender.firstName && message.sender.lastName
+                ? `${message.sender.firstName} ${message.sender.lastName}`
+                : message.sender.email,
             jobTitle: message.job?.title,
             preview: content.substring(0, 100),
             timestamp: new Date().toISOString(),
@@ -178,10 +180,10 @@ export async function GET(request: NextRequest) {
                 },
                 include: {
                     sender: {
-                        select: { id: true, name: true, email: true },
+                        select: { id: true, firstName: true, lastName: true, email: true },
                     },
                     receiver: {
-                        select: { id: true, name: true, email: true },
+                        select: { id: true, firstName: true, lastName: true, email: true },
                     },
                     job: {
                         select: { id: true, title: true },
@@ -215,10 +217,10 @@ export async function GET(request: NextRequest) {
                     },
                     include: {
                         sender: {
-                            select: { id: true, name: true, email: true },
+                            select: { id: true, firstName: true, lastName: true, email: true },
                         },
                         receiver: {
-                            select: { id: true, name: true, email: true },
+                            select: { id: true, firstName: true, lastName: true, email: true },
                         },
                         job: {
                             select: { id: true, title: true, customerId: true },
@@ -268,7 +270,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Rate limiting (use clerkId to avoid reuse of internal IDs)
-        const rateLimitResult = await checkRateLimit(user.id);
+        const rateLimitResult = await checkRateLimit(user.clerkId);
         if (!rateLimitResult.allowed) {
             return rateLimitResult.error!;
         }
@@ -295,10 +297,10 @@ export async function POST(request: NextRequest) {
             },
             include: {
                 sender: {
-                    select: { id: true, name: true, email: true },
+                    select: { id: true, firstName: true, lastName: true, email: true },
                 },
                 receiver: {
-                    select: { id: true, name: true, email: true },
+                    select: { id: true, firstName: true, lastName: true, email: true },
                 },
                 job: {
                     select: { id: true, title: true },

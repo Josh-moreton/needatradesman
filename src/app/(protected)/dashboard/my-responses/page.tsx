@@ -34,8 +34,8 @@ export default async function DashboardMyResponsesPage() {
           customer: {
             select: {
               id: true,
-              name: true,
-              
+              firstName: true,
+              lastName: true,
             },
           },
         },

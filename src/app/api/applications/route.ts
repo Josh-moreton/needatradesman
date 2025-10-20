@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createApplicationSchema, UserRole } from "@/lib/schemas";
 import { applicationRateLimit, redis } from "@/lib/redis";
@@ -11,16 +11,14 @@ const logger = createLogger('applications-api');
 export async function POST(request: NextRequest) {
     try {
         // Check authentication
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        const userId = session.user.id;
+        const { userId } = await auth();
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
         // Get user from database and verify role
         const user = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { clerkId: userId },
         });
 
         if (!user) {
@@ -34,7 +32,7 @@ export async function POST(request: NextRequest) {
         // Rate limiting for applications (use clerkId to avoid reuse of internal IDs)
         if (applicationRateLimit) {
             try {
-                const { success, limit, reset, remaining } = await applicationRateLimit.limit(user.id);
+                const { success, limit, reset, remaining } = await applicationRateLimit.limit(user.clerkId);
 
                 if (!success) {
                     const resetDate = new Date(reset);
@@ -110,8 +108,6 @@ export async function POST(request: NextRequest) {
             include: {
                 tradesperson: {
                     select: {
-                        id: true,
-                        name: true,
                         firstName: true,
                         lastName: true,
                         email: true,
@@ -161,16 +157,14 @@ export async function POST(request: NextRequest) {
 export async function GET() {
     try {
         // Check authentication
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        const userId = session.user.id;
+        const { userId } = await auth();
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
         // Get user from database
         const user = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { clerkId: userId },
         });
 
         if (!user) {
@@ -196,8 +190,8 @@ export async function GET() {
                                     status: true,
                                     customer: {
                                         select: {
-                                            name: true,
-
+                                            firstName: true,
+                                            lastName: true,
                                         },
                                     },
                                 },
@@ -216,8 +210,8 @@ export async function GET() {
                         include: {
                             tradesperson: {
                                 select: {
-                                    name: true,
-
+                                    firstName: true,
+                                    lastName: true,
                                     email: true,
                                 },
                             },

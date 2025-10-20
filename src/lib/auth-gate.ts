@@ -2,7 +2,7 @@
  * Authorization Gate Pattern
  * 
  * This is the PROPER way to handle auth in Next.js App Router:
- * 1. Middleware = check session exists, route public vs protected
+ * 1. Middleware = check cookie exists, route public vs protected
  * 2. Server Components/Layouts = check DB for role/state (cached)
  * 3. Database = single source of truth (not JWT, not cookies)
  * 
@@ -11,17 +11,18 @@
  * - https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/06-Session_Management_Testing/10-Testing_JSON_Web_Tokens
  */
 
-import { auth } from '@/auth'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import type { UserRole } from '@prisma/client'
 
 export type AuthGate = {
     userId: string
+    clerkId: string
     email: string
     role: UserRole
-    name: string | null
-    onboardingComplete: boolean
+    firstName: string | null
+    lastName: string | null
 }
 
 /**
@@ -31,36 +32,35 @@ export type AuthGate = {
  * Use this in Server Components and Route Handlers, NOT in Middleware.
  */
 export async function getAuthGate(): Promise<AuthGate | null> {
-    const session = await auth()
+    const { userId: clerkId } = await auth()
 
-    if (!session?.user?.id) {
+    if (!clerkId) {
         return null
     }
 
-    const userId = session.user.id
-
     // Cache for 60 seconds, tagged for revalidation
     const getCachedUser = unstable_cache(
-        async (userId: string) => {
+        async (clerkId: string) => {
             return await prisma.user.findUnique({
-                where: { id: userId },
+                where: { clerkId },
                 select: {
                     id: true,
+                    clerkId: true,
                     email: true,
                     role: true,
-                    name: true,
-                    onboardingComplete: true,
+                    firstName: true,
+                    lastName: true,
                 }
             })
         },
-        [`user-gate-${userId}`],
+        [`user-gate-${clerkId}`],
         {
             revalidate: 60,
-            tags: [`user:${userId}`, 'user-gate']
+            tags: [`user:${clerkId}`, 'user-gate']
         }
     )
 
-    const user = await getCachedUser(userId)
+    const user = await getCachedUser(clerkId)
 
     if (!user) {
         return null
@@ -68,10 +68,11 @@ export async function getAuthGate(): Promise<AuthGate | null> {
 
     return {
         userId: user.id,
+        clerkId: user.clerkId,
         email: user.email,
         role: user.role,
-        name: user.name,
-        onboardingComplete: user.onboardingComplete,
+        firstName: user.firstName,
+        lastName: user.lastName,
     }
 }
 

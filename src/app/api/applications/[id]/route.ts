@@ -76,8 +76,8 @@ export async function PATCH(
                 tradesperson: {
                     select: {
                         id: true,
-                        name: true,
-                        
+                        firstName: true,
+                        lastName: true,
                         email: true,
                     },
                 },

@@ -52,7 +52,7 @@ export default async function DashboardPage() {
 }
 
 // Customer Dashboard Server Component
-async function CustomerDashboardPage({ user }: { user: { id: string; name: string | null } }) {
+async function CustomerDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get user's job stats for quick overview - matching original customer page
   const [recentJobs, totalApplications] = await Promise.all([
     prisma.job.findMany({
@@ -74,7 +74,9 @@ async function CustomerDashboardPage({ user }: { user: { id: string; name: strin
     }),
   ]);
 
-  const displayName = user.name || "there";
+  const displayName = user.firstName
+    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+    : "there";
 
   // Return the exact same content as the original customer page
   return (
@@ -254,7 +256,7 @@ async function CustomerDashboardPage({ user }: { user: { id: string; name: strin
 }
 
 // Tradesperson Dashboard Server Component
-async function TradespersonDashboardPage({ user }: { user: { id: string; name: string | null } }) {
+async function TradespersonDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get tradesperson stats - matching original tradesperson page
   const [applications, jobs] = await Promise.all([
     prisma.application.count({
@@ -273,7 +275,9 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; name: s
     }),
   ]);
 
-  const displayName = user.name || "there";
+  const displayName = user.firstName
+    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+    : "there";
 
   // Return the exact same content as the original tradesperson page
   return (

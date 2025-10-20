@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createLogger } from "@/lib/logger";
 import { invalidateJobCaches } from "@/lib/redis";
@@ -17,9 +17,7 @@ const logger = createLogger("complete-job");
  */
 export async function POST(request: NextRequest) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        const userId = session.user.id;
+        const { userId } = await auth();
 
         if (!userId) {
             return NextResponse.json(
@@ -41,7 +39,7 @@ export async function POST(request: NextRequest) {
 
         // Get the user from database
         const user = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { clerkId: userId },
         });
 
         if (!user) {

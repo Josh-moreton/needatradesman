@@ -99,8 +99,8 @@ async function TradespersonJobsView({
       include: {
         customer: {
           select: {
-            name: true,
-            
+            firstName: true,
+            lastName: true,
           },
         },
         _count: {

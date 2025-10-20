@@ -26,8 +26,8 @@ export async function GET(
                         customer: {
                             select: {
                                 id: true,
-                                name: true,
-                                
+                                firstName: true,
+                                lastName: true,
                             },
                         },
                         applications: {
@@ -35,8 +35,8 @@ export async function GET(
                                 tradesperson: {
                                     select: {
                                         id: true,
-                                        name: true,
-                                        
+                                        firstName: true,
+                                        lastName: true,
                                         email: true,
                                     },
                                 },
@@ -89,8 +89,8 @@ export async function PUT(
                 customer: {
                     select: {
                         id: true,
-                        name: true,
-                        
+                        firstName: true,
+                        lastName: true,
                     },
                 },
                 _count: {

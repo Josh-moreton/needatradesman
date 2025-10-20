@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { Crisp } from "crisp-sdk-web";
 
 export function CrispChat() {
-  const { data: session, status } = useSession();
+  const { user, isLoaded } = useUser();
 
   useEffect(() => {
     // Only initialize if we have the website ID
@@ -20,23 +20,25 @@ export function CrispChat() {
     Crisp.configure(websiteId);
 
     // Set user data if authenticated
-    if (status === "authenticated" && session?.user) {
+    if (isLoaded && user) {
       // Set user email
-      if (session.user.email) {
-        Crisp.user.setEmail(session.user.email);
+      if (user.primaryEmailAddress?.emailAddress) {
+        Crisp.user.setEmail(user.primaryEmailAddress.emailAddress);
       }
 
       // Set user name
-      if (session.user.name) {
-        Crisp.user.setNickname(session.user.name);
+      const name = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      if (name) {
+        Crisp.user.setNickname(name);
       }
 
       // Set user ID for tracking
       Crisp.session.setData({
-        user_id: session.user.id,
+        user_id: user.id,
+        clerk_id: user.id,
       });
     }
-  }, [session, status]);
+  }, [user, isLoaded]);
 
   return null; // Crisp widget is injected into the DOM
 }

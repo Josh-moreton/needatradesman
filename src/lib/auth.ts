@@ -1,35 +1,19 @@
-import { auth } from '@/auth'
+import { auth } from '@clerk/nextjs/server'
 import { prisma } from './prisma'
 import { createLogger } from './logger'
 
 const logger = createLogger('auth');
 
-/**
- * Get the current authenticated user from the database.
- * Returns null if not authenticated or user not found.
- */
 export async function getCurrentUser() {
     try {
-        const session = await auth()
+        const { userId } = await auth()
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return null
         }
 
         const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                image: true,
-                role: true,
-                onboardingComplete: true,
-                stripeAccountId: true,
-                trades: true,
-                createdAt: true,
-                updatedAt: true,
-            }
+            where: { clerkId: userId }
         })
 
         return user
@@ -39,9 +23,6 @@ export async function getCurrentUser() {
     }
 }
 
-/**
- * Require authentication. Throws an error if user is not authenticated.
- */
 export async function requireAuth() {
     const user = await getCurrentUser()
 
@@ -52,41 +33,30 @@ export async function requireAuth() {
     return user
 }
 
-/**
- * Check if the current user needs to complete onboarding.
- * Returns true if user has PENDING role or onboardingComplete is false.
- */
 export async function needsOnboarding() {
     try {
-        const session = await auth()
+        const { userId } = await auth()
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return false
         }
 
         const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: {
-                role: true,
-                onboardingComplete: true,
-            }
+            where: { clerkId: userId }
         })
 
-        // User needs onboarding if they have PENDING role or haven't completed onboarding
-        return user?.role === 'PENDING' || !user?.onboardingComplete
+        // User needs onboarding if they don't exist in our DB or don't have a role
+        return !user?.role
     } catch (error) {
         logger.error({ error }, 'Error checking onboarding status')
         return true // Err on the side of requiring onboarding
     }
 }
 
-/**
- * Check if the current request has an authenticated session.
- */
 export async function isAuthenticated() {
     try {
-        const session = await auth()
-        return !!session?.user?.id
+        const { userId } = await auth()
+        return !!userId
     } catch (error) {
         logger.error({ error }, 'Error checking authentication')
         return false

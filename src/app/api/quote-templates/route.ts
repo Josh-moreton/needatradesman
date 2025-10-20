@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { quoteItemSchema } from "@/lib/schemas";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const userId = session.user.id;
+  const { userId } = await auth();
   if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (!user) return new NextResponse("User not found", { status: 404 });
 
   const templates = await prisma.quoteTemplate.findMany({
@@ -21,12 +19,10 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const userId = session.user.id;
+  const { userId } = await auth();
   if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (!user) return new NextResponse("User not found", { status: 404 });
 
   const body = await request.json();

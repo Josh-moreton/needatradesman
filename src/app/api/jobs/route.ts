@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
 import { createLogger } from "@/lib/logger";
@@ -16,16 +16,14 @@ const logger = createLogger("jobs-api");
 export async function POST(request: NextRequest) {
     try {
         // Check authentication
-        const session = await auth();
-        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        const userId = session.user.id;
+        const { userId } = await auth();
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
         // Get user from database and verify role
         const user = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { clerkId: userId },
         });
 
         if (!user) {
@@ -39,7 +37,7 @@ export async function POST(request: NextRequest) {
         // Rate limiting for job posting (use clerkId to avoid reuse of internal IDs)
         if (jobPostingRateLimit) {
             try {
-                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(user.id);
+                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(user.clerkId);
 
                 if (!success) {
                     const resetDate = new Date(reset);
@@ -269,8 +267,8 @@ export async function GET(request: NextRequest) {
                         include: {
                             customer: {
                                 select: {
-                                    name: true,
-
+                                    firstName: true,
+                                    lastName: true,
                                 },
                             },
                             _count: {

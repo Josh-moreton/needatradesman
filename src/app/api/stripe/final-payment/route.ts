@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-final-payment");
 
-export const runtime = "nodejs";
-
 export async function POST(request: NextRequest) {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const userId = session.user.id;
 
     // Parse request body
     const { jobId } = await request.json();
@@ -27,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     try {
         // Fetch user from DB
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma.user.findUnique({ where: { clerkId: userId } });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
@@ -50,7 +46,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Verify that the requesting user is the customer of this job
-        if (job.customer.id !== userId) {
+        if (job.customer.clerkId !== userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
@@ -141,8 +137,8 @@ export async function POST(request: NextRequest) {
         const origin = request.headers.get("origin") || "http://localhost:3000";
 
         // Prepare payment descriptions
-        const paymentName = application.requiresDeposit
-            ? `Final Payment - ${job.title}`
+        const paymentName = application.requiresDeposit 
+            ? `Final Payment - ${job.title}` 
             : `Full Payment - ${job.title}`;
         const paymentDescription = application.requiresDeposit
             ? `Remaining balance for completed job: ${job.title}`

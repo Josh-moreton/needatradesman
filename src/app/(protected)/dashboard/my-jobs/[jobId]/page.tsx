@@ -88,8 +88,8 @@ export default async function ManageResponsesPage({
             tradesperson: {
               select: {
                 id: true,
-                name: true,
-                
+                firstName: true,
+                lastName: true,
                 email: true,
               },
             },

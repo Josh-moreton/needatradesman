@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import {
   Home,
   Hammer,
@@ -55,24 +55,24 @@ const staggerContainer = {
 };
 
 export default function LandingPageAnimated() {
-  const { data: session, status } = useSession();
+  const { isSignedIn, isLoaded } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (isLoaded && isSignedIn) {
       router.push("/dashboard");
     }
-  }, [status, router]);
+  }, [isSignedIn, isLoaded, router]);
 
   // Add debug logging
   useEffect(() => {
     logger.debug(
-      { status, authenticated: status === "authenticated" },
+      { isLoaded, isSignedIn },
       "LandingPageAnimated status"
     );
-  }, [status]);
+  }, [isLoaded, isSignedIn]);
 
-  if (status === "loading") {
+  if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -82,7 +82,7 @@ export default function LandingPageAnimated() {
     );
   }
 
-  if (session) {
+  if (isSignedIn) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -130,7 +130,7 @@ export default function LandingPageAnimated() {
               className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-12 sm:mb-20 w-full items-center"
               variants={fadeInUp}
             >
-              <Link href="/signin">
+              <SignUpButton mode="modal">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -144,9 +144,9 @@ export default function LandingPageAnimated() {
                     Get Started <ArrowRight className="ml-3 h-6 w-6" />
                   </Button>
                 </motion.div>
-              </Link>
+              </SignUpButton>
 
-              <Link href="/signin">
+              <SignInButton mode="modal">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -161,7 +161,7 @@ export default function LandingPageAnimated() {
                     Sign In
                   </Button>
                 </motion.div>
-              </Link>
+              </SignInButton>
             </motion.div>
 
             {/* Trust Indicators */}
@@ -292,7 +292,7 @@ export default function LandingPageAnimated() {
                     </div>
                   </div>
 
-                  <Link href="/signin">
+                  <SignUpButton mode="modal">
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -301,7 +301,7 @@ export default function LandingPageAnimated() {
                         Post a Job
                       </Button>
                     </motion.div>
-                  </Link>
+                  </SignUpButton>
                 </CardContent>
               </Card>
             </motion.div>
@@ -358,7 +358,7 @@ export default function LandingPageAnimated() {
                     </div>
                   </div>
 
-                  <Link href="/signin">
+                  <SignUpButton mode="modal">
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -371,7 +371,7 @@ export default function LandingPageAnimated() {
                         Find Work
                       </Button>
                     </motion.div>
-                  </Link>
+                  </SignUpButton>
                 </CardContent>
               </Card>
             </motion.div>
@@ -464,7 +464,7 @@ export default function LandingPageAnimated() {
               Join thousands of satisfied customers and professionals on our
               platform.
             </p>
-            <Link href="/signin">
+            <SignUpButton mode="modal">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -477,7 +477,7 @@ export default function LandingPageAnimated() {
                   Get Started Today <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </motion.div>
-            </Link>
+            </SignUpButton>
           </motion.div>
         </div>
       </section>

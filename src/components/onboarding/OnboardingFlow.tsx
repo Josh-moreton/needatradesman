@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { UserRole, JobCategory } from "@prisma/client"; // Use Prisma enum instead
 import {
   Card,
@@ -23,8 +23,9 @@ export default function OnboardingFlow() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
-  const router = useRouter();
+  const { user } = useUser();
 
+  // Avoid client-side redirects based on Clerk metadata to prevent loops.
   // Server route (/onboarding) already gates using DB role and redirects when complete.
 
   const handleRoleSelect = async (role: UserRole) => {
@@ -43,12 +44,16 @@ export default function OnboardingFlow() {
         });
 
         if (response.ok) {
-          logger.debug("Role API call successful, redirecting to dashboard...");
+          logger.debug("Role API call successful, reloading user data...");
 
+          // Reload user to fetch updated publicMetadata from Clerk
+          await user?.reload();
 
-          // Use router push to redirect to dashboard
-          router.push("/dashboard");
-          router.refresh();
+          logger.debug("User data reloaded, redirecting to dashboard...");
+
+          // Use replace instead of refresh to force a full page reload
+          // This ensures the server re-queries the database for the updated role
+          window.location.href = "/dashboard";
         } else {
           const errorText = await response.text();
           logger.error(
@@ -98,12 +103,19 @@ export default function OnboardingFlow() {
 
       if (response.ok) {
         logger.debug(
-          "[OnboardingFlow] Tradesperson role API call successful, redirecting to dashboard..."
+          "[OnboardingFlow] Tradesperson role API call successful, reloading user data..."
         );
 
-        // Use router push to redirect to dashboard
-        router.push("/dashboard");
-        router.refresh();
+        // Reload user to fetch updated publicMetadata from Clerk
+        await user?.reload();
+
+        logger.debug(
+          "[OnboardingFlow] User data reloaded, redirecting to dashboard..."
+        );
+
+        // Use replace instead of refresh to force a full page reload
+        // This ensures the server re-queries the database for the updated role
+        window.location.href = "/dashboard";
       } else {
         const errorText = await response.text();
         logger.error(
