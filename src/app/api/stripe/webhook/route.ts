@@ -164,6 +164,28 @@ export async function POST(request: NextRequest) {
                                 session.payment_intent as string
                             );
 
+                            // Check payment method type for logging
+                            let paymentMethodType = 'unknown';
+                            if (paymentIntent.payment_method) {
+                                try {
+                                    const paymentMethod = await stripe.paymentMethods.retrieve(
+                                        paymentIntent.payment_method as string
+                                    );
+                                    paymentMethodType = paymentMethod.type;
+                                    
+                                    if (paymentMethodType === 'bacs_debit') {
+                                        logger.info({ 
+                                            jobId, 
+                                            tradespersonId,
+                                            sessionId: session.id,
+                                            bankTransferReference: session.metadata?.bankTransferReference 
+                                        }, 'BACS bank transfer payment initiated');
+                                    }
+                                } catch (err) {
+                                    logger.warn({ error: err }, 'Could not retrieve payment method details');
+                                }
+                            }
+
                             // 2. Update job status and store payment information atomically
                             await tx.job.update({
                                 where: { id: jobId },
@@ -243,6 +265,27 @@ export async function POST(request: NextRequest) {
                             const paymentIntent = await stripe.paymentIntents.retrieve(
                                 session.payment_intent as string
                             );
+
+                            // Check payment method type for logging
+                            let paymentMethodType = 'unknown';
+                            if (paymentIntent.payment_method) {
+                                try {
+                                    const paymentMethod = await stripe.paymentMethods.retrieve(
+                                        paymentIntent.payment_method as string
+                                    );
+                                    paymentMethodType = paymentMethod.type;
+                                    
+                                    if (paymentMethodType === 'bacs_debit') {
+                                        logger.info({ 
+                                            jobId,
+                                            sessionId: session.id,
+                                            bankTransferReference: session.metadata?.bankTransferReference 
+                                        }, 'BACS bank transfer final payment initiated');
+                                    }
+                                } catch (err) {
+                                    logger.warn({ error: err }, 'Could not retrieve payment method details');
+                                }
+                            }
 
                             // 2. Update job with final payment information atomically
                             await tx.job.update({

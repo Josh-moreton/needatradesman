@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculateCustomerFee, calculateTradespersonFee, calculateCustomerTotal } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
+import { isBankTransferAvailable, generateBankTransferReference } from "@/lib/feature-flags";
 
 const logger = createLogger("stripe-final-payment");
 
@@ -147,10 +148,22 @@ export async function POST(request: NextRequest) {
             ? `Remaining balance for completed job: ${job.title}`
             : `Full payment for completed job: ${job.title}`;
 
+        // Generate bank transfer reference if not already set
+        let bankTransferRef = job.bankTransferReference;
+        if (!bankTransferRef) {
+            bankTransferRef = generateBankTransferReference(jobId);
+            // Update job with bank transfer reference
+            await prisma.job.update({
+                where: { id: jobId },
+                data: { bankTransferReference: bankTransferRef }
+            });
+        }
+
         // Determine available payment methods
-        // Enable bank transfer (BACS) for payments >= £1000
+        // Enable bank transfer (BACS) for payments >= £5000
+        const finalAmountInPence = Math.round(finalAmount * 100);
         const paymentMethodTypes = ["card", "klarna", "afterpay_clearpay"] as const;
-        const allPaymentMethods = finalAmount >= 1000
+        const allPaymentMethods = isBankTransferAvailable(finalAmountInPence)
             ? [...paymentMethodTypes, "bacs_debit"] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
@@ -195,6 +208,7 @@ export async function POST(request: NextRequest) {
                 tradespersonFee: tradespersonFee.toString(),
                 totalPlatformFee: (customerFee + tradespersonFee).toString(),
                 requiresDeposit: application.requiresDeposit.toString(),
+                bankTransferReference: bankTransferRef, // Include reference for tracking
             },
         });
 

@@ -10,6 +10,7 @@ This directory contains comprehensive documentation for the Need A Tradesman pay
 - **[Decision Log](./decision-log.md)** - Architectural decisions and rationale
 - **[Sequence Diagrams](./sequence-diagrams.md)** - Visual flow diagrams
 - **[Change Plan](./change-plan.md)** - Step-by-step migration plan
+- **[Bank Transfer](./bank-transfer.md)** - BACS Direct Debit payment method for high-value jobs
 
 ---
 
@@ -315,7 +316,7 @@ transfer_group: `job_${jobId}`
 - [ ] Testing
 
 ### Q2 2026: Enhanced Payment Methods
-- [ ] GBP Bank Transfer (1-2 weeks)
+- [x] GBP Bank Transfer (BACS) for high-value jobs
 - [ ] BNPL integration (3-5 days)
 - [ ] Apple Pay / Google Pay optimization
 

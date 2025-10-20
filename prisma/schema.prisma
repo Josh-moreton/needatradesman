@@ -70,6 +70,9 @@ model Job {
   finalReleasedAt               DateTime? // When final transfer was created
   chargeModel                   ChargeModel? @default(DESTINATION_CHARGE) // Track which charge model is used
   
+  // Bank transfer reference for manual reconciliation
+  bankTransferReference         String? @unique // e.g., "NAT-JOB-XYZ123" - max 18 chars for BACS
+  
   createdAt                     DateTime     @default(now())
   updatedAt                     DateTime     @updatedAt
 

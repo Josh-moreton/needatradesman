@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
 import { createLogger } from "@/lib/logger";
+import { isBankTransferAvailable, generateBankTransferReference } from "@/lib/feature-flags";
 
 const logger = createLogger("stripe-checkout-session");
 
@@ -122,10 +123,22 @@ export async function POST(request: NextRequest) {
         // Calculate deposit percentage for display
         const depositPercentage = Math.round((deposit / Number(fullAmount)) * 100);
 
+        // Generate bank transfer reference if not already set
+        let bankTransferRef = job.bankTransferReference;
+        if (!bankTransferRef) {
+            bankTransferRef = generateBankTransferReference(jobId);
+            // Update job with bank transfer reference
+            await prisma.job.update({
+                where: { id: jobId },
+                data: { bankTransferReference: bankTransferRef }
+            });
+        }
+
         // Determine available payment methods
-        // Enable bank transfer (BACS) for deposits >= £1000
+        // Enable bank transfer (BACS) for deposits >= £5000
+        const depositInPence = Math.round(deposit * 100);
         const paymentMethodTypes = ["card", "klarna", "afterpay_clearpay"] as const;
-        const allPaymentMethods = deposit >= 1000
+        const allPaymentMethods = isBankTransferAvailable(depositInPence)
             ? [...paymentMethodTypes, "bacs_debit"] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
@@ -166,6 +179,7 @@ export async function POST(request: NextRequest) {
                 customerFee: customerFee.toString(),
                 tradespersonFee: tradespersonFee.toString(),
                 totalPlatformFee: (customerFee + tradespersonFee).toString(),
+                bankTransferReference: bankTransferRef, // Include reference for tracking
             },
             success_url: `${origin}/dashboard/jobs/${jobId}?payment_success=true`,
             cancel_url: `${origin}/dashboard/jobs/${jobId}?payment_cancelled=true`,
