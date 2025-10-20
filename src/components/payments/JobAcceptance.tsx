@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
 import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
+import { calculateDepositAmount } from '@/lib/utils';
 
 interface JobAcceptanceProps {
   jobId: string;
@@ -24,7 +25,7 @@ export function JobAcceptance({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   // Calculate deposit based on the configured percentage
-  const depositAmount = (quote * depositPercentage) / 100;
+  const depositAmount = calculateDepositAmount(quote, depositPercentage);
   
   // Calculate customer platform fee using centralized function
   const depositCustomerFeeInPence = calculateCustomerFee(depositAmount);
