@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
         const application = job.applications[0];
 
-        // Calculate full job amount and deposit (50% or custom amount)
+        // Calculate full job amount and deposit (configurable percentage from application)
         const fullAmount = application.quote || job.budget;
 
         if (!fullAmount) {

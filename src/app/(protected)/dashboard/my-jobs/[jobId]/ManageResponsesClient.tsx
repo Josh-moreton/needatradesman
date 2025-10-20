@@ -18,6 +18,7 @@ import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
 import { Decimal } from "@prisma/client/runtime/library";
 import { createLogger } from '@/lib/logger';
 import { calculateCustomerFee } from '@/lib/stripe';
+import { calculateDepositAmount, formatCurrency } from '@/lib/utils';
 
 const logger = createLogger('manage-responses-client');
 
@@ -73,7 +74,7 @@ function PayDepositButton({
 }: PayDepositButtonProps) {
   const [showDepositModal, setShowDepositModal] = useState(false);
 
-  const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
+  const depositAmount = quote ? calculateDepositAmount(quote, depositPercentage) : 0;
   
   // Calculate customer platform fee using centralized function
   const customerFeeInPence = calculateCustomerFee(depositAmount);
@@ -267,7 +268,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
 
   const formatBudget = (budget: Decimal | null) => {
     if (!budget) return null;
-    return `£${Number(budget).toFixed(0)}`;
+    return formatCurrency(budget, 2);
   };
 
   const getTradespersonName = (
@@ -497,6 +498,11 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                         Quote: {formatBudget(application.quote)}
                       </Badge>
                     )}
+                    {application.requiresDeposit && application.quote && (
+                      <Badge variant="secondary" className="text-xs">
+                        {application.depositPercentage}% deposit
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -508,6 +514,35 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                       {application.message}
                     </p>
                   </div>
+
+                  {application.quote && (
+                    <div className="bg-muted/50 rounded-md p-3">
+                      <h4 className="font-medium text-sm mb-2">Payment Details</h4>
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span>Total Quote:</span>
+                          <span className="font-medium">{formatBudget(application.quote)}</span>
+                        </div>
+                        {application.requiresDeposit && (
+                          <>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Deposit ({application.depositPercentage}%):</span>
+                              <span>{formatCurrency(calculateDepositAmount(application.quote, application.depositPercentage))}</span>
+                            </div>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Final Payment ({100 - application.depositPercentage}%):</span>
+                              <span>{formatCurrency(calculateDepositAmount(application.quote, 100 - application.depositPercentage))}</span>
+                            </div>
+                          </>
+                        )}
+                        {!application.requiresDeposit && (
+                          <div className="text-muted-foreground text-xs">
+                            No deposit required - full payment after job completion
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-2 pt-2">
                     <Button
