@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Briefcase,
   BarChart3,
+  GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -382,6 +383,28 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; firstNa
                 <Link href="/dashboard/quote-templates">
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Templates
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border-primary/50">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <GraduationCap className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Academy</CardTitle>
+                  <CardDescription>Training & qualifications</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/academy">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  View Courses
                 </Link>
               </Button>
             </CardContent>
