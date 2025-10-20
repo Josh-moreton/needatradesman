@@ -108,12 +108,16 @@ Job updated: depositTransferId, depositReleasedAt = NOW
 
 | Aspect | Destination Charges | SC&T |
 |--------|-------------------|------|
-| **Platform Fee** | `application_fee_amount` (Stripe Connect) | Deducted during manual Transfer |
+| **Platform Fee** | `application_fee_amount` (Stripe Connect) | Calculated and deducted from transfer amount |
 | **Transfer Timing** | Instant (automatic) | Manual (controlled) |
 | **Release Timestamp** | Set immediately | Set when transfer created |
 | **Refund Before Transfer** | Requires transfer reversal | Simple charge refund |
 | **Cooling-Off Period** | Not supported | Supported |
 | **Milestone Payments** | Not supported | Supported |
+
+**Example:** Customer pays £1000:
+- **Destination Charges**: Stripe automatically transfers £900 to tradesperson (£100 application fee), platform gets £100
+- **SC&T**: Platform holds £1000, then manually transfers £900 to tradesperson (£100 deducted from transfer)
 
 ## API Reference
 
