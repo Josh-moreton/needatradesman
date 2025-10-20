@@ -176,7 +176,10 @@ export async function POST(request: NextRequest) {
                                     depositChargeId: paymentIntent.latest_charge as string | null,
                                     transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
                                     chargeModel: ChargeModel.DESTINATION_CHARGE,
-                                    depositReleasedAt: new Date(), // Transfer created immediately with destination charges
+                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
+                                    // by Stripe at payment time (via transfer_data in checkout session).
+                                    // For future SC_AND_T: this will be set when we manually create the transfer.
+                                    depositReleasedAt: new Date(),
                                 },
                             });
 
@@ -249,7 +252,10 @@ export async function POST(request: NextRequest) {
                                     finalPaymentIntentId: session.payment_intent as string,
                                     // New payment tracking fields
                                     finalChargeId: paymentIntent.latest_charge as string | null,
-                                    finalReleasedAt: new Date(), // Transfer created immediately with destination charges
+                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
+                                    // by Stripe at payment time (via transfer_data in checkout session).
+                                    // For future SC_AND_T: this will be set when we manually create the transfer.
+                                    finalReleasedAt: new Date(),
                                 },
                             });
                         });
