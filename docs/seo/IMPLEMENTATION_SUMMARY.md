@@ -8,7 +8,7 @@ This document summarizes the implementation of programmatic Trade×Location and 
 
 ### 1. Database Schema Extensions
 
-Added five new models to `prisma/schema.prisma`:
+Added three new models to `prisma/schema.prisma`:
 
 #### Provider
 - Complete business profile with NAP (Name, Address, Phone)
@@ -16,23 +16,12 @@ Added five new models to `prisma/schema.prisma`:
 - Accreditations (Gas Safe, NICEIC, etc.)
 - Rating and review aggregation
 - Publication gate flag
-- Next available appointment tracking
-
-#### ProviderAvailability
-- Date-based availability slots
-- Start/end times
-- Booking status tracking
+- Activity tracking (jobs completed, response time, last active)
 
 #### ProviderReview
 - Customer reviews with 1-5 star ratings
 - Review text and verification
 - Publication control
-
-#### PricingQuartile
-- Trade×location pricing data
-- Q1, Q2 (median), Q3 pricing
-- Sample size for transparency
-- Unit tracking (per job, hour, sqm)
 
 #### LocalRule
 - Regulations by trade and location
@@ -45,8 +34,7 @@ Added five new models to `prisma/schema.prisma`:
 #### `/[trade]/[location]/page.tsx`
 - **URL Pattern**: `/electricians/london`, `/plumbers/edinburgh`, etc.
 - **Features**:
-  - Price ranges display (Q1/Q2/Q3)
-  - Next 3 available appointments
+  - Marketplace activity stats (active providers, recent jobs, avg response time)
   - Top 6 local providers
   - Local regulations panel
   - FAQ section (5 questions)
@@ -72,7 +60,7 @@ Added five new models to `prisma/schema.prisma`:
   - Contact information (phone, email, website, address)
   - Accreditations list
   - Customer reviews (10 most recent)
-  - Next available appointment
+  - Activity & performance (jobs completed, response time, last active)
 - **SEO**:
   - HomeAndConstructionBusiness JSON-LD schema
   - Review schema (only genuine third-party reviews)
@@ -88,8 +76,7 @@ All with Redis caching and graceful degradation:
 
 | Function | Cache TTL | Purpose |
 |----------|-----------|---------|
-| `getPricingQuartiles()` | 24 hours | Fetch pricing data |
-| `getNextAvailableSlots()` | 1 hour | Fetch availability |
+| `getMarketplaceActivity()` | 1 hour | Fetch marketplace stats (active providers, jobs, response time) |
 | `getProvidersForLocation()` | 2 hours | Fetch provider list |
 | `getLocalRules()` | 7 days | Fetch regulations |
 | `checkPageQuality()` | None | Publication gate check |
@@ -147,7 +134,7 @@ Populates test data:
 
 ✅ **Published** if ALL of:
 - ≥ 3 providers in the area for this trade
-- ≥ 2 of: pricing data, availability data, local rules
+- ≥ 2 of: marketplace activity stats, local rules, provider reviews
 
 ❌ **Noindex** if requirements not met, but still rendered with warning message
 

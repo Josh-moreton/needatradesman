@@ -47,19 +47,15 @@ Location slugs are normalized city/area names:
 
 Each Trade×Location page includes:
 
-#### 1. Price Ranges (Quartiles)
-- Displays Q1 (25th), Q2 (50th median), Q3 (75th percentile) pricing
-- Source: `PricingQuartile` table
-- Shows unit (per job, per hour, per sqm, etc.)
-- Includes sample size for transparency
+#### 1. Marketplace Activity Statistics
+- **Active Tradespeople**: Count of providers active in last 30 days
+- **Recent Jobs**: Number of jobs posted in this trade/location in last 30 days
+- **Average Response Time**: Typical hours to receive quotes from local tradespeople
+- Source: Aggregated from `Provider` and `Job` tables
+- Updated hourly via cache
+- Demonstrates real market activity and liquidity
 
-#### 2. Next Available Appointments
-- Shows the next 3 available slots from local providers
-- Source: `ProviderAvailability` table
-- Real-time availability updates with 1-hour cache
-- Displays provider name, date, and time range
-
-#### 3. Local Regulations &amp; Safety
+#### 2. Local Regulations &amp; Safety
 - Relevant regulations for the trade in that location
 - Sources from `LocalRule` table (location-specific + UK-wide)
 - Includes:
@@ -69,13 +65,13 @@ Each Trade×Location page includes:
   - Local council requirements
 - Each rule includes title, description, and optional reference link
 
-#### 4. Top Providers
+#### 3. Top Providers
 - Lists top 6 providers in the area
 - Sorted by rating and review count
 - Shows business name, rating, review count, and location
 - Links to provider profile pages
 
-#### 5. Internal Linking
+#### 4. Internal Linking
 - **Nearby Areas**: Links to the same trade in neighboring locations
 - **Related Trades**: Links to related services in the same location
 - **Breadcrumbs**: Home → Trade → Location
@@ -87,9 +83,9 @@ Pages are set to `noindex` if they don't meet quality thresholds:
 **Requirements for indexing:**
 1. Minimum **3 providers** in the area
 2. At least **2 data points** from:
-   - Pricing quartiles
-   - Availability data
+   - Marketplace activity stats (active providers, recent jobs)
    - Local regulations
+   - Provider reviews
 
 If requirements aren't met:
 - `robots` meta tag set to `noindex, follow`
@@ -100,8 +96,7 @@ If requirements aren't met:
 
 - Revalidation: **4 hours** (14400 seconds)
 - Caching strategy:
-  - Pricing: 24 hours
-  - Availability: 1 hour
+  - Activity stats: 1 hour
   - Providers: 2 hours
   - Local rules: 7 days
 
@@ -195,9 +190,10 @@ Incomplete profiles are set to `noindex, follow`.
 - Review date and customer name
 - Review text
 
-#### 8. Next Available
-- Next available appointment slot
-- "Book Now" CTA
+#### 8. Activity & Performance
+- Jobs completed count
+- Average response time
+- Last active date
 
 ### Structured Data
 
@@ -232,21 +228,6 @@ Uses `providerSchema()` from `/lib/seo/schema.ts`:
 - No additional caching layers (provider data is always fresh from DB)
 
 ## Data Models
-
-### PricingQuartile
-```typescript
-{
-  trade: JobCategory
-  location: string         // City/region name
-  locationType: string     // "city", "region", "postcode"
-  q1: Decimal             // 25th percentile
-  q2: Decimal             // 50th percentile (median)
-  q3: Decimal             // 75th percentile
-  unit: string            // "job", "hour", "sqm", etc.
-  sampleSize: number      // Number of jobs in calculation
-  lastCalculated: DateTime
-}
-```
 
 ### LocalRule
 ```typescript
@@ -290,19 +271,10 @@ Uses `providerSchema()` from `/lib/seo/schema.ts`:
   averageRating: Decimal
   reviewCount: number
   
-  // Availability
-  nextAvailable: DateTime?
-}
-```
-
-### ProviderAvailability
-```typescript
-{
-  providerId: string
-  date: DateTime
-  startTime: string       // "09:00"
-  endTime: string        // "17:00"
-  isBooked: boolean
+  // Activity tracking
+  responseTimeHours: number?  // Avg response time
+  jobsCompleted: number       // Total completed jobs
+  lastActive: DateTime?       // Last activity timestamp
 }
 ```
 
@@ -323,11 +295,10 @@ Uses `providerSchema()` from `/lib/seo/schema.ts`:
 
 All data loaders are in `/lib/programmatic-data.ts`:
 
-- `getPricingQuartiles(trade, location)` - Fetch pricing data with 24h cache
-- `getNextAvailableSlots(trade, location, limit)` - Fetch availability with 1h cache
+- `getMarketplaceActivity(trade, location)` - Fetch activity stats (active providers, recent jobs, response time) with 1h cache
 - `getProvidersForLocation(trade, location, limit)` - Fetch providers with 2h cache
 - `getLocalRules(trade, location)` - Fetch regulations with 7-day cache
-- `checkPageQuality(trade, location)` - Publication gate checks
+- `checkPageQuality(trade, location)` - Publication gate checks (providers, activity, rules, reviews)
 - `getProviderBySlug(slug)` - Fetch provider profile
 - `getProviderReviews(providerId, limit)` - Fetch published reviews
 - `isProviderComplete(provider)` - Completeness gate

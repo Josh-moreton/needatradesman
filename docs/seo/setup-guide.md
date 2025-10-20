@@ -21,15 +21,13 @@ pnpm prisma migrate deploy
 ```
 
 This adds the following tables:
-- `providers` - Provider/tradesperson profiles
-- `provider_availability` - Availability slots
+- `providers` - Provider/tradesperson profiles with activity tracking
 - `provider_reviews` - Customer reviews
-- `pricing_quartiles` - Price data by trade×location
 - `local_rules` - Regulations and safety requirements
 
 ## Step 2: Seed Initial Data
 
-Run the seed script to populate test data for pricing and local rules:
+Run the seed script to populate test data for local rules:
 
 ```bash
 # Install tsx if not already installed
@@ -40,9 +38,8 @@ npx tsx scripts/seed-programmatic-data.ts
 ```
 
 This creates:
-- Pricing quartiles for major cities (London, Edinburgh, Manchester)
-- UK-wide and location-specific regulations
-- Sample data for trades: Electrical, Plumbing, Carpentry
+- UK-wide and location-specific regulations for various trades
+- Sample local rules for electrical, plumbing, and carpentry work
 
 ## Step 3: Create Provider Profiles (Optional for Testing)
 
@@ -149,7 +146,7 @@ pnpm dev
 
 Check:
 - ✅ Page renders without errors
-- ✅ Unique content blocks appear (pricing, availability, providers, rules)
+- ✅ Unique content blocks appear (marketplace activity, providers, rules, FAQs)
 - ✅ Internal links work (nearby areas, related trades)
 - ✅ Breadcrumbs navigate correctly
 - ✅ Structured data validates (use view-source and check JSON-LD)
