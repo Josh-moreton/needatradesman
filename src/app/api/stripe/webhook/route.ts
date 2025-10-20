@@ -158,6 +158,11 @@ export async function POST(request: NextRequest) {
                                 throw new Error('Job already has accepted tradesperson');
                             }
 
+                            // Retrieve payment intent to get charge and transfer details
+                            const paymentIntent = await stripe.paymentIntents.retrieve(
+                                session.payment_intent as string
+                            );
+
                             // 2. Update job status and store payment information atomically
                             await tx.job.update({
                                 where: { id: jobId },
@@ -166,6 +171,11 @@ export async function POST(request: NextRequest) {
                                     depositPaid: true,
                                     depositPaymentIntentId: session.payment_intent as string,
                                     acceptedTradespersonId: tradespersonId,
+                                    // New payment tracking fields
+                                    depositChargeId: paymentIntent.latest_charge as string | null,
+                                    transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
+                                    chargeModel: 'DESTINATION_CHARGE',
+                                    depositReleasedAt: new Date(), // Transfer created immediately with destination charges
                                 },
                             });
 
@@ -214,7 +224,7 @@ export async function POST(request: NextRequest) {
                             // 1. Check if job already has final payment (prevent race condition)
                             const currentJob = await tx.job.findUnique({
                                 where: { id: jobId },
-                                select: { finalPaid: true, finalPaymentIntentId: true }
+                                select: { finalPaid: true, finalPaymentIntentId: true, transferGroup: true }
                             });
 
                             if (currentJob?.finalPaid) {
@@ -225,12 +235,20 @@ export async function POST(request: NextRequest) {
                                 throw new Error('Job already has final payment processed');
                             }
 
+                            // Retrieve payment intent to get charge and transfer details
+                            const paymentIntent = await stripe.paymentIntents.retrieve(
+                                session.payment_intent as string
+                            );
+
                             // 2. Update job with final payment information atomically
                             await tx.job.update({
                                 where: { id: jobId },
                                 data: {
                                     finalPaid: true,
                                     finalPaymentIntentId: session.payment_intent as string,
+                                    // New payment tracking fields
+                                    finalChargeId: paymentIntent.latest_charge as string | null,
+                                    finalReleasedAt: new Date(), // Transfer created immediately with destination charges
                                 },
                             });
                         });
