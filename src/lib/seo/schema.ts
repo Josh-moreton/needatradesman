@@ -211,7 +211,7 @@ export function serviceSchema(params: ServiceSchemaParams) {
     schema.offers = {
       "@type": "Offer",
       ...(params.priceRange && { priceRange: params.priceRange }),
-      ...(params.priceUnit && { priceCurrency: "GBP" }),
+      ...(params.priceUnit && { priceCurrency: params.priceUnit }),
       ...(params.availability && { availability: params.availability }),
     };
   }
