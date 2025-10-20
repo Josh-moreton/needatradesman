@@ -15,13 +15,13 @@ export const EmailLayout: React.FC<EmailLayoutProps> = ({ children, preheader })
     <head>
       <meta charSet="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body style={{ fontFamily: 'Arial, sans-serif', lineHeight: '1.6', color: '#333', backgroundColor: '#f5f5f5', margin: 0, padding: 0 }}>
       {preheader && (
         <div style={{ display: 'none', maxHeight: 0, overflow: 'hidden' }}>
           {preheader}
         </div>
       )}
-    </head>
-    <body style={{ fontFamily: 'Arial, sans-serif', lineHeight: '1.6', color: '#333', backgroundColor: '#f5f5f5', margin: 0, padding: 0 }}>
       <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
         <div style={{ backgroundColor: '#ffffff', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           {children}
