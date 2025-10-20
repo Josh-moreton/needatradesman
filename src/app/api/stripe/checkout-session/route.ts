@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { FEATURES } from "@/lib/feature-flags";
 
 import { createLogger } from "@/lib/logger";
 
@@ -128,39 +129,90 @@ export async function POST(request: NextRequest) {
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
         // Create a Checkout Session with Stripe Connect
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: allPaymentMethods,
-            mode: "payment",
-            line_items: [
-                {
-                    price_data: {
-                        currency: "gbp",
-                        product_data: {
-                            name: `Deposit for ${job.title}`,
-                            description: `${depositPercentage}% deposit to book this job`,
+        let session: Stripe.Checkout.Session;
+
+        if (FEATURES.USE_SC_AND_T) {
+            // NEW: SC&T model - charge platform account, transfer later
+            logger.info({ jobId, tradespersonId }, "Using SC&T payment model");
+
+            session = await stripe.checkout.sessions.create({
+                payment_method_types: allPaymentMethods,
+                mode: "payment",
+                line_items: [
+                    {
+                        price_data: {
+                            currency: "gbp",
+                            product_data: {
+                                name: `Deposit for ${job.title}`,
+                                description: `${depositPercentage}% deposit to book this job`,
+                            },
+                            unit_amount: formattedDepositAmount,
                         },
-                        unit_amount: formattedDepositAmount,
+                        quantity: 1,
                     },
-                    quantity: 1,
+                ],
+                payment_intent_data: {
+                    // NO application_fee_amount - we're not using Stripe Connect fees for SC&T
+                    // Platform takes commission from the transfer amount later
+                    transfer_group: `job_${jobId}`,
+                    metadata: {
+                        jobId: job.id,
+                        tradespersonId: tradespersonId,
+                        applicationType: "deposit",
+                        applicationId: application.id,
+                        platformFee: platformFee.toString(),
+                        chargeModel: 'SC_AND_T',
+                    },
+                    // NO transfer_data - we'll transfer later via /api/stripe/payment/release
                 },
-            ],
-            payment_intent_data: {
-                application_fee_amount: platformFee,
-                transfer_group: `job_${jobId}`,
-                transfer_data: {
-                    destination: tradesperson.stripeAccountId,
+                metadata: {
+                    jobId: job.id,
+                    tradespersonId: tradespersonId,
+                    applicationType: "deposit",
+                    applicationId: application.id,
+                    platformFee: platformFee.toString(),
                 },
-            },
-            metadata: {
-                jobId: job.id,
-                tradespersonId: tradespersonId,
-                applicationType: "deposit",
-                applicationId: application.id,
-                platformFee: platformFee.toString(),
-            },
-            success_url: `${origin}/dashboard/jobs/${jobId}?payment_success=true`,
-            cancel_url: `${origin}/dashboard/jobs/${jobId}?payment_cancelled=true`,
-        });
+                success_url: `${origin}/dashboard/jobs/${jobId}?payment_success=true`,
+                cancel_url: `${origin}/dashboard/jobs/${jobId}?payment_cancelled=true`,
+            });
+        } else {
+            // EXISTING: Destination Charges - instant transfer via transfer_data
+            logger.info({ jobId, tradespersonId }, "Using Destination Charges model");
+
+            session = await stripe.checkout.sessions.create({
+                payment_method_types: allPaymentMethods,
+                mode: "payment",
+                line_items: [
+                    {
+                        price_data: {
+                            currency: "gbp",
+                            product_data: {
+                                name: `Deposit for ${job.title}`,
+                                description: `${depositPercentage}% deposit to book this job`,
+                            },
+                            unit_amount: formattedDepositAmount,
+                        },
+                        quantity: 1,
+                    },
+                ],
+                payment_intent_data: {
+                    application_fee_amount: platformFee,
+                    transfer_group: `job_${jobId}`,
+                    transfer_data: {
+                        destination: tradesperson.stripeAccountId,
+                    },
+                },
+                metadata: {
+                    jobId: job.id,
+                    tradespersonId: tradespersonId,
+                    applicationType: "deposit",
+                    applicationId: application.id,
+                    platformFee: platformFee.toString(),
+                },
+                success_url: `${origin}/dashboard/jobs/${jobId}?payment_success=true`,
+                cancel_url: `${origin}/dashboard/jobs/${jobId}?payment_cancelled=true`,
+            });
+        }
 
         // Return the session URL
         return NextResponse.json({ url: session.url });

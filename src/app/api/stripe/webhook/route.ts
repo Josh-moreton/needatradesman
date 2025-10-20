@@ -164,23 +164,31 @@ export async function POST(request: NextRequest) {
                                 session.payment_intent as string
                             );
 
+                            // Determine charge model from metadata
+                            const chargeModel = paymentIntent.metadata?.chargeModel === 'SC_AND_T'
+                                ? ChargeModel.SC_AND_T
+                                : ChargeModel.DESTINATION_CHARGE;
+
                             // 2. Update job status and store payment information atomically
+                            // Build update data conditionally based on charge model
+                            const updateData = {
+                                status: "IN_PROGRESS" as const,
+                                depositPaid: true,
+                                depositPaymentIntentId: session.payment_intent as string,
+                                acceptedTradespersonId: tradespersonId,
+                                depositChargeId: paymentIntent.latest_charge as string | null,
+                                transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
+                                chargeModel,
+                                // For DESTINATION_CHARGE: transfer is created immediately by Stripe
+                                // For SC_AND_T: transfer happens later, so depositReleasedAt stays null
+                                ...(chargeModel === ChargeModel.DESTINATION_CHARGE && {
+                                    depositReleasedAt: new Date(),
+                                }),
+                            };
+
                             await tx.job.update({
                                 where: { id: jobId },
-                                data: {
-                                    status: "IN_PROGRESS",
-                                    depositPaid: true,
-                                    depositPaymentIntentId: session.payment_intent as string,
-                                    acceptedTradespersonId: tradespersonId,
-                                    // New payment tracking fields
-                                    depositChargeId: paymentIntent.latest_charge as string | null,
-                                    transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
-                                    chargeModel: ChargeModel.DESTINATION_CHARGE,
-                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
-                                    // by Stripe at payment time (via transfer_data in checkout session).
-                                    // For future SC_AND_T: this will be set when we manually create the transfer.
-                                    depositReleasedAt: new Date(),
-                                },
+                                data: updateData,
                             });
 
                             // 3. Update application status
@@ -244,19 +252,26 @@ export async function POST(request: NextRequest) {
                                 session.payment_intent as string
                             );
 
+                            // Determine charge model from metadata
+                            const chargeModel = paymentIntent.metadata?.chargeModel === 'SC_AND_T'
+                                ? ChargeModel.SC_AND_T
+                                : ChargeModel.DESTINATION_CHARGE;
+
                             // 2. Update job with final payment information atomically
+                            const updateData = {
+                                finalPaid: true,
+                                finalPaymentIntentId: session.payment_intent as string,
+                                finalChargeId: paymentIntent.latest_charge as string | null,
+                                // For DESTINATION_CHARGE: transfer is created immediately by Stripe
+                                // For SC_AND_T: transfer happens later, so finalReleasedAt stays null
+                                ...(chargeModel === ChargeModel.DESTINATION_CHARGE && {
+                                    finalReleasedAt: new Date(),
+                                }),
+                            };
+
                             await tx.job.update({
                                 where: { id: jobId },
-                                data: {
-                                    finalPaid: true,
-                                    finalPaymentIntentId: session.payment_intent as string,
-                                    // New payment tracking fields
-                                    finalChargeId: paymentIntent.latest_charge as string | null,
-                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
-                                    // by Stripe at payment time (via transfer_data in checkout session).
-                                    // For future SC_AND_T: this will be set when we manually create the transfer.
-                                    finalReleasedAt: new Date(),
-                                },
+                                data: updateData,
                             });
                         });
 
@@ -273,6 +288,64 @@ export async function POST(request: NextRequest) {
                         // Consider alerting admin here for non-race-condition errors
                     }
                 }
+
+                break;
+            }
+
+            case "payment_intent.succeeded": {
+                // Handle SC&T payment success (funds held on platform)
+                const pi = event.data.object as Stripe.PaymentIntent;
+                
+                // Only log for SC&T model (Destination Charges handled in checkout.session.completed)
+                if (pi.metadata?.chargeModel === 'SC_AND_T') {
+                    const { jobId, paymentType } = pi.metadata;
+                    logger.info({
+                        jobId,
+                        paymentIntentId: pi.id,
+                        paymentType,
+                        amount: pi.amount,
+                        transferGroup: pi.transfer_group
+                    }, "SC&T payment succeeded - funds held on platform, awaiting transfer");
+                }
+                
+                break;
+            }
+
+            case "transfer.created": {
+                // Track when funds are released to tradesperson (SC&T model)
+                const transfer = event.data.object as Stripe.Transfer;
+                const { jobId, paymentType } = transfer.metadata || {};
+
+                if (jobId && paymentType) {
+                    logger.info({
+                        jobId,
+                        transferId: transfer.id,
+                        paymentType,
+                        amount: transfer.amount,
+                        destination: transfer.destination
+                    }, "Transfer created - funds released to tradesperson");
+
+                    // Note: transfer details are already updated by /api/stripe/payment/release
+                    // This event is mainly for logging and monitoring
+                }
+
+                break;
+            }
+
+            case "charge.refunded": {
+                // Handle refunds (important for SC&T model)
+                const charge = event.data.object as Stripe.Charge;
+                
+                logger.info({
+                    chargeId: charge.id,
+                    amount: charge.amount,
+                    amountRefunded: charge.amount_refunded,
+                    metadata: charge.metadata
+                }, "Charge refunded");
+
+                // Note: Refund handling logic should be implemented separately
+                // For SC&T: Refund before transfer = easy (just refund charge)
+                // For SC&T: Refund after transfer = complex (need transfer reversal)
 
                 break;
             }

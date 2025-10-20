@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe, calculatePlatformFee } from "@/lib/stripe";
+import { FEATURES } from "@/lib/feature-flags";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-final-payment");
@@ -153,42 +154,99 @@ export async function POST(request: NextRequest) {
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
         // Create a Checkout Session for final payment with Connect
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: allPaymentMethods,
-            mode: "payment",
-            line_items: [
-                {
-                    price_data: {
-                        currency: "gbp",
-                        product_data: {
-                            name: paymentName,
-                            description: paymentDescription,
+        let session: Stripe.Checkout.Session;
+
+        if (FEATURES.USE_SC_AND_T) {
+            // NEW: SC&T model - charge platform account, transfer later
+            logger.info({ jobId, tradespersonId: application.tradespersonId }, "Using SC&T payment model for final payment");
+
+            session = await stripe.checkout.sessions.create({
+                payment_method_types: allPaymentMethods,
+                mode: "payment",
+                line_items: [
+                    {
+                        price_data: {
+                            currency: "gbp",
+                            product_data: {
+                                name: paymentName,
+                                description: paymentDescription,
+                            },
+                            unit_amount: formattedAmount,
                         },
-                        unit_amount: formattedAmount,
+                        quantity: 1,
                     },
-                    quantity: 1,
+                ],
+                payment_intent_data: {
+                    // NO application_fee_amount - we're not using Stripe Connect fees for SC&T
+                    // Platform takes commission from the transfer amount later
+                    transfer_group: `job_${jobId}`,
+                    metadata: {
+                        jobId: job.id,
+                        applicationId: application.id,
+                        tradespersonId: application.tradespersonId,
+                        applicationType: "final_payment",
+                        depositAmount: depositAmount.toString(),
+                        finalAmount: finalAmount.toString(),
+                        platformFee: platformFee.toString(),
+                        requiresDeposit: application.requiresDeposit.toString(),
+                        chargeModel: 'SC_AND_T',
+                    },
+                    // NO transfer_data - we'll transfer later via /api/stripe/payment/release
                 },
-            ],
-            payment_intent_data: {
-                application_fee_amount: platformFee,
-                transfer_group: `job_${jobId}`,
-                transfer_data: {
-                    destination: tradesperson.stripeAccountId,
+                success_url: `${origin}/dashboard/jobs/${jobId}?final_payment_success=true`,
+                cancel_url: `${origin}/dashboard/jobs/${jobId}?final_payment_cancelled=true`,
+                metadata: {
+                    jobId: job.id,
+                    applicationId: application.id,
+                    tradespersonId: application.tradespersonId,
+                    applicationType: "final_payment",
+                    depositAmount: depositAmount.toString(),
+                    finalAmount: finalAmount.toString(),
+                    platformFee: platformFee.toString(),
+                    requiresDeposit: application.requiresDeposit.toString(),
                 },
-            },
-            success_url: `${origin}/dashboard/jobs/${jobId}?final_payment_success=true`,
-            cancel_url: `${origin}/dashboard/jobs/${jobId}?final_payment_cancelled=true`,
-            metadata: {
-                jobId: job.id,
-                applicationId: application.id,
-                tradespersonId: application.tradespersonId,
-                applicationType: "final_payment",  // Fixed: matches webhook check
-                depositAmount: depositAmount.toString(),
-                finalAmount: finalAmount.toString(),
-                platformFee: platformFee.toString(),
-                requiresDeposit: application.requiresDeposit.toString(),
-            },
-        });
+            });
+        } else {
+            // EXISTING: Destination Charges - instant transfer via transfer_data
+            logger.info({ jobId, tradespersonId: application.tradespersonId }, "Using Destination Charges model for final payment");
+
+            session = await stripe.checkout.sessions.create({
+                payment_method_types: allPaymentMethods,
+                mode: "payment",
+                line_items: [
+                    {
+                        price_data: {
+                            currency: "gbp",
+                            product_data: {
+                                name: paymentName,
+                                description: paymentDescription,
+                            },
+                            unit_amount: formattedAmount,
+                        },
+                        quantity: 1,
+                    },
+                ],
+                payment_intent_data: {
+                    application_fee_amount: platformFee,
+                    transfer_group: `job_${jobId}`,
+                    transfer_data: {
+                        destination: tradesperson.stripeAccountId,
+                    },
+                },
+                success_url: `${origin}/dashboard/jobs/${jobId}?final_payment_success=true`,
+                cancel_url: `${origin}/dashboard/jobs/${jobId}?final_payment_cancelled=true`,
+                metadata: {
+                    jobId: job.id,
+                    applicationId: application.id,
+                    tradespersonId: application.tradespersonId,
+                    applicationType: "final_payment",  // Fixed: matches webhook check
+                    depositAmount: depositAmount.toString(),
+                    finalAmount: finalAmount.toString(),
+                    platformFee: platformFee.toString(),
+                    requiresDeposit: application.requiresDeposit.toString(),
+                },
+            });
+        }
 
         return NextResponse.json({
             sessionId: session.id,
