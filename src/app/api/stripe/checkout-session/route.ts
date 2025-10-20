@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { stripe, calculatePlatformFee } from "@/lib/stripe";
+import { stripe, calculateCustomerFee, calculateTradespersonFee, calculateCustomerTotal } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
@@ -108,17 +108,19 @@ export async function POST(request: NextRequest) {
         // Use the provided deposit amount (should already be calculated)
         const deposit = depositAmount;
 
-        // Format for Stripe (amount in cents/pennies)
-        const formattedDepositAmount = Math.round(deposit * 100);
+        // Calculate split commission:
+        // - Customer pays: deposit + 6% customer fee
+        // - Tradesperson receives: deposit - 4% tradesperson fee
+        // - Platform gets: 4% + 6% = 10% total
+        const customerFee = calculateCustomerFee(deposit);
+        const tradespersonFee = calculateTradespersonFee(deposit);
+        const customerTotal = calculateCustomerTotal(deposit);
 
         // Get origin for success/cancel URLs
         const origin = request.headers.get("origin") || "http://localhost:3000";
 
         // Calculate deposit percentage for display
         const depositPercentage = Math.round((deposit / Number(fullAmount)) * 100);
-
-        // Calculate platform fee (10% of deposit)
-        const platformFee = calculatePlatformFee(deposit);
 
         // Determine available payment methods
         // Enable bank transfer (BACS) for deposits >= £1000
@@ -128,6 +130,8 @@ export async function POST(request: NextRequest) {
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
         // Create a Checkout Session with Stripe Connect
+        // Customer pays: deposit + 6% fee
+        // Tradesperson receives: deposit - 4% fee (via application_fee_amount deduction)
         const session = await stripe.checkout.sessions.create({
             payment_method_types: allPaymentMethods,
             mode: "payment",
@@ -137,15 +141,17 @@ export async function POST(request: NextRequest) {
                         currency: "gbp",
                         product_data: {
                             name: `Deposit for ${job.title}`,
-                            description: `${depositPercentage}% deposit to book this job`,
+                            description: `${depositPercentage}% deposit to book this job (includes 6% platform fee)`,
                         },
-                        unit_amount: formattedDepositAmount,
+                        unit_amount: customerTotal, // Customer pays deposit + 6%
                     },
                     quantity: 1,
                 },
             ],
             payment_intent_data: {
-                application_fee_amount: platformFee,
+                // Total platform fee: customer's 6% + tradesperson's 4%
+                // Stripe deducts this from the transfer to tradesperson
+                application_fee_amount: customerFee + tradespersonFee,
                 transfer_group: `job_${jobId}`,
                 transfer_data: {
                     destination: tradesperson.stripeAccountId,
@@ -156,7 +162,10 @@ export async function POST(request: NextRequest) {
                 tradespersonId: tradespersonId,
                 applicationType: "deposit",
                 applicationId: application.id,
-                platformFee: platformFee.toString(),
+                depositAmount: deposit.toString(),
+                customerFee: customerFee.toString(),
+                tradespersonFee: tradespersonFee.toString(),
+                totalPlatformFee: (customerFee + tradespersonFee).toString(),
             },
             success_url: `${origin}/dashboard/jobs/${jobId}?payment_success=true`,
             cancel_url: `${origin}/dashboard/jobs/${jobId}?payment_cancelled=true`,

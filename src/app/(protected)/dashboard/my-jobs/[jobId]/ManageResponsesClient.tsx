@@ -17,6 +17,7 @@ import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
 
 import { Decimal } from "@prisma/client/runtime/library";
 import { createLogger } from '@/lib/logger';
+import { calculateCustomerFee } from '@/lib/stripe';
 
 const logger = createLogger('manage-responses-client');
 
@@ -73,6 +74,11 @@ function PayDepositButton({
   const [showDepositModal, setShowDepositModal] = useState(false);
 
   const depositAmount = quote ? (Number(quote) * depositPercentage) / 100 : 0;
+  
+  // Calculate customer platform fee using centralized function
+  const customerFeeInPence = calculateCustomerFee(depositAmount);
+  const customerFee = customerFeeInPence / 100; // Convert pence to pounds for display
+  const totalDue = depositAmount + customerFee;
 
   const handleClose = () => {
     setShowDepositModal(false);
@@ -87,7 +93,7 @@ function PayDepositButton({
         variant="default"
         onClick={() => setShowDepositModal(true)}
       >
-        💳 Pay Deposit (£{depositAmount.toFixed(2)})
+        💳 Pay Deposit (£{totalDue.toFixed(2)})
       </Button>
 
       <DepositPaymentModal

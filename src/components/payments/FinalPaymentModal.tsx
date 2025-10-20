@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createLogger } from '@/lib/logger';
+import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
 
 const logger = createLogger('final-payment-modal');
 
@@ -37,6 +38,11 @@ export function FinalPaymentModal({
   const [loading, setLoading] = useState(false);
 
   const remainingAmount = fullAmount - depositAmount;
+  
+  // Calculate customer platform fee using centralized function
+  const customerFeeInPence = calculateCustomerFee(remainingAmount);
+  const customerFee = customerFeeInPence / 100; // Convert pence to pounds for display
+  const totalDue = remainingAmount + customerFee;
 
   const handlePayment = async () => {
     setLoading(true);
@@ -93,9 +99,18 @@ export function FinalPaymentModal({
                 <span>-£{depositAmount.toFixed(2)}</span>
               </div>
               <hr />
-              <div className="flex justify-between text-base font-semibold">
+              <div className="flex justify-between text-sm">
                 <span>Remaining Balance:</span>
-                <span className="text-primary">£{remainingAmount.toFixed(2)}</span>
+                <span className="font-medium">£{remainingAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
+                <span>£{customerFee.toFixed(2)}</span>
+              </div>
+              <hr />
+              <div className="flex justify-between text-base font-semibold">
+                <span>Total Due:</span>
+                <span className="text-primary">£{totalDue.toFixed(2)}</span>
               </div>
             </div>
           </CardContent>
@@ -106,6 +121,8 @@ export function FinalPaymentModal({
             <p className="font-medium mb-1">Payment Details:</p>
             <ul className="space-y-1 text-xs">
               <li>• This is the final payment for your completed job</li>
+              <li>• Includes a {STRIPE_CONFIG.customerFeePercentage}% platform fee on the remaining balance</li>
+              <li>• The tradesperson receives the balance minus a {STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</li>
               <li>• Funds will be transferred to the tradesperson upon payment</li>
               <li>• You&apos;ll receive a confirmation email after payment</li>
             </ul>
@@ -125,7 +142,7 @@ export function FinalPaymentModal({
             ) : (
               <>
                 <CreditCard className="h-4 w-4" />
-                Pay £{remainingAmount.toFixed(2)}
+                Pay £{totalDue.toFixed(2)}
               </>
             )}
           </Button>
