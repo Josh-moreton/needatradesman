@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 
 const logger = createLogger('user-role-api');
 
@@ -46,9 +46,10 @@ export async function POST(request: NextRequest) {
             data: updateData
         });
 
-        // Invalidate the auth gate cache so the layout picks up the new user immediately
+        // Invalidate caches so the layout picks up the new user immediately
         revalidateTag(`user:${userId}`)
         revalidateTag('user-gate')
+        revalidatePath('/', 'layout') // Force root layout to refetch
 
         return NextResponse.json({
             success: true,
