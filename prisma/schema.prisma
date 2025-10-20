@@ -11,11 +11,20 @@ datasource db {
 }
 
 model User {
-  id                 String        @id @default(cuid())
-  email              String        @unique
-  emailVerified      DateTime?
-  name               String?
-  image              String?
+  id String @id @default(cuid())
+
+  // Clerk fields (TEMPORARY - will remove after Auth.js migration)
+  clerkId   String? @unique
+  firstName String?
+  lastName  String?
+
+  // Auth.js fields
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+
+  // Application fields
   role               UserRole      @default(PENDING)
   onboardingComplete Boolean       @default(false)
   trades             JobCategory[] // For tradespeople - selected trade categories

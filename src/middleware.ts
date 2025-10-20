@@ -17,12 +17,17 @@
  * - https://authjs.dev/getting-started/session-management/protecting
  */
 
-import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default auth((req) => {
+// Edge-safe middleware: only checks for presence of Auth.js session cookie.
+// Do NOT import '@/auth' here to avoid bundling Node-only providers (nodemailer).
+export function middleware(req: NextRequest) {
   const { nextUrl } = req;
-  const isAuthenticated = !!req.auth;
+  const sessionCookie =
+    req.cookies.get("__Secure-authjs.session-token")?.value ||
+    req.cookies.get("authjs.session-token")?.value;
+  const isAuthenticated = Boolean(sessionCookie);
 
   // Public routes that don't require authentication
   const publicPaths = [
@@ -52,7 +57,7 @@ export default auth((req) => {
 
   // Allow authenticated users to proceed
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

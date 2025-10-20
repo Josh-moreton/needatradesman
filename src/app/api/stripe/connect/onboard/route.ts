@@ -7,6 +7,9 @@ import { createLogger } from "@/lib/logger";
 
 const logger = createLogger('stripe-connect-onboard');
 
+// Requires Node.js runtime for Stripe SDK
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();

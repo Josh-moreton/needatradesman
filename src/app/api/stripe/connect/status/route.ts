@@ -7,6 +7,8 @@ const logger = createLogger("stripe-connect-status");
 
 import { stripe } from "@/lib/stripe"; // Use centralized Stripe instance
 
+export const runtime = "nodejs";
+
 export async function GET() {
     const session = await auth();
 

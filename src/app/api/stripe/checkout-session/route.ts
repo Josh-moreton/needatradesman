@@ -7,6 +7,9 @@ import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-checkout-session");
 
+// Stripe SDK needs Node.js runtime
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {

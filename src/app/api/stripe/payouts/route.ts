@@ -6,6 +6,8 @@ import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-payouts-api");
 
+export const runtime = "nodejs";
+
 export async function GET() {
     try {
         const session = await auth();
