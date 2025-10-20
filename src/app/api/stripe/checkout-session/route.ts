@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
             ],
             payment_intent_data: {
                 application_fee_amount: platformFee,
+                transfer_group: `job_${jobId}`,
                 transfer_data: {
                     destination: tradesperson.stripeAccountId,
                 },
