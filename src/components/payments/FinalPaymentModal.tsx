@@ -37,6 +37,10 @@ export function FinalPaymentModal({
   const [loading, setLoading] = useState(false);
 
   const remainingAmount = fullAmount - depositAmount;
+  
+  // Calculate customer platform fee (6% of remaining amount)
+  const customerFee = remainingAmount * 0.06;
+  const totalDue = remainingAmount + customerFee;
 
   const handlePayment = async () => {
     setLoading(true);
@@ -93,9 +97,18 @@ export function FinalPaymentModal({
                 <span>-£{depositAmount.toFixed(2)}</span>
               </div>
               <hr />
-              <div className="flex justify-between text-base font-semibold">
+              <div className="flex justify-between text-sm">
                 <span>Remaining Balance:</span>
-                <span className="text-primary">£{remainingAmount.toFixed(2)}</span>
+                <span className="font-medium">£{remainingAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Platform Fee (6%):</span>
+                <span>£{customerFee.toFixed(2)}</span>
+              </div>
+              <hr />
+              <div className="flex justify-between text-base font-semibold">
+                <span>Total Due:</span>
+                <span className="text-primary">£{totalDue.toFixed(2)}</span>
               </div>
             </div>
           </CardContent>
@@ -106,6 +119,8 @@ export function FinalPaymentModal({
             <p className="font-medium mb-1">Payment Details:</p>
             <ul className="space-y-1 text-xs">
               <li>• This is the final payment for your completed job</li>
+              <li>• Includes a 6% platform fee on the remaining balance</li>
+              <li>• The tradesperson receives the balance minus a 4% platform fee</li>
               <li>• Funds will be transferred to the tradesperson upon payment</li>
               <li>• You&apos;ll receive a confirmation email after payment</li>
             </ul>
@@ -125,7 +140,7 @@ export function FinalPaymentModal({
             ) : (
               <>
                 <CreditCard className="h-4 w-4" />
-                Pay £{remainingAmount.toFixed(2)}
+                Pay £{totalDue.toFixed(2)}
               </>
             )}
           </Button>

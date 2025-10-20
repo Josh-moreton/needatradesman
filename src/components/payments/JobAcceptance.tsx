@@ -22,6 +22,10 @@ export function JobAcceptance({
 
   // Calculate deposit as 50% of the quote
   const depositAmount = quote * 0.5;
+  
+  // Calculate customer platform fee (6% of deposit)
+  const depositCustomerFee = depositAmount * 0.06;
+  const depositTotal = depositAmount + depositCustomerFee;
 
   return (
     <Card>
@@ -34,21 +38,30 @@ export function JobAcceptance({
             <h3 className="font-medium mb-2">Job Details</h3>
             <p className="text-sm mb-2">{jobTitle}</p>
             <div className="flex justify-between text-sm">
-              <span>Quote:</span>
+              <span>Tradesperson Quote:</span>
               <span className="font-medium">£{quote.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm mt-2 pt-2 border-t">
               <span>Deposit (50%):</span>
               <span className="font-medium">£{depositAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Platform Fee (6%):</span>
+              <span>£{depositCustomerFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm font-semibold mt-2 pt-2 border-t">
+              <span>Total Due Now:</span>
+              <span className="text-primary">£{depositTotal.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="text-sm text-muted-foreground">
             <p>By accepting this quote, you agree to:</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Pay a 50% deposit to secure your booking</li>
+              <li>Pay a 50% deposit plus 6% platform fee to secure your booking</li>
               <li>Funds will be held securely until job completion</li>
-              <li>The remaining 50% will be due after job completion</li>
+              <li>The remaining 50% plus 6% platform fee will be due after job completion</li>
+              <li>The tradesperson receives the quote amount minus a 4% platform fee</li>
             </ul>
           </div>
 

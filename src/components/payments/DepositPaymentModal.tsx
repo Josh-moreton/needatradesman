@@ -34,6 +34,10 @@ export function DepositPaymentModal({
 }: DepositPaymentModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Calculate customer platform fee (6% of deposit)
+  const customerFee = depositAmount * 0.06;
+  const totalAmount = depositAmount + customerFee;
 
   const handlePayment = async () => {
     setLoading(true);
@@ -77,28 +81,35 @@ export function DepositPaymentModal({
         <DialogHeader>
           <DialogTitle>Pay Deposit to Secure Booking</DialogTitle>
           <DialogDescription>
-            Pay a {depositAmount?.toFixed(2) || "50%"} deposit to secure your
-            booking for &quot;{jobTitle}&quot;
+            Pay a deposit to secure your booking for &quot;{jobTitle}&quot;
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col space-y-4 py-4">
           <div className="rounded-md bg-muted p-4">
-            <h4 className="font-medium mb-2">Deposit Payment Details</h4>
+            <h4 className="font-medium mb-2">Payment Breakdown</h4>
             <ul className="text-sm space-y-2">
               <li className="flex justify-between">
                 <span>Job:</span>
                 <span className="font-medium">{jobTitle}</span>
               </li>
-              <li className="flex justify-between">
+              <li className="flex justify-between pt-2 mt-2 border-t">
                 <span>Deposit Amount:</span>
                 <span className="font-medium">
                   £{depositAmount?.toFixed(2)}
                 </span>
               </li>
+              <li className="flex justify-between text-muted-foreground">
+                <span>Platform Fee (6%):</span>
+                <span>£{customerFee?.toFixed(2)}</span>
+              </li>
+              <li className="flex justify-between font-semibold pt-2 mt-2 border-t">
+                <span>Total Due:</span>
+                <span className="text-primary">£{totalAmount?.toFixed(2)}</span>
+              </li>
               <li className="text-xs text-muted-foreground mt-3">
                 The deposit secures your booking and will be held in escrow
-                until job completion
+                until job completion. The tradesperson receives the deposit minus a 4% platform fee.
               </li>
             </ul>
           </div>
