@@ -84,7 +84,6 @@ export async function POST(
         const jobWithCompletionFields = updatedJob as unknown as {
             customerConfirmedComplete: boolean;
             tradespersonConfirmedComplete: boolean;
-            depositPaid: boolean;
         };
         const bothConfirmed = Boolean(
             jobWithCompletionFields.customerConfirmedComplete &&
