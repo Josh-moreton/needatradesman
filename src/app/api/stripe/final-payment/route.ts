@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
         const origin = request.headers.get("origin") || "http://localhost:3000";
 
         // Prepare payment descriptions
-        const paymentName = application.requiresDeposit 
-            ? `Final Payment - ${job.title}` 
+        const paymentName = application.requiresDeposit
+            ? `Final Payment - ${job.title}`
             : `Full Payment - ${job.title}`;
         const paymentDescription = application.requiresDeposit
             ? `Remaining balance for completed job: ${job.title}`

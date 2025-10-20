@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         // Determine available payment methods
         // Enable bank transfer (BACS) for deposits >= £1000
         const paymentMethodTypes = ["card", "klarna", "afterpay_clearpay"] as const;
-        const allPaymentMethods = deposit >= 1000 
+        const allPaymentMethods = deposit >= 1000
             ? [...paymentMethodTypes, "bacs_debit"] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
