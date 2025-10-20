@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { ChargeModel } from "@prisma/client";
 import { headers } from "next/headers";
 import { createLogger } from "@/lib/logger";
 import {
@@ -158,6 +159,11 @@ export async function POST(request: NextRequest) {
                                 throw new Error('Job already has accepted tradesperson');
                             }
 
+                            // Retrieve payment intent to get charge and transfer details
+                            const paymentIntent = await stripe.paymentIntents.retrieve(
+                                session.payment_intent as string
+                            );
+
                             // 2. Update job status and store payment information atomically
                             await tx.job.update({
                                 where: { id: jobId },
@@ -166,6 +172,14 @@ export async function POST(request: NextRequest) {
                                     depositPaid: true,
                                     depositPaymentIntentId: session.payment_intent as string,
                                     acceptedTradespersonId: tradespersonId,
+                                    // New payment tracking fields
+                                    depositChargeId: paymentIntent.latest_charge as string | null,
+                                    transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
+                                    chargeModel: ChargeModel.DESTINATION_CHARGE,
+                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
+                                    // by Stripe at payment time (via transfer_data in checkout session).
+                                    // For future SC_AND_T: this will be set when we manually create the transfer.
+                                    depositReleasedAt: new Date(),
                                 },
                             });
 
@@ -214,7 +228,7 @@ export async function POST(request: NextRequest) {
                             // 1. Check if job already has final payment (prevent race condition)
                             const currentJob = await tx.job.findUnique({
                                 where: { id: jobId },
-                                select: { finalPaid: true, finalPaymentIntentId: true }
+                                select: { finalPaid: true, finalPaymentIntentId: true, transferGroup: true }
                             });
 
                             if (currentJob?.finalPaid) {
@@ -225,12 +239,23 @@ export async function POST(request: NextRequest) {
                                 throw new Error('Job already has final payment processed');
                             }
 
+                            // Retrieve payment intent to get charge and transfer details
+                            const paymentIntent = await stripe.paymentIntents.retrieve(
+                                session.payment_intent as string
+                            );
+
                             // 2. Update job with final payment information atomically
                             await tx.job.update({
                                 where: { id: jobId },
                                 data: {
                                     finalPaid: true,
                                     finalPaymentIntentId: session.payment_intent as string,
+                                    // New payment tracking fields
+                                    finalChargeId: paymentIntent.latest_charge as string | null,
+                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
+                                    // by Stripe at payment time (via transfer_data in checkout session).
+                                    // For future SC_AND_T: this will be set when we manually create the transfer.
+                                    finalReleasedAt: new Date(),
                                 },
                             });
                         });
