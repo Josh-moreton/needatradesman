@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { ManageResponsesClient } from "./ManageResponsesClient";
@@ -54,17 +54,17 @@ export default async function ManageResponsesPage({
   params,
 }: ManageResponsesPageProps) {
   try {
-    const user = await getCurrentUser();
+    const gate = await getAuthGate();
 
-    if (!user) {
+    if (!gate) {
       redirect("/sign-in");
     }
 
-    if (!user.role) {
+    if (!gate.role) {
       redirect("/onboarding");
     }
 
-    if (user.role !== UserRole.CUSTOMER) {
+    if (gate.role !== UserRole.CUSTOMER) {
       redirect("/dashboard/jobs");
     }
 
@@ -74,7 +74,7 @@ export default async function ManageResponsesPage({
     const job = await prisma.job.findUnique({
       where: {
         id: resolvedParams.jobId,
-        customerId: user.id, // Ensure user owns this job
+        customerId: gate.userId, // Ensure user owns this job
       },
       select: {
         id: true,

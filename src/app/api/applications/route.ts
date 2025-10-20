@@ -1,38 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createApplicationSchema, UserRole } from "@/lib/schemas";
 import { applicationRateLimit, redis } from "@/lib/redis";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
+import { requireRole } from "@/lib/auth-gate";
 
 const logger = createLogger('applications-api');
 
 export async function POST(request: NextRequest) {
     try {
-        // Check authentication
-        const { userId } = await auth();
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
-
-        // Get user from database and verify role
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 404 });
-        }
-
-        if (user.role !== UserRole.TRADESPERSON) {
-            return new NextResponse("Only tradespeople can apply to jobs", { status: 403 });
-        }
+        // Require authentication and TRADESPERSON role
+        const gate = await requireRole(UserRole.TRADESPERSON);
 
         // Rate limiting for applications (use clerkId to avoid reuse of internal IDs)
         if (applicationRateLimit) {
             try {
-                const { success, limit, reset, remaining } = await applicationRateLimit.limit(user.clerkId);
+                const { success, limit, reset, remaining } = await applicationRateLimit.limit(gate.clerkId);
 
                 if (!success) {
                     const resetDate = new Date(reset);
@@ -86,7 +70,7 @@ export async function POST(request: NextRequest) {
             where: {
                 jobId_tradespersonId: {
                     jobId: job.id,
-                    tradespersonId: user.id,
+                    tradespersonId: gate.userId,
                 },
             },
         });
@@ -104,7 +88,7 @@ export async function POST(request: NextRequest) {
                 requiresDeposit: validatedData.requiresDeposit ?? true,
                 depositPercentage: validatedData.depositPercentage ?? 50,
                 jobId: job.id,
-                tradespersonId: user.id,
+                tradespersonId: gate.userId,
                 status: "PENDING",
             },
             include: {
@@ -129,13 +113,13 @@ export async function POST(request: NextRequest) {
             try {
                 // Invalidate application caches for both tradesperson and customer
                 revalidateTag('applications');
-                revalidateTag(`applications-${user.id}`);
+                revalidateTag(`applications-${gate.userId}`);
                 revalidateTag(`applications-${application.job.customerId}`);
                 // Also invalidate job list caches as application count has changed
                 revalidateTag('jobs');
                 revalidateTag('job-detail');
                 // Invalidate user stats for both users
-                revalidateTag(`user-stats-${user.id}`);
+                revalidateTag(`user-stats-${gate.userId}`);
                 revalidateTag(`user-stats-${application.job.customerId}`);
                 logger.debug('Invalidated caches after application creation');
             } catch (cacheError) {
@@ -158,20 +142,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
     try {
-        // Check authentication
-        const { userId } = await auth();
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
-
-        // Get user from database
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 404 });
-        }
+        // Require authentication
+        const gate = await requireRole(UserRole.TRADESPERSON).catch(() => requireRole(UserRole.CUSTOMER));
 
         // Use unstable_cache for caching with Next.js
         const getApplications = unstable_cache(
@@ -235,14 +207,14 @@ export async function GET() {
 
                 return applications;
             },
-            ['applications', user.id, user.role],
+            ['applications', gate.userId, gate.role],
             {
                 revalidate: 180, // 3 minutes for real-time updates
-                tags: ['applications', `applications-${user.id}`]
+                tags: ['applications', `applications-${gate.userId}`]
             }
         );
 
-        const applications = await getApplications(user.id, user.role);
+        const applications = await getApplications(gate.userId, gate.role);
 
         return NextResponse.json(applications);
     } catch (error) {

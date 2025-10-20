@@ -4,7 +4,7 @@ import "./globals.css";
 import RootProviders from "@/components/providers/RootProviders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CrispChat } from "@/components/support/CrispChat";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
@@ -67,8 +67,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Get user role from our database (not Clerk metadata)
-  const user = await getCurrentUser();
-  const userRole = user?.role || null;
+  const gate = await getAuthGate();
+  const userRole = gate?.role || null;
 
   return (
     <html lang="en" suppressHydrationWarning>

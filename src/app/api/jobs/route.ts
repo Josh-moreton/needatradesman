@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireRole } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
 import { createLogger } from "@/lib/logger";
@@ -15,29 +15,13 @@ const logger = createLogger("jobs-api");
 
 export async function POST(request: NextRequest) {
     try {
-        // Check authentication
-        const { userId } = await auth();
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
-
-        // Get user from database and verify role
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 404 });
-        }
-
-        if (user.role !== UserRole.CUSTOMER) {
-            return new NextResponse("Only customers can create jobs", { status: 403 });
-        }
+        // Require authentication and CUSTOMER role
+        const gate = await requireRole(UserRole.CUSTOMER);
 
         // Rate limiting for job posting (use clerkId to avoid reuse of internal IDs)
         if (jobPostingRateLimit) {
             try {
-                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(user.clerkId);
+                const { success, limit, reset, remaining } = await jobPostingRateLimit.limit(gate.clerkId);
 
                 if (!success) {
                     const resetDate = new Date(reset);
@@ -143,7 +127,7 @@ export async function POST(request: NextRequest) {
                 postcode: locationData?.postcode,
                 budget: validatedData.budget,
                 attachments: validatedData.attachments ? JSON.stringify(validatedData.attachments) : null,
-                customerId: user.id,
+                customerId: gate.userId,
                 status: "OPEN",
             },
         });
@@ -152,7 +136,7 @@ export async function POST(request: NextRequest) {
         if (redis) {
             try {
                 revalidateTag('jobs');
-                revalidateTag(`user-stats-${user.id}`);
+                revalidateTag(`user-stats-${gate.userId}`);
                 logger.debug('Invalidated job feed caches and user stats after job creation');
             } catch (cacheError) {
                 logger.error({ error: cacheError }, 'Cache invalidation error');

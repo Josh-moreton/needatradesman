@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requireRole } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { z } from "zod";
@@ -17,17 +17,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const user = await getCurrentUser();
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        if (user.role !== UserRole.CUSTOMER) {
-            return NextResponse.json(
-                { error: "Only customers can manage responses" },
-                { status: 403 }
-            );
-        }
+        const gate = await requireRole(UserRole.CUSTOMER);
 
         const resolvedParams = await params;
         const body = await request.json();
@@ -47,7 +37,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Response not found" }, { status: 404 });
         }
 
-        if (response.job.customerId !== user.id) {
+        if (response.job.customerId !== gate.userId) {
             return NextResponse.json(
                 { error: "You can only manage responses to your own jobs" },
                 { status: 403 }
@@ -112,11 +102,11 @@ export async function PATCH(
 
         // Invalidate relevant caches after application status update
         revalidateTag('applications');
-        revalidateTag(`applications-${user.id}`);
+        revalidateTag(`applications-${gate.userId}`);
         revalidateTag(`applications-${updatedResponse.tradesperson.id}`);
         revalidateTag('job-detail');
         revalidateTag(`job-${response.jobId}`);
-        revalidateTag(`user-stats-${user.id}`);
+        revalidateTag(`user-stats-${gate.userId}`);
         revalidateTag(`user-stats-${updatedResponse.tradesperson.id}`);
         logger.debug('Invalidated caches after application status update');
 

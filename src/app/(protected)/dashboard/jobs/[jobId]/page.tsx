@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
@@ -103,13 +103,13 @@ export default async function JobDetailPage({
   searchParams,
 }: JobDetailPageProps) {
   try {
-    const user = await getCurrentUser();
+    const gate = await getAuthGate();
 
-    if (!user) {
+    if (!gate) {
       redirect("/sign-in");
     }
 
-    if (!user.role) {
+    if (!gate.role) {
       redirect("/onboarding");
     }
 
@@ -158,12 +158,12 @@ export default async function JobDetailPage({
     // Check if current user has already responded (for tradespeople)
     let hasResponded = false;
     let userApplication = null;
-    if (user.role === UserRole.TRADESPERSON) {
+    if (gate.role === UserRole.TRADESPERSON) {
       userApplication = await prisma.application.findUnique({
         where: {
           jobId_tradespersonId: {
             jobId: job.id,
-            tradespersonId: user.id,
+            tradespersonId: gate.userId,
           },
         },
       });
@@ -208,7 +208,7 @@ export default async function JobDetailPage({
       }).format(date);
     };
 
-    const isCustomerOwner = user.role === UserRole.CUSTOMER && job.customerId === user.id;
+    const isCustomerOwner = gate.role === UserRole.CUSTOMER && job.customerId === gate.userId;
 
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -370,7 +370,7 @@ export default async function JobDetailPage({
         </div>
 
         {/* Action Buttons - Tradesperson View */}
-        {user.role === UserRole.TRADESPERSON && job.status === "OPEN" && (
+        {gate.role === UserRole.TRADESPERSON && job.status === "OPEN" && (
           <Card>
             <CardContent className="p-6">
               <div className="text-center">

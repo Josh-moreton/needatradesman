@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { userId } = await auth();
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!user) return new NextResponse("User not found", { status: 404 });
+    const gate = await requireAuthGate();
 
     const { id } = await params;
 
@@ -24,7 +20,7 @@ export async function GET(
         return new NextResponse("Template not found", { status: 404 });
     }
 
-    if (template.userId !== user.id) {
+    if (template.userId !== gate.userId) {
         return new NextResponse("Unauthorized", { status: 403 });
     }
 
@@ -35,11 +31,7 @@ export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { userId } = await auth();
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!user) return new NextResponse("User not found", { status: 404 });
+    const gate = await requireAuthGate();
 
     const { id } = await params;
 
@@ -52,7 +44,7 @@ export async function DELETE(
         return new NextResponse("Template not found", { status: 404 });
     }
 
-    if (template.userId !== user.id) {
+    if (template.userId !== gate.userId) {
         return new NextResponse("Unauthorized", { status: 403 });
     }
 
@@ -68,11 +60,7 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { userId } = await auth();
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!user) return new NextResponse("User not found", { status: 404 });
+    const gate = await requireAuthGate();
 
     const { id } = await params;
 
@@ -85,7 +73,7 @@ export async function PATCH(
         return new NextResponse("Template not found", { status: 404 });
     }
 
-    if (template.userId !== user.id) {
+    if (template.userId !== gate.userId) {
         return new NextResponse("Unauthorized", { status: 403 });
     }
 

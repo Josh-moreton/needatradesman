@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { redis, messageRateLimit } from "@/lib/redis";
 import { pusherServer, getConversationChannel, getUserChannel } from "@/lib/pusher";
@@ -159,10 +159,7 @@ async function sendPusherNotifications(message: MessageWithRelations, userId: st
 // GET /api/messages - Get conversations for current user
 export async function GET(request: NextRequest) {
     try {
-        const user = await getCurrentUser();
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const gate = await requireAuthGate();
 
         const { searchParams } = new URL(request.url);
         const chatWith = searchParams.get("chatWith");
@@ -174,8 +171,8 @@ export async function GET(request: NextRequest) {
                 where: {
                     jobId,
                     OR: [
-                        { senderId: user.id, receiverId: chatWith },
-                        { senderId: chatWith, receiverId: user.id },
+                        { senderId: gate.userId, receiverId: chatWith },
+                        { senderId: chatWith, receiverId: gate.userId },
                     ],
                 },
                 include: {
@@ -199,7 +196,7 @@ export async function GET(request: NextRequest) {
         const conversations = await prisma.message.groupBy({
             by: ["jobId"],
             where: {
-                OR: [{ senderId: user.id }, { receiverId: user.id }],
+                OR: [{ senderId: gate.userId }, { receiverId: gate.userId }],
             },
             _max: {
                 createdAt: true,
@@ -213,7 +210,7 @@ export async function GET(request: NextRequest) {
                 const lastMessage = await prisma.message.findFirst({
                     where: {
                         jobId: conv.jobId,
-                        OR: [{ senderId: user.id }, { receiverId: user.id }],
+                        OR: [{ senderId: gate.userId }, { receiverId: gate.userId }],
                     },
                     include: {
                         sender: {
@@ -232,7 +229,7 @@ export async function GET(request: NextRequest) {
                 if (!lastMessage) return null;
 
                 const otherParticipant =
-                    lastMessage.senderId === user.id
+                    lastMessage.senderId === gate.userId
                         ? lastMessage.receiver
                         : lastMessage.sender;
 
@@ -264,13 +261,10 @@ export async function GET(request: NextRequest) {
 // POST /api/messages - Send a new message
 export async function POST(request: NextRequest) {
     try {
-        const user = await getCurrentUser();
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const gate = await requireAuthGate();
 
         // Rate limiting (use clerkId to avoid reuse of internal IDs)
-        const rateLimitResult = await checkRateLimit(user.clerkId);
+        const rateLimitResult = await checkRateLimit(gate.clerkId);
         if (!rateLimitResult.allowed) {
             return rateLimitResult.error!;
         }
@@ -280,7 +274,7 @@ export async function POST(request: NextRequest) {
 
         // Verify that the user is either the job poster or has applied to the job
         if (jobId) {
-            const authResult = await verifyJobAuthorization(jobId, user.id);
+            const authResult = await verifyJobAuthorization(jobId, gate.userId);
             if (!authResult.authorized) {
                 return authResult.error!;
             }
@@ -290,7 +284,7 @@ export async function POST(request: NextRequest) {
         const message = await prisma.message.create({
             data: {
                 content,
-                senderId: user.id,
+                senderId: gate.userId,
                 receiverId,
                 jobId,
                 messageType,
@@ -309,10 +303,10 @@ export async function POST(request: NextRequest) {
         });
 
         // Store in Redis for real-time updates (if Redis is configured)
-        await cacheMessageInRedis(message, user.id, receiverId, jobId);
+        await cacheMessageInRedis(message, gate.userId, receiverId, jobId);
 
         // Trigger Pusher events for real-time messaging
-        await sendPusherNotifications(message, user.id, receiverId, content, jobId);
+        await sendPusherNotifications(message, gate.userId, receiverId, content, jobId);
 
         return NextResponse.json({ message });
     } catch (error) {

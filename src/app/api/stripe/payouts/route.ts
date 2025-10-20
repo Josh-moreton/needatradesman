@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireRole } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
+import { UserRole } from "@/lib/schemas";
 import { stripe } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
 
@@ -8,15 +9,11 @@ const logger = createLogger("stripe-payouts-api");
 
 export async function GET() {
     try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const gate = await requireRole(UserRole.TRADESPERSON);
 
         // Get the current user with their Stripe account
         const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
+            where: { clerkId: gate.clerkId },
             select: {
                 id: true,
                 role: true,
@@ -26,13 +23,6 @@ export async function GET() {
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        if (user.role !== "TRADESPERSON") {
-            return NextResponse.json(
-                { error: "Only tradespeople can view payouts" },
-                { status: 403 }
-            );
         }
 
         if (!user.stripeAccountId) {

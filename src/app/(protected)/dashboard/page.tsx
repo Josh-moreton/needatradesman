@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -23,22 +23,22 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  const gate = await getAuthGate();
 
   // Layout guarantees user exists and has a valid role (CUSTOMER or TRADESPERSON)
   // PENDING users see OnboardingFlow instead of this page
-  if (!user) {
+  if (!gate) {
     redirect("/sign-in");
     return;
   }
 
   // Render role-specific dashboard
-  switch (user.role) {
+  switch (gate.role) {
     case UserRole.CUSTOMER:
-      return <CustomerDashboardPage user={user} />;
+      return <CustomerDashboardPage gate={gate} />;
     
     case UserRole.TRADESPERSON:
-      return <TradespersonDashboardPage user={user} />;
+      return <TradespersonDashboardPage gate={gate} />;
     
     case UserRole.PENDING:
       // Should never reach here - layout handles PENDING users
@@ -52,11 +52,11 @@ export default async function DashboardPage() {
 }
 
 // Customer Dashboard Server Component
-async function CustomerDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
+async function CustomerDashboardPage({ gate }: { gate: { userId: string; firstName: string | null; lastName: string | null } }) {
   // Get user's job stats for quick overview - matching original customer page
   const [recentJobs, totalApplications] = await Promise.all([
     prisma.job.findMany({
-      where: { customerId: user.id },
+      where: { customerId: gate.userId },
       include: {
         _count: {
           select: { applications: true },
@@ -68,14 +68,14 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
     prisma.application.count({
       where: {
         job: {
-          customerId: user.id,
+          customerId: gate.userId,
         },
       },
     }),
   ]);
 
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+  const displayName = gate.firstName
+    ? `${gate.firstName}${gate.lastName ? ` ${gate.lastName}` : ""}`
     : "there";
 
   // Return the exact same content as the original customer page
@@ -256,11 +256,11 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
 }
 
 // Tradesperson Dashboard Server Component
-async function TradespersonDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
+async function TradespersonDashboardPage({ gate }: { gate: { userId: string; firstName: string | null; lastName: string | null } }) {
   // Get tradesperson stats - matching original tradesperson page
   const [applications, jobs] = await Promise.all([
     prisma.application.count({
-      where: { tradespersonId: user.id },
+      where: { tradespersonId: gate.userId },
     }),
     prisma.job.count({
       where: {
@@ -268,15 +268,15 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; firstNa
         // Only show jobs not applied to yet
         applications: {
           none: {
-            tradespersonId: user.id,
+            tradespersonId: gate.userId,
           },
         },
       },
     }),
   ]);
 
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+  const displayName = gate.firstName
+    ? `${gate.firstName}${gate.lastName ? ` ${gate.lastName}` : ""}`
     : "there";
 
   // Return the exact same content as the original tradesperson page

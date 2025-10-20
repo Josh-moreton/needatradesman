@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { UserRole, JobCategory } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -17,17 +17,17 @@ export default async function DashboardJobsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const user = await getCurrentUser();
+  const gate = await getAuthGate();
 
-  if (!user) {
+  if (!gate) {
     redirect("/sign-in");
     return;
   }
 
   // Role-based job browsing
-  if (user.role === UserRole.TRADESPERSON) {
-    return <TradespersonJobsView user={user} searchParams={searchParams} />;
-  } else if (user.role === UserRole.CUSTOMER) {
+  if (gate.role === UserRole.TRADESPERSON) {
+    return <TradespersonJobsView gate={gate} searchParams={searchParams} />;
+  } else if (gate.role === UserRole.CUSTOMER) {
     // Customers should see their own jobs
     redirect("/dashboard/my-jobs");
   }
@@ -38,16 +38,16 @@ export default async function DashboardJobsPage({
 }
 
 async function TradespersonJobsView({
-  user,
+  gate,
   searchParams,
 }: {
-  user: { trades?: JobCategory[] };
+  gate: { userId: string; trades?: JobCategory[] };
   searchParams: Promise<SearchParams>;
 }) {
   const resolvedSearchParams = await searchParams;
 
   // Get user's trades for filtering
-  const userTrades = user.trades || [];
+  const userTrades = gate.trades || [];
 
   // Build query filters
   const page = parseInt(resolvedSearchParams.page || "1");

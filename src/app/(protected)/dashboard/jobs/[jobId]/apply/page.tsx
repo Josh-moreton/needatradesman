@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { ResponseForm } from "@/components/applications/ResponseForm";
@@ -29,17 +29,17 @@ interface ApplyPageProps {
 
 export default async function ApplyPage({ params }: ApplyPageProps) {
   try {
-    const user = await getCurrentUser();
+    const gate = await getAuthGate();
 
-    if (!user) {
+    if (!gate) {
       redirect("/sign-in");
     }
 
-    if (!user.role) {
+    if (!gate.role) {
       redirect("/onboarding");
     }
 
-    if (user.role !== UserRole.TRADESPERSON) {
+    if (gate.role !== UserRole.TRADESPERSON) {
       redirect("/dashboard");
     }
 
@@ -72,7 +72,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
       where: {
         jobId_tradespersonId: {
           jobId: job.id,
-          tradespersonId: user.id,
+          tradespersonId: gate.userId,
         },
       },
     });
@@ -135,7 +135,7 @@ export default async function ApplyPage({ params }: ApplyPageProps) {
           </CardHeader>
           <CardContent>
             <ErrorBoundary>
-              <ResponseForm jobId={job.id} userId={user.id} />
+              <ResponseForm jobId={job.id} userId={gate.userId} />
             </ErrorBoundary>
           </CardContent>
         </Card>

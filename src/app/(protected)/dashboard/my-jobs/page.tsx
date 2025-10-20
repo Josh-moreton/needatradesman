@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -10,25 +10,25 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardMyJobsPage() {
-  const user = await getCurrentUser();
+  const gate = await getAuthGate();
 
-  if (!user) {
+  if (!gate) {
     redirect("/sign-in");
     return;
   }
 
-  // The layout handles the onboarding flow if user.role is null
+  // The layout handles the onboarding flow if gate.role is null
   // If we reach here, user has a role (layout ensures this)
 
   // Only customers should see this page
-  if (user.role !== UserRole.CUSTOMER) {
+  if (gate.role !== UserRole.CUSTOMER) {
     redirect("/dashboard");
     return;
   }
 
   // Get customer's jobs
   const jobs = await prisma.job.findMany({
-    where: { customerId: user.id },
+    where: { customerId: gate.userId },
     include: {
       _count: {
         select: { applications: true },

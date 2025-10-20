@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 
 import { createLogger } from "@/lib/logger";
@@ -11,15 +11,12 @@ export async function POST(
     { params }: { params: Promise<{ jobId: string }> }
 ) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const gate = await requireAuthGate();
 
         const { jobId } = await params;
 
         // Fetch user from DB
-        const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+        const user = await prisma.user.findUnique({ where: { clerkId: gate.clerkId } });
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }

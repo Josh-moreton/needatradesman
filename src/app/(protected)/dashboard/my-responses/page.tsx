@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -7,18 +7,18 @@ import { MyResponsesClient } from "@/components/responses/MyResponsesClient";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardMyResponsesPage() {
-  const user = await getCurrentUser();
+  const gate = await getAuthGate();
 
-  if (!user) {
+  if (!gate) {
     redirect("/sign-in");
     return;
   }
 
-  // The layout handles the onboarding flow if user.role is null
+  // The layout handles the onboarding flow if gate.role is null
   // If we reach here, user has a role (layout ensures this)
 
   // Only tradespeople should see this page
-  if (user.role !== UserRole.TRADESPERSON) {
+  if (gate.role !== UserRole.TRADESPERSON) {
     redirect("/dashboard");
     return;
   }
@@ -26,7 +26,7 @@ export default async function DashboardMyResponsesPage() {
   // Get all applications for this tradesperson
   const applications = await prisma.application.findMany({
     where: {
-      tradespersonId: user.id,
+      tradespersonId: gate.userId,
     },
     include: {
       job: {

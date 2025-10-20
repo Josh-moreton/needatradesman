@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardErrorPage() {
-  const user = await getCurrentUser();
+  const gate = await getAuthGate();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -25,7 +25,7 @@ export default async function DashboardErrorPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!user ? (
+            {!gate ? (
               <>
                 <p className="text-sm text-muted-foreground text-center">
                   Please sign in to access your dashboard
@@ -34,7 +34,7 @@ export default async function DashboardErrorPage() {
                   <Link href="/sign-in">Sign In</Link>
                 </Button>
               </>
-            ) : !user.role ? (
+            ) : !gate.role ? (
               <>
                 <p className="text-sm text-muted-foreground text-center">
                   Complete your account setup to continue

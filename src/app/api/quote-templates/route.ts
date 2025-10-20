@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { quoteItemSchema } from "@/lib/schemas";
 
 export async function GET() {
-  const { userId } = await auth();
-  if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-  const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-  if (!user) return new NextResponse("User not found", { status: 404 });
+  const gate = await requireAuthGate();
 
   const templates = await prisma.quoteTemplate.findMany({
-    where: { userId: user.id },
+    where: { userId: gate.userId },
     include: { items: true },
   });
 
@@ -19,11 +15,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-  const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-  if (!user) return new NextResponse("User not found", { status: 404 });
+  const gate = await requireAuthGate();
 
   const body = await request.json();
   const { name, items } = body as { name: string; items: unknown };
@@ -36,7 +28,7 @@ export async function POST(request: NextRequest) {
   const template = await prisma.quoteTemplate.create({
     data: {
       name,
-      userId: user.id,
+      userId: gate.userId,
       items: {
         create: parsedItems.map((i) => ({
           description: i.description,

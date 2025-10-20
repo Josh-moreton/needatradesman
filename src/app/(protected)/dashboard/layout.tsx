@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getAuthGate } from "@/lib/auth-gate";
 import { UserRole } from "@prisma/client";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
@@ -7,10 +7,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const gate = await getAuthGate();
 
   // Authentication check (should be handled by middleware, but defensive)
-  if (!user) {
+  if (!gate) {
     // User is authenticated with Clerk but doesn't exist in our DB yet
     // This happens when webhooks aren't configured - show onboarding to create user
     return (
@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   }
 
   // If user needs onboarding, show onboarding flow
-  if (user.role === UserRole.PENDING) {
+  if (gate.role === UserRole.PENDING) {
     return (
       <div className="flex min-h-screen bg-background">
         <main className="flex-1">

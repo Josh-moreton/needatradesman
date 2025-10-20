@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { requireAuthGate } from "@/lib/auth-gate";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@/lib/schemas";
 import { unstable_cache } from "next/cache";
@@ -10,11 +10,7 @@ const logger = createLogger("user-stats-api");
 
 export async function GET() {
     try {
-        const user = await getCurrentUser();
-
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const gate = await requireAuthGate();
 
         // Use unstable_cache for caching with Next.js
         const getUserStats = unstable_cache(
@@ -124,14 +120,14 @@ export async function GET() {
 
                 return stats;
             },
-            ['user-stats', user.id, user.role],
+            ['user-stats', gate.userId, gate.role],
             {
                 revalidate: 300, // 5 minutes
-                tags: ['user-stats', `user-stats-${user.id}`]
+                tags: ['user-stats', `user-stats-${gate.userId}`]
             }
         );
 
-        const stats = await getUserStats(user.id, user.role);
+        const stats = await getUserStats(gate.userId, gate.role);
 
         return NextResponse.json(stats);
     } catch (error) {
