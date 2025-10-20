@@ -266,10 +266,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
   const getTradespersonName = (
     tradesperson: Job["applications"][0]["tradesperson"]
   ) => {
-    if (tradesperson.name || "Anonymous"
-      return `${tradesperson.name || "Anonymous"
-    }
-    return tradesperson.email;
+    return tradesperson.name || "Anonymous";
   };
 
   const formatDate = (date: Date) => {

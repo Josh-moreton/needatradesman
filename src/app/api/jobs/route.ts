@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createJobSchema, UserRole, JobCategory } from "@/lib/schemas";
 import { createLogger } from "@/lib/logger";
@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     try {
         // Check authentication
         const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = session.user.id;
+        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const userId = session.user.id;
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
@@ -270,7 +270,7 @@ export async function GET(request: NextRequest) {
                             customer: {
                                 select: {
                                     name: true,
-                                    
+
                                 },
                             },
                             _count: {

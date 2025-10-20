@@ -28,9 +28,8 @@ interface ApplicationWithJob {
     budget: Decimal | null;
     status: string;
     customer?: {
-      firstName: string | null;
-      lastName: string | null;
       id: string;
+      name: string | null;
     } | null;
   };
 }

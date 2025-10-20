@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { UserRole, JobCategory } from "@prisma/client"; // Use Prisma enum instead
 import {
@@ -24,7 +23,6 @@ export default function OnboardingFlow() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [step, setStep] = useState<"role" | "trades">("role");
   const [selectedTrades, setSelectedTrades] = useState<JobCategory[]>([]);
-  const { data: session } = useSession();
   const router = useRouter();
 
   // Server route (/onboarding) already gates using DB role and redirects when complete.

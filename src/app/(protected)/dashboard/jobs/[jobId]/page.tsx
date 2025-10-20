@@ -125,7 +125,7 @@ export default async function JobDetailPage({
           select: {
             id: true,
             name: true,
-            
+            email: true,
           },
         },
         applications: {
@@ -134,7 +134,6 @@ export default async function JobDetailPage({
               select: {
                 id: true,
                 name: true,
-                
                 email: true,
               },
             },
@@ -194,10 +193,7 @@ export default async function JobDetailPage({
 
     const getCustomerName = () => {
       if (!job.customer) return "Anonymous";
-      const { firstName, lastName } = job.customer;
-      if (firstName && lastName) return `${firstName} ${lastName}`;
-      if (firstName) return firstName;
-      return "Anonymous";
+      return job.customer.name || "Anonymous";
     };
 
     const formatDate = (date: Date) => {

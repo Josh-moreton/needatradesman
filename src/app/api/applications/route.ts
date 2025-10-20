@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createApplicationSchema, UserRole } from "@/lib/schemas";
 import { applicationRateLimit, redis } from "@/lib/redis";
@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
     try {
         // Check authentication
         const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = session.user.id;
+        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const userId = session.user.id;
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
@@ -110,8 +110,10 @@ export async function POST(request: NextRequest) {
             include: {
                 tradesperson: {
                     select: {
+                        id: true,
                         name: true,
-                        
+                        firstName: true,
+                        lastName: true,
                         email: true,
                     },
                 },
@@ -160,8 +162,8 @@ export async function GET() {
     try {
         // Check authentication
         const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = session.user.id;
+        if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const userId = session.user.id;
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
@@ -195,7 +197,7 @@ export async function GET() {
                                     customer: {
                                         select: {
                                             name: true,
-                                            
+
                                         },
                                     },
                                 },
@@ -215,7 +217,7 @@ export async function GET() {
                             tradesperson: {
                                 select: {
                                     name: true,
-                                    
+
                                     email: true,
                                 },
                             },

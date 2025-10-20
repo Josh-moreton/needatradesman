@@ -75,8 +75,6 @@ async function CustomerDashboardPage({ user }: { user: { id: string; name: strin
   ]);
 
   const displayName = user.name || "there";
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
 
   // Return the exact same content as the original customer page
   return (
@@ -276,8 +274,6 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; name: s
   ]);
 
   const displayName = user.name || "there";
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
 
   // Return the exact same content as the original tradesperson page
   return (
