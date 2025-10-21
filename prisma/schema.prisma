@@ -19,6 +19,12 @@ model User {
   role            UserRole      @default(PENDING)
   trades          JobCategory[] // For tradespeople - selected trade categories
   stripeAccountId String? // Stripe Connect account ID for tradespeople
+  
+  // Stripe Terminal fields for tradespeople
+  stripeTerminalLocationId String? // Terminal location for card readers
+  terminalReaderId         String? // Associated card reader ID
+  terminalReaderLabel      String? // Custom label for reader (e.g., "John's Reader")
+  
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -69,6 +75,10 @@ model Job {
   finalTransferId               String? // Stripe Transfer ID for final payment
   finalReleasedAt               DateTime? // When final transfer was created
   chargeModel                   ChargeModel? @default(DESTINATION_CHARGE) // Track which charge model is used
+  
+  // Terminal payment fields
+  finalPaymentMethod            PaymentMethod? // How final payment was made
+  terminalPaymentIntentId       String? // Payment intent ID for Terminal payments
   
   createdAt                     DateTime     @default(now())
   updatedAt                     DateTime     @updatedAt
@@ -204,4 +214,9 @@ enum MessageType {
 enum ChargeModel {
   DESTINATION_CHARGE // Current: instant transfer via transfer_data
   SC_AND_T          // Future: separate charges & transfers with control
+}
+
+enum PaymentMethod {
+  ONLINE   // Card payment through Stripe Checkout (web)
+  TERMINAL // In-person card payment via Stripe Terminal reader
 }

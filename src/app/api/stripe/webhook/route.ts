@@ -277,6 +277,60 @@ export async function POST(request: NextRequest) {
                 break;
             }
 
+            case "payment_intent.succeeded": {
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+                // Handle Terminal payment completion
+                if (paymentIntent.metadata?.paymentMethod === "terminal" &&
+                    paymentIntent.metadata?.applicationType === "final_payment") {
+                    const { jobId, tradespersonId } = paymentIntent.metadata;
+
+                    try {
+                        await prisma.$transaction(async (tx) => {
+                            // Check if job already has final payment
+                            const currentJob = await tx.job.findUnique({
+                                where: { id: jobId },
+                                select: { finalPaid: true, terminalPaymentIntentId: true }
+                            });
+
+                            if (currentJob?.finalPaid) {
+                                logger.error({
+                                    jobId,
+                                    paymentIntentId: paymentIntent.id
+                                }, "Race condition blocked - job already has final payment");
+                                throw new Error('Job already has final payment processed');
+                            }
+
+                            // Update job with Terminal payment information
+                            await tx.job.update({
+                                where: { id: jobId },
+                                data: {
+                                    finalPaid: true,
+                                    finalPaymentIntentId: paymentIntent.id,
+                                    finalChargeId: paymentIntent.latest_charge as string | null,
+                                    finalReleasedAt: new Date(),
+                                    finalPaymentMethod: "TERMINAL",
+                                    status: "COMPLETED",
+                                },
+                            });
+                        });
+
+                        logger.info({
+                            jobId,
+                            tradespersonId,
+                            paymentIntentId: paymentIntent.id
+                        }, "Terminal final payment processed successfully");
+                    } catch (transactionError) {
+                        logger.error({
+                            jobId,
+                            error: transactionError
+                        }, "Transaction failed for Terminal final payment");
+                    }
+                }
+
+                break;
+            }
+
             case "account.updated": {
                 const account = event.data.object as Stripe.Account;
 

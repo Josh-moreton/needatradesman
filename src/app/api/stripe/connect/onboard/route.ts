@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
                 capabilities: {
                     card_payments: { requested: true },
                     transfers: { requested: true },
+                    // Note: card_present capability will be enabled through Stripe Dashboard
+                    // or requested separately after account is created
                 },
                 settings: {
                     payouts: {
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
                 }
             });
             stripeAccountId = account.id;
-            logger.info({ stripeAccountId }, "Created Stripe account");
+            logger.info({ stripeAccountId }, "Created Stripe account with Terminal capability");
 
             // Save to DB
             await prisma.user.update({

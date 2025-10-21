@@ -86,3 +86,140 @@ export function calculateTradespersonPayout(quoteAmount: number): number {
     const tradespersonFee = calculateTradespersonFee(quoteAmount)
     return amountInPence - tradespersonFee
 }
+
+/**
+ * Stripe Terminal configuration
+ */
+export const TERMINAL_CONFIG = {
+    // Default location settings for Terminal
+    defaultCountry: 'GB',
+    defaultCurrency: 'gbp',
+    // Supported reader types
+    readerTypes: ['bbpos_wisepad3', 'stripe_m2', 'verifone_p400'] as const,
+} as const
+
+/**
+ * Create a Terminal location for a Connect account
+ * Used for registering card readers to a tradesperson's account
+ */
+export async function createTerminalLocation(params: {
+    accountId: string
+    displayName: string
+    address: {
+        line1: string
+        city: string
+        postalCode: string
+        country?: string
+    }
+}) {
+    return await stripe.terminal.locations.create(
+        {
+            display_name: params.displayName,
+            address: {
+                line1: params.address.line1,
+                city: params.address.city,
+                postal_code: params.address.postalCode,
+                country: params.address.country || TERMINAL_CONFIG.defaultCountry,
+            },
+        },
+        {
+            stripeAccount: params.accountId,
+        }
+    )
+}
+
+/**
+ * Register a card reader to a Terminal location
+ */
+export async function registerTerminalReader(params: {
+    accountId: string
+    registrationCode: string
+    label: string
+    locationId: string
+}) {
+    return await stripe.terminal.readers.create(
+        {
+            registration_code: params.registrationCode,
+            label: params.label,
+            location: params.locationId,
+        },
+        {
+            stripeAccount: params.accountId,
+        }
+    )
+}
+
+/**
+ * Create a connection token for Terminal reader
+ * Used by reader to connect to Stripe's backend
+ */
+export async function createTerminalConnectionToken(accountId: string) {
+    return await stripe.terminal.connectionTokens.create(
+        {},
+        {
+            stripeAccount: accountId,
+        }
+    )
+}
+
+/**
+ * Get Terminal reader status
+ */
+export async function getTerminalReaderStatus(params: {
+    accountId: string
+    readerId: string
+}) {
+    return await stripe.terminal.readers.retrieve(
+        params.readerId,
+        {},
+        {
+            stripeAccount: params.accountId,
+        }
+    )
+}
+
+/**
+ * Create a payment intent for Terminal payment
+ * Used for in-person card payments at job completion
+ */
+export async function createTerminalPaymentIntent(params: {
+    accountId: string
+    amount: number // Amount in pence
+    applicationFeeAmount: number // Platform fee in pence
+    transferGroup: string
+    metadata: Record<string, string>
+}) {
+    return await stripe.paymentIntents.create(
+        {
+            amount: params.amount,
+            currency: TERMINAL_CONFIG.defaultCurrency,
+            payment_method_types: ['card_present'],
+            capture_method: 'automatic',
+            application_fee_amount: params.applicationFeeAmount,
+            transfer_group: params.transferGroup,
+            transfer_data: {
+                destination: params.accountId,
+            },
+            metadata: params.metadata,
+        },
+        {
+            stripeAccount: params.accountId,
+        }
+    )
+}
+
+/**
+ * Cancel a Terminal payment intent
+ */
+export async function cancelTerminalPaymentIntent(params: {
+    accountId: string
+    paymentIntentId: string
+}) {
+    return await stripe.paymentIntents.cancel(
+        params.paymentIntentId,
+        {},
+        {
+            stripeAccount: params.accountId,
+        }
+    )
+}
