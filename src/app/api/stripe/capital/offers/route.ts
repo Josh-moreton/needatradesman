@@ -66,8 +66,15 @@ export async function GET() {
         // - Geographic availability (UK, US, etc.)
         // The capital_financing_summary field contains offer information
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const capitalSummary = (account as any).capital_financing_summary;
+        // Define minimal shape of the capital summary we expose
+        interface CapitalSummary {
+            available_amount?: number;
+            currency?: string;
+            // Other fields exist but we intentionally limit exposure here
+        }
+
+        // Access the field safely and narrow the type
+        const capitalSummary = (account as unknown as { capital_financing_summary?: CapitalSummary }).capital_financing_summary;
         
         // Build response with available information
         const response: {
@@ -76,8 +83,7 @@ export async function GET() {
             eligible: boolean;
             capitalEnabled: boolean;
             dashboardUrl?: string;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            summary?: any;
+            summary?: CapitalSummary;
         } = {
             hasAccount: true,
             onboarded: true,
@@ -89,7 +95,11 @@ export async function GET() {
         if (capitalSummary) {
             response.eligible = true;
             response.capitalEnabled = true;
-            response.summary = capitalSummary;
+            // Only include minimal summary fields in the API response
+            response.summary = {
+                available_amount: capitalSummary.available_amount,
+                currency: capitalSummary.currency,
+            };
         }
 
         // Generate a login link for the tradesperson to access their Stripe Dashboard

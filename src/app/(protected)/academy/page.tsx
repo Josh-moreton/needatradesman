@@ -103,6 +103,7 @@ const COURSES: Course[] = [
 
 export default function AcademyPage() {
     const [capitalOffer, setCapitalOffer] = useState<CapitalOffer | null>(null);
+    const [isTradesperson, setIsTradesperson] = useState<boolean | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -114,17 +115,29 @@ export default function AcademyPage() {
             const response = await fetch("/api/stripe/capital/offers");
             const data = await response.json();
 
-            if (response.ok) {
-                setCapitalOffer(data);
+            if (response.status === 403) {
+                // Not a tradesperson; hide Capital-related UI
+                setIsTradesperson(false);
+                setCapitalOffer(null);
             } else {
-                // If it's just that they're not a tradesperson or don't have an account,
-                // don't show it as an error
-                if (response.status === 403 || response.status === 400) {
+                // From this point forward we treat the user as a tradesperson
+                setIsTradesperson(true);
+
+                if (response.status === 400) {
+                    // Tradesperson but missing Stripe setup or similar
+                    setCapitalOffer(null);
+                } else if (response.ok) {
+                    setCapitalOffer(data);
+                } else {
+                    // Unknown status - don't show offers
                     setCapitalOffer(null);
                 }
             }
         } catch {
             // Silently handle errors - Capital offers are optional
+            if (process.env.NODE_ENV === "development") {
+                console.error("Error fetching capital offers");
+            }
         } finally {
             setLoading(false);
         }
@@ -209,7 +222,7 @@ export default function AcademyPage() {
             )}
 
             {/* Stripe Connect Setup Card for Tradespeople without account */}
-            {!loading && !capitalOffer?.hasAccount && (
+            {!loading && isTradesperson === true && !capitalOffer?.hasAccount && (
                 <Card className="mb-8 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
