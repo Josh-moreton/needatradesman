@@ -7,12 +7,6 @@ export const FEATURES = {
     // Bank Transfer Configuration
     BANK_TRANSFER_ENABLED: process.env.BANK_TRANSFER_ENABLED === 'true' || true, // Default enabled
     BANK_TRANSFER_MIN_AMOUNT: parseInt(process.env.BANK_TRANSFER_MIN_AMOUNT || '5000', 10), // £50.00 minimum in pence
-    
-    // Bank Account Details (for display to customers)
-    // These should be configured in production via environment variables
-    BANK_TRANSFER_ACCOUNT_NAME: process.env.BANK_TRANSFER_ACCOUNT_NAME || 'Need A Tradesman Ltd',
-    BANK_TRANSFER_SORT_CODE: process.env.BANK_TRANSFER_SORT_CODE || 'XX-XX-XX',
-    BANK_TRANSFER_ACCOUNT_NUMBER: process.env.BANK_TRANSFER_ACCOUNT_NUMBER || 'XXXXXXXX',
 } as const;
 
 /**

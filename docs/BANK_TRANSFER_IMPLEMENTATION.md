@@ -76,11 +76,10 @@ Display component showing:
 Added bank transfer environment variables:
 ```bash
 BANK_TRANSFER_ENABLED=true
-BANK_TRANSFER_MIN_AMOUNT=5000
-BANK_TRANSFER_ACCOUNT_NAME="Need A Tradesman Ltd"
-BANK_TRANSFER_SORT_CODE="XX-XX-XX"
-BANK_TRANSFER_ACCOUNT_NUMBER="XXXXXXXX"
+BANK_TRANSFER_MIN_AMOUNT=5000  # Minimum in pence (£50.00)
 ```
+
+**Note:** No bank account details needed - Stripe Connect handles everything automatically.
 
 ### 6. Documentation
 
@@ -114,10 +113,15 @@ BANK_TRANSFER_ACCOUNT_NUMBER="XXXXXXXX"
 2. **System generates reference** automatically (or uses existing)
 3. **Stripe Checkout shows BACS** as payment option
 4. **Customer selects bank transfer** in Stripe UI
-5. **Customer authorizes Direct Debit** mandate
-6. **BACS processes** (1-2 business days)
-7. **Webhook confirms payment** when cleared
-8. **Job proceeds** normally
+5. **Stripe shows their bank details** to customer
+6. **Customer authorizes Direct Debit** mandate with Stripe
+7. **Stripe collects via BACS** (1-2 business days)
+8. **Stripe deducts platform fees** automatically
+9. **Stripe transfers to tradesperson** via Connect
+10. **Webhook confirms payment** when cleared
+11. **Job proceeds** normally
+
+**Key Point:** Customer pays Stripe (not you), Stripe handles everything via Connect.
 
 ## Testing Checklist
 
@@ -157,11 +161,10 @@ BANK_TRANSFER_ACCOUNT_NUMBER="XXXXXXXX"
 ```bash
 # Add to production .env
 BANK_TRANSFER_ENABLED=true
-BANK_TRANSFER_MIN_AMOUNT=5000
-BANK_TRANSFER_ACCOUNT_NAME="Need A Tradesman Ltd"
-BANK_TRANSFER_SORT_CODE="04-00-75"  # Replace with real sort code
-BANK_TRANSFER_ACCOUNT_NUMBER="12345678"  # Replace with real account
+BANK_TRANSFER_MIN_AMOUNT=5000  # £50.00 in pence
 ```
+
+**Note:** No bank account configuration needed. Stripe Connect provides bank details automatically.
 
 ### 3. Database Migration
 ```bash

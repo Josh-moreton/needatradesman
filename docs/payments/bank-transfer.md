@@ -4,6 +4,18 @@
 
 Bank transfer (BACS Direct Debit) is enabled as a payment option for high-value jobs (£5,000+) to reduce card processing fees and provide customers with a familiar payment option for large amounts.
 
+## How Stripe Connect Handles BACS
+
+**Important:** When using Stripe Connect (as this platform does), you do NOT need to configure your own bank account details. Here's how it works:
+
+1. **Customer pays Stripe** - When a customer selects BACS payment, they see **Stripe's bank details**, not yours
+2. **Stripe collects payment** - Stripe handles the entire BACS Direct Debit collection process
+3. **Stripe deducts fees** - Your platform fees are automatically deducted via `application_fee_amount`
+4. **Stripe transfers to tradesperson** - The remaining amount is transferred to the tradesperson's connected Stripe account
+5. **You never handle bank transfers** - All payment processing is done by Stripe
+
+This is fundamentally different from manual bank transfer reconciliation, where you would need to provide your own bank details.
+
 ## Business Benefits
 
 - **Lower Fees**: BACS fees are ~1.4% lower than card fees (BACS vs 1.5% + £0.20 card fee)
@@ -20,12 +32,9 @@ Add the following to your `.env` file:
 # Bank Transfer Configuration
 BANK_TRANSFER_ENABLED=true
 BANK_TRANSFER_MIN_AMOUNT=5000  # Minimum amount in pence (£50.00)
-
-# Bank account details displayed to customers
-BANK_TRANSFER_ACCOUNT_NAME="Need A Tradesman Ltd"
-BANK_TRANSFER_SORT_CODE="XX-XX-XX"
-BANK_TRANSFER_ACCOUNT_NUMBER="XXXXXXXX"
 ```
+
+**Note:** No bank account details are needed in environment variables. Stripe Connect handles all bank details automatically when customers select BACS payment. Stripe shows their own bank details to customers, collects the payment, deducts your platform fees, and transfers the remaining amount to the tradesperson's connected account.
 
 ### Stripe Dashboard Setup
 
@@ -109,15 +118,19 @@ References are:
 ## Customer Flow
 
 1. Customer accepts tradesperson application
-2. System checks if amount qualifies for bank transfer
+2. System checks if amount qualifies for bank transfer (≥£5,000)
 3. If eligible, bank transfer option appears in Stripe Checkout
 4. Customer selects "Bank Transfer" payment option
-5. Stripe displays BACS Direct Debit setup
-6. Customer authorizes Direct Debit mandate
-7. System detects payment method and logs reference
-8. Payment processes via BACS (1-2 business days)
-9. Webhook receives payment confirmation
-10. Job proceeds as normal
+5. **Stripe displays their own bank details** and BACS Direct Debit setup
+6. Customer authorizes Direct Debit mandate with **Stripe's bank account**
+7. Stripe collects payment via BACS (1-2 business days)
+8. Stripe automatically deducts platform fees (`application_fee_amount`)
+9. Stripe transfers remaining amount to tradesperson's connected account
+10. Webhook receives payment confirmation
+11. System logs payment with reference
+12. Job proceeds as normal
+
+**Important:** Customers pay to Stripe's bank account, not yours. Stripe handles all payment collection, fee deduction, and distribution to tradespeople automatically through Stripe Connect.
 
 ## Payment Processing Timeline
 

@@ -1,20 +1,44 @@
 "use client";
 
+/**
+ * BankTransferDetails Component
+ * 
+ * NOTE: This component is NOT currently used in the Stripe Connect flow.
+ * When using Stripe Connect with BACS Direct Debit, Stripe handles all payment
+ * UI automatically including showing bank details to customers.
+ * 
+ * This component is preserved for potential future use cases:
+ * - Manual bank transfer reconciliation outside Stripe
+ * - Displaying transfer status/reference to customers after payment
+ * - Alternative payment flows
+ * 
+ * Current flow: Customer selects BACS in Stripe Checkout → Stripe shows details
+ */
+
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { FEATURES } from "@/lib/feature-flags";
 
 interface BankTransferDetailsProps {
     jobTitle: string;
     amount: number; // Amount in pounds
     reference: string;
+    accountName?: string; // Optional bank account details if needed
+    sortCode?: string;
+    accountNumber?: string;
 }
 
-export function BankTransferDetails({ jobTitle, amount, reference }: BankTransferDetailsProps) {
+export function BankTransferDetails({ 
+    jobTitle, 
+    amount, 
+    reference,
+    accountName = "Stripe (via Need A Tradesman)",
+    sortCode = "Provided by Stripe",
+    accountNumber = "Provided by Stripe"
+}: BankTransferDetailsProps) {
     const [copied, setCopied] = useState(false);
 
     const copyToClipboard = async (text: string) => {
@@ -49,17 +73,17 @@ export function BankTransferDetails({ jobTitle, amount, reference }: BankTransfe
 
                     <div className="border-t pt-4">
                         <Label className="text-sm text-muted-foreground">Account Name</Label>
-                        <p className="font-mono text-sm">{FEATURES.BANK_TRANSFER_ACCOUNT_NAME}</p>
+                        <p className="font-mono text-sm">{accountName}</p>
                     </div>
 
                     <div>
                         <Label className="text-sm text-muted-foreground">Sort Code</Label>
-                        <p className="font-mono text-sm">{FEATURES.BANK_TRANSFER_SORT_CODE}</p>
+                        <p className="font-mono text-sm">{sortCode}</p>
                     </div>
 
                     <div>
                         <Label className="text-sm text-muted-foreground">Account Number</Label>
-                        <p className="font-mono text-sm">{FEATURES.BANK_TRANSFER_ACCOUNT_NUMBER}</p>
+                        <p className="font-mono text-sm">{accountNumber}</p>
                     </div>
 
                     <div className="border-t pt-4">
