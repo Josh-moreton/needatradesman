@@ -31,11 +31,47 @@ For UK market (our target):
 
 | Reader | Type | Connectivity | Price | Best For |
 |--------|------|--------------|-------|----------|
+| **Tap to Pay on iPhone** | Software | Built-in | £0 | iPhone users (no hardware needed) |
 | **BBPOS WisePad 3** | Mobile | Bluetooth | £59 | Mobile tradespeople |
 | **Stripe Reader M2** | Mobile | Bluetooth + 4G | £99 | Standalone use |
 | **WisePOS E** | Countertop | WiFi/Ethernet | £299 | Larger operations |
 
-**Recommended for our use case**: BBPOS WisePad 3 (mobile, Bluetooth-connected)
+**Recommended options**:
+1. **Tap to Pay on iPhone** (FREE, no hardware) - Best for iPhone users
+2. **BBPOS WisePad 3** (£59, Bluetooth) - Best for non-iPhone or those preferring physical readers
+
+### Tap to Pay on iPhone
+
+**What is Tap to Pay on iPhone?**
+
+Tap to Pay on iPhone is a software-based solution that turns compatible iPhones into contactless payment terminals - no physical card reader hardware required. Customers simply tap their contactless card, Apple Pay, or other digital wallet on the tradesperson's iPhone to complete payment.
+
+**Key Benefits**:
+- ✅ **Zero Hardware Cost**: No need to purchase physical card readers
+- ✅ **Instant Setup**: Works immediately on compatible iPhones
+- ✅ **Always Available**: Built into the iPhone - can't be lost or forgotten
+- ✅ **Lower Barrier**: Perfect for tradespeople already using iPhones
+- ✅ **Same Security**: PCI-DSS compliant, same encryption as physical readers
+
+**Requirements**:
+- iPhone XS or newer
+- iOS 15.4 or later
+- UK-based Stripe account
+- Stripe Connect account set up
+
+**Limitations**:
+- ⚠️ Contactless only (no chip & PIN or swipe)
+- ⚠️ iOS devices only (no Android support)
+- ⚠️ Requires active internet connection
+- ⚠️ May have transaction limits (typically £100 for contactless)
+
+**When to Use**:
+- Tradesperson already owns iPhone XS or newer
+- Want to get started immediately without waiting for hardware
+- Occasional payments where dedicated hardware isn't justified
+- Backup payment method when physical reader unavailable
+
+**Implementation Note**: Tap to Pay requires the Stripe Terminal iOS SDK in the mobile app. Backend API support is included in this PR, but frontend integration requires native iOS development.
 
 ### Terminal with Connect Accounts
 

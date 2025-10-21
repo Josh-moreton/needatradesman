@@ -2,25 +2,63 @@
 
 ## What is Stripe Terminal?
 
-Stripe Terminal allows you to accept card payments in person using a handheld card reader. This means you can take final payment from your customers on-site when you complete a job, without having to wait for them to pay online later.
+Stripe Terminal allows you to accept card payments in person using either:
+1. **Tap to Pay on iPhone** - Your iPhone becomes a card reader (FREE, no hardware needed)
+2. **Physical card readers** - Dedicated hardware devices for accepting cards
+
+This means you can take final payment from your customers on-site when you complete a job, without having to wait for them to pay online later.
 
 ## Benefits
 
 ✅ **Get Paid Immediately**: Collect payment on-site when the job is done  
-✅ **Professional Experience**: Physical card reader provides a professional checkout  
-✅ **Customer Convenience**: Customers can pay with any card (chip, tap, or swipe)  
+✅ **Professional Experience**: Secure payment acceptance at customer location  
+✅ **Customer Convenience**: Customers can pay with contactless cards or digital wallets  
 ✅ **Platform Security**: All payments flow through the platform maintaining security  
-✅ **Same Fee Structure**: Same platform fees as online payments
+✅ **Same Fee Structure**: Same platform fees as online payments  
+✅ **Flexible Options**: Choose Tap to Pay (free) or physical readers
 
-## Supported Card Readers
+## Payment Options
 
-We recommend the **BBPOS WisePad 3** card reader:
+### Option 1: Tap to Pay on iPhone (Recommended for iPhone Users)
+
+**What is it?**
+Your iPhone XS or newer becomes a contactless payment terminal - no physical hardware needed! Customers tap their card or phone on your iPhone to pay.
+
+**Benefits**:
+- ✅ **FREE** - No hardware to purchase
+- ✅ **Always with you** - Can't forget or lose it
+- ✅ **Instant setup** - Start accepting payments immediately
+- ✅ **Same security** - PCI-compliant and encrypted
+
+**Requirements**:
+- iPhone XS or newer
+- iOS 15.4 or later
+- Completed Stripe Connect onboarding
+
+**Limitations**:
+- Contactless payments only (no chip & PIN)
+- Typically £100 transaction limit
+- iOS only
+
+**Best for**: Tradespeople who already own compatible iPhones and want zero hardware costs
+
+### Option 2: Physical Card Readers
+
+#### BBPOS WisePad 3 (Recommended Physical Reader)
 
 - **Price**: £59 (or request from platform)
 - **Connectivity**: Bluetooth (connects to your smartphone)
 - **Battery**: Up to 500 transactions per charge
-- **Payment Methods**: Chip, contactless (tap), and swipe
+- **Payment Methods**: Chip, contactless (tap), AND swipe
 - **Security**: PCI-DSS certified, end-to-end encryption
+
+**Benefits over Tap to Pay**:
+- ✅ Accepts chip & PIN (not just contactless)
+- ✅ No transaction limits from contactless
+- ✅ Works with any smartphone (iOS or Android)
+- ✅ Dedicated device - no battery drain on personal phone
+
+**Best for**: Tradespeople who need chip & PIN support, work with Android phones, or prefer dedicated hardware
 
 ## Getting Started
 
@@ -33,25 +71,46 @@ Before you can use a card reader, you need to have completed your Stripe Connect
 3. Complete the Stripe onboarding form
 4. Wait for verification (usually 1-2 business days)
 
-### Step 2: Order Your Card Reader
+### Step 2: Choose Your Payment Method
 
-**Option A: Request from Platform**
+#### Setup Path A: Tap to Pay on iPhone (FREE)
+
+**Requirements Check**:
+- ✅ iPhone XS or newer
+- ✅ iOS 15.4 or later
+- ✅ Stripe Connect onboarding complete
+
+**Setup Steps**:
+1. Go to **Dashboard** → **Payments** → **Tap to Pay**
+2. Click **"Enable Tap to Pay on iPhone"**
+3. Follow iOS permissions prompts:
+   - Allow Stripe Terminal SDK access
+   - Enable NFC (contactless) permissions
+4. Create Terminal location (see Step 3 below)
+5. Test with a small transaction
+6. ✅ Ready to accept payments!
+
+**Setup Time**: 5 minutes
+
+#### Setup Path B: Physical Card Reader (BBPOS WisePad 3)
+
+**Option 1: Request from Platform**
 1. Go to **Dashboard** → **Payments** → **Card Reader**
 2. Click **"Request Card Reader"**
 3. Provide your shipping address
 4. Pay £50 refundable deposit (refunded when reader returned)
 5. Reader ships in 2-3 business days
 
-**Option B: Purchase Direct from Stripe**
+**Option 2: Purchase Direct from Stripe**
 1. Visit [Stripe Terminal Store](https://stripe.com/terminal/readers)
 2. Purchase BBPOS WisePad 3
 3. Have registration code ready for setup
 
-### Step 3: Set Up Your Card Reader Location
+### Step 3: Set Up Your Terminal Location
 
-Before you can pair your reader, you need to create a Terminal location:
+Before you can use Tap to Pay or pair a reader, you need to create a Terminal location:
 
-1. Go to **Dashboard** → **Payments** → **Card Reader Setup**
+1. Go to **Dashboard** → **Payments** → **Terminal Setup**
 2. Click **"Create Location"**
 3. Enter:
    - Location name (e.g., "John Smith Services")
@@ -60,7 +119,13 @@ Before you can pair your reader, you need to create a Terminal location:
    - Postcode
 4. Click **"Create Location"**
 
-### Step 4: Pair Your Card Reader
+### Step 4A: Using Tap to Pay on iPhone (No Further Setup Needed!)
+
+If you chose Tap to Pay, you're done! Skip to "Taking Payments" section below.
+
+### Step 4B: Pair Your Physical Card Reader
+
+Only if you chose a physical card reader:
 
 1. Unbox your card reader and charge it fully
 2. Power on the reader (hold power button for 3 seconds)
@@ -90,6 +155,43 @@ Before you can pair your reader, you need to create a Terminal location:
 
 ### Step-by-Step: Processing a Terminal Payment
 
+#### Using Tap to Pay on iPhone
+
+1. **Complete the Job**
+   - Finish the work as agreed
+   - Both you and customer confirm completion in the app
+
+2. **Open the Job**
+   - Go to **My Jobs** → select the completed job
+
+3. **Initiate Payment**
+   - Click **"Take Payment with Tap to Pay"**
+   - Verify the amount (should show remaining balance + platform fee)
+   - Click **"Continue"**
+
+4. **Prepare Your iPhone**
+   - Hold your iPhone ready
+   - App will show "Ready for Payment" screen
+   - Contactless icon appears
+
+5. **Customer Pays**
+   - Ask customer to hold their contactless card or phone near the top of your iPhone
+   - Wait for the tap animation and success sound
+   - iPhone shows "Payment Approved" or error message
+
+6. **Payment Complete**
+   - Both parties receive receipt via email
+   - Job automatically marked as completed and paid
+   - Funds transferred to your Stripe account (minus platform fee)
+
+**Important Notes**:
+- Customer must use contactless card or digital wallet
+- Hold card/phone within 2cm of iPhone top edge
+- Transaction limit: typically £100 (contactless limit)
+- For amounts over £100, customer may need alternative payment method
+
+#### Using Physical Card Reader (BBPOS WisePad 3)
+
 1. **Complete the Job**
    - Finish the work as agreed
    - Both you and customer confirm completion in the app
@@ -108,8 +210,10 @@ Before you can pair your reader, you need to create a Terminal location:
 
 5. **Customer Pays**
    - Hand the reader to your customer
-   - They insert or tap their card
-   - If required, they enter their PIN
+   - They can:
+     - **Tap** their contactless card
+     - **Insert** chip card and enter PIN
+     - **Swipe** if chip fails (rare)
    - Reader shows "Approved" or "Declined"
 
 6. **Payment Complete**
@@ -142,31 +246,66 @@ Platform collects:
 
 ## Troubleshooting
 
-### Reader Won't Turn On
+### Tap to Pay on iPhone Issues
+
+#### iPhone Not Accepting Payments
+1. Check iOS version (need 15.4+)
+2. Verify Stripe Terminal permissions in iOS Settings
+3. Ensure NFC is enabled (Settings → General → NFC)
+4. Check internet connection
+5. Restart the app
+
+#### "Contactless Not Available" Error
+- **Solution**: Your iPhone model may not support Tap to Pay (need iPhone XS+)
+- **Alternative**: Use physical card reader or online payment
+
+#### Card Tap Not Detected
+1. Ensure customer holds card within 2cm of iPhone top edge
+2. Remove any thick phone case that might block NFC
+3. Try different position/angle
+4. Ask customer to try different card
+
+#### Transaction Over Limit
+- **Contactless limit**: Typically £100
+- **Solution**: Customer needs to:
+  - Use chip & PIN with physical reader instead
+  - Pay online through the platform
+  - Split payment if possible
+
+### Physical Card Reader Issues
+
+#### Reader Won't Turn On
 - **Solution**: Charge the reader using the USB-C cable provided
 - **Charging time**: 2-3 hours for full charge
 - **Battery indicator**: LED lights show charging status
 
-### Reader Won't Pair
+#### Reader Won't Pair
 1. Check Bluetooth is enabled on your phone
 2. Make sure you're within 30 feet of the reader
 3. Restart the reader (hold power button for 10 seconds)
 4. Restart the pairing process in the app
 5. If still failing, contact support
 
-### Payment Declined
+### General Payment Issues
+
+#### Payment Declined
 - **Card declined**: Ask customer to use a different card
 - **Insufficient funds**: Customer needs to use another payment method
 - **Card expired**: Customer should use a valid card
 - **System error**: Try again or fall back to online payment
 
-### Reader Shows "Offline"
+#### No Internet Connection
+- **Tap to Pay**: Requires active internet - wait until connected
+- **Physical reader**: Bluetooth reader also needs internet on phone
+- **Fallback**: Collect payment online later
+
+#### Reader Shows "Offline" (Physical Readers Only)
 1. Check your phone has internet connection
 2. Ensure Bluetooth is enabled
 3. Restart reader and try again
 4. Check reader battery level
 
-### Reader Lost or Stolen
+#### Reader Lost or Stolen (Physical Readers Only)
 1. Immediately report to platform support
 2. We'll remotely deactivate the reader
 3. You'll receive a replacement (deposit may be charged if not returned)

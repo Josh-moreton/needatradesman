@@ -2,7 +2,10 @@
 
 ## 🎯 What This Is
 
-Complete backend implementation for handheld card readers (Stripe Terminal) allowing tradespeople to accept in-person card payments on-site when completing jobs.
+Complete backend implementation for Stripe Terminal allowing tradespeople to accept in-person card payments on-site when completing jobs, with two options:
+
+1. **Tap to Pay on iPhone** - FREE software solution (iPhone becomes the card reader)
+2. **Physical card readers** - Hardware devices like BBPOS WisePad 3 (£59)
 
 ## ✅ Status: Backend Complete | Frontend Pending
 
@@ -195,6 +198,21 @@ Documentation (2,445 lines, 70KB):
 
 ## ⚡ Quick Reference
 
+### Payment Options
+
+**Option 1: Tap to Pay on iPhone (FREE)**
+- No hardware needed
+- iPhone XS or newer + iOS 15.4+
+- Contactless payments only
+- £100 transaction limit (typical)
+- Instant setup
+
+**Option 2: Physical Readers (£59)**
+- BBPOS WisePad 3 recommended
+- Chip, PIN, tap, and swipe
+- No transaction limits
+- Works with any phone (iOS/Android)
+
 ### Create Location
 ```typescript
 POST /api/stripe/terminal/location
@@ -208,7 +226,7 @@ POST /api/stripe/terminal/location
 }
 ```
 
-### Register Reader
+### Register Reader (Physical Readers Only)
 ```typescript
 POST /api/stripe/terminal/reader
 {
@@ -217,7 +235,7 @@ POST /api/stripe/terminal/reader
 }
 ```
 
-### Create Payment
+### Create Payment (Both Options)
 ```typescript
 POST /api/stripe/terminal/payment-intent
 {

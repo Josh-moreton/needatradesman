@@ -95,7 +95,12 @@ export const TERMINAL_CONFIG = {
     defaultCountry: 'GB',
     defaultCurrency: 'gbp',
     // Supported reader types
-    readerTypes: ['bbpos_wisepad3', 'stripe_m2', 'verifone_p400'] as const,
+    readerTypes: [
+        'bbpos_wisepad3',      // Physical Bluetooth reader
+        'stripe_m2',           // Physical reader with 4G
+        'verifone_p400',       // Countertop reader
+        'mobile_phone_reader'  // Tap to Pay on iPhone (software-based)
+    ] as const,
 } as const
 
 /**
@@ -218,6 +223,28 @@ export async function cancelTerminalPaymentIntent(params: {
     return await stripe.paymentIntents.cancel(
         params.paymentIntentId,
         {},
+        {
+            stripeAccount: params.accountId,
+        }
+    )
+}
+
+/**
+ * Discover Tap to Pay on iPhone reader
+ * This is used for software-based card acceptance on iPhones without physical hardware
+ * Requires iOS 15.4+ and supported iPhone models (XS and newer)
+ */
+export async function discoverTapToPayReader(params: {
+    accountId: string
+    locationId: string
+}) {
+    // For Tap to Pay, we use mobile_phone_reader device type
+    // The actual iPhone becomes the reader through the Stripe Terminal SDK
+    return await stripe.terminal.readers.list(
+        {
+            location: params.locationId,
+            device_type: 'mobile_phone_reader',
+        },
         {
             stripeAccount: params.accountId,
         }
