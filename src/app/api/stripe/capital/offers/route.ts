@@ -24,8 +24,8 @@ export async function GET() {
         }
 
         // Fetch user from DB
-        const user = await prisma.user.findUnique({ 
-            where: { clerkId: userId } 
+        const user = await prisma.user.findUnique({
+            where: { clerkId: userId }
         });
 
         if (!user) {
@@ -34,13 +34,13 @@ export async function GET() {
 
         // Only tradespeople with Stripe Connect accounts can access Capital
         if (user.role !== "TRADESPERSON") {
-            return NextResponse.json({ 
-                error: "Only tradespeople can access Capital financing" 
+            return NextResponse.json({
+                error: "Only tradespeople can access Capital financing"
             }, { status: 403 });
         }
 
         if (!user.stripeAccountId) {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: "Stripe Connect account not set up",
                 hasAccount: false,
                 eligible: false
@@ -65,7 +65,7 @@ export async function GET() {
         // - Account health
         // - Geographic availability (UK, US, etc.)
         // The capital_financing_summary field contains offer information
-        
+
         // Define minimal shape of the capital summary we expose
         interface CapitalSummary {
             available_amount?: number;
@@ -75,7 +75,7 @@ export async function GET() {
 
         // Access the field safely and narrow the type
         const capitalSummary = (account as unknown as { capital_financing_summary?: CapitalSummary }).capital_financing_summary;
-        
+
         // Build response with available information
         const response: {
             hasAccount: boolean;
@@ -107,7 +107,7 @@ export async function GET() {
         const loginLink = await stripe.accounts.createLoginLink(user.stripeAccountId);
         response.dashboardUrl = loginLink.url;
 
-        logger.info({ 
+        logger.info({
             userId: user.id,
             hasCapital: !!capitalSummary,
             accountId: user.stripeAccountId
@@ -116,7 +116,7 @@ export async function GET() {
         return NextResponse.json(response);
     } catch (error) {
         logger.error({ error }, "Error retrieving Capital financing information");
-        
+
         if (error instanceof Stripe.errors.StripeError) {
             logger.error({
                 type: error.type,
@@ -124,7 +124,7 @@ export async function GET() {
                 message: error.message,
             }, "Stripe error details");
         }
-        
+
         return NextResponse.json(
             {
                 error: "Failed to retrieve financing information",
