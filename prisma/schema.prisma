@@ -19,27 +19,29 @@ model User {
   role            UserRole      @default(PENDING)
   trades          JobCategory[] // For tradespeople - selected trade categories
   stripeAccountId String? // Stripe Connect account ID for tradespeople
-  
+
   // Stripe Terminal fields for tradespeople
   stripeTerminalLocationId String? // Terminal location for card readers
   terminalReaderId         String? // Associated card reader ID
   terminalReaderLabel      String? // Custom label for reader (e.g., "John's Reader")
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  jobsPosted       Job[]           @relation("CustomerJobs")
-  applications     Application[]
-  messagesSent     Message[]       @relation("MessageSender")
-  messagesReceived Message[]       @relation("MessageReceiver")
-  quoteTemplates   QuoteTemplate[]
+  jobsPosted        Job[]              @relation("CustomerJobs")
+  applications      Application[]
+  messagesSent      Message[]          @relation("MessageSender")
+  messagesReceived  Message[]          @relation("MessageReceiver")
+  quoteTemplates    QuoteTemplate[]
+  emailPreference   EmailPreference?
+  emailSuppressions EmailSuppression[]
 
   @@map("users")
 }
 
 model Job {
-  id                            String       @id @default(cuid())
+  id                            String      @id @default(cuid())
   title                         String
   description                   String
   category                      JobCategory
@@ -51,37 +53,37 @@ model Job {
   city                          String? // Extracted city/town
   postcode                      String? // UK postcode for filtering
   budget                        Decimal?
-  status                        JobStatus    @default(OPEN)
+  status                        JobStatus   @default(OPEN)
   attachments                   String? // Store as JSON string of file URLs
   customerId                    String
-  depositPaid                   Boolean      @default(false)
-  depositPaymentIntentId        String?      @unique // Ensure each payment intent is used only once
-  finalPaid                     Boolean      @default(false)
-  finalPaymentIntentId          String?      @unique // Ensure each payment intent is used only once
+  depositPaid                   Boolean     @default(false)
+  depositPaymentIntentId        String?     @unique // Ensure each payment intent is used only once
+  finalPaid                     Boolean     @default(false)
+  finalPaymentIntentId          String?     @unique // Ensure each payment intent is used only once
   acceptedTradespersonId        String?
-  customerConfirmedComplete     Boolean      @default(false)
-  tradespersonConfirmedComplete Boolean      @default(false)
+  customerConfirmedComplete     Boolean     @default(false)
+  tradespersonConfirmedComplete Boolean     @default(false)
   customerCompletedAt           DateTime?
   tradespersonCompletedAt       DateTime?
-  payoutReleased                Boolean      @default(false)
+  payoutReleased                Boolean     @default(false)
   payoutTransferId              String? // Legacy field, migrated to depositTransferId
-  
+
   // Payment tracking fields
-  transferGroup                 String? // "job_${jobId}" for linking payments
-  depositChargeId               String? // Stripe Charge ID for deposit
-  depositTransferId             String? // Stripe Transfer ID for deposit
-  depositReleasedAt             DateTime? // When deposit transfer was created
-  finalChargeId                 String? // Stripe Charge ID for final payment
-  finalTransferId               String? // Stripe Transfer ID for final payment
-  finalReleasedAt               DateTime? // When final transfer was created
-  chargeModel                   ChargeModel? @default(DESTINATION_CHARGE) // Track which charge model is used
-  
+  transferGroup     String? // "job_${jobId}" for linking payments
+  depositChargeId   String? // Stripe Charge ID for deposit
+  depositTransferId String? // Stripe Transfer ID for deposit
+  depositReleasedAt DateTime? // When deposit transfer was created
+  finalChargeId     String? // Stripe Charge ID for final payment
+  finalTransferId   String? // Stripe Transfer ID for final payment
+  finalReleasedAt   DateTime? // When final transfer was created
+  chargeModel       ChargeModel? @default(DESTINATION_CHARGE) // Track which charge model is used
+
   // Terminal payment fields
-  finalPaymentMethod            PaymentMethod? // How final payment was made
-  terminalPaymentIntentId       String? // Payment intent ID for Terminal payments
-  
-  createdAt                     DateTime     @default(now())
-  updatedAt                     DateTime     @updatedAt
+  finalPaymentMethod      PaymentMethod? // How final payment was made
+  terminalPaymentIntentId String? // Payment intent ID for Terminal payments
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
   customer     User          @relation("CustomerJobs", fields: [customerId], references: [id], onDelete: Cascade)
@@ -213,10 +215,86 @@ enum MessageType {
 
 enum ChargeModel {
   DESTINATION_CHARGE // Current: instant transfer via transfer_data
-  SC_AND_T          // Future: separate charges & transfers with control
+  SC_AND_T // Future: separate charges & transfers with control
 }
 
 enum PaymentMethod {
-  ONLINE   // Card payment through Stripe Checkout (web)
+  ONLINE // Card payment through Stripe Checkout (web)
   TERMINAL // In-person card payment via Stripe Terminal reader
+}
+
+// Email event tracking for idempotency and audit trail
+model EmailEvent {
+  id             String           @id @default(cuid())
+  idempotencyKey String           @unique // SHA-256 hash of event_type + payload
+  eventType      String // e.g., "UserRegistered", "JobResponded"
+  payloadHash    String // Hash of the full payload for verification
+  status         EmailEventStatus @default(PENDING)
+  messageId      String? // Resend message ID after successful send
+  recipientEmail String
+  subject        String?
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+  sentAt         DateTime?
+
+  @@index([idempotencyKey])
+  @@index([eventType, createdAt])
+  @@index([recipientEmail, createdAt])
+  @@map("email_events")
+}
+
+// User email preferences for transactional and digest emails
+model EmailPreference {
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  allowTransactional Boolean         @default(true) // Always true, locked for transactional
+  allowDigest        Boolean         @default(true)
+  digestFrequency    DigestFrequency @default(WEEKLY)
+  professionFilters  JobCategory[] // Filter digest by these professions
+  regionFilters      String[] // Array of postcodes or cities
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_preferences")
+}
+
+// Email suppressions for bounces, complaints, and manual unsubscribes
+model EmailSuppression {
+  id        String            @id @default(cuid())
+  userId    String?
+  email     String
+  reason    SuppressionReason
+  source    String? // e.g., "resend_webhook", "manual"
+  createdAt DateTime          @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([email, reason])
+  @@index([email])
+  @@map("email_suppressions")
+}
+
+// Email event status enum
+enum EmailEventStatus {
+  PENDING
+  SENT
+  FAILED
+  SUPPRESSED
+}
+
+// Digest frequency options
+enum DigestFrequency {
+  DAILY
+  WEEKLY
+  NEVER
+}
+
+// Email suppression reasons
+enum SuppressionReason {
+  BOUNCE
+  COMPLAINT
+  MANUAL_UNSUBSCRIBE
+  ABUSE
 }
