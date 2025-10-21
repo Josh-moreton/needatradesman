@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import { Webhook } from 'svix';
 import { suppressEmail } from '@/lib/notifications/suppressions';
 import { createLogger } from '@/lib/logger';
 import { prisma } from '@/lib/prisma';
@@ -17,11 +18,12 @@ const logger = createLogger('resend-webhook-api');
  */
 async function verifyWebhookSignature(
   payload: string,
-  signature: string | null
+  signature: string | null,
+  hdrs: Record<string, string>
 ): Promise<boolean> {
   // If no webhook secret is configured, skip verification in development
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-  
+
   if (!webhookSecret) {
     logger.warn('RESEND_WEBHOOK_SECRET not configured - skipping signature verification');
     return true;
@@ -31,13 +33,24 @@ async function verifyWebhookSignature(
     return false;
   }
 
-  // Resend uses Svix webhooks - you can use the svix library for verification
-  // For now, we'll do basic verification
-  // In production, use: import { Webhook } from 'svix';
-  // const wh = new Webhook(webhookSecret);
-  // wh.verify(payload, headers);
-  
-  return true; // TODO: Implement proper Svix verification
+  // Verify signature using svix library
+  try {
+    const wh = new Webhook(webhookSecret);
+    // Svix expects an object of headers; include the svix headers
+    // Expect caller to provide svix headers
+    const svixHeaders = {
+      'svix-id': hdrs['svix-id'] || hdrs['svix-id'.toLowerCase()] || '',
+      'svix-timestamp': hdrs['svix-timestamp'] || hdrs['svix-timestamp'.toLowerCase()] || '',
+      'svix-signature': signature || hdrs['svix-signature'] || '',
+    } as Record<string, string>;
+
+    // This will throw on verification failure
+    wh.verify(payload, svixHeaders);
+    return true;
+  } catch (err) {
+    logger.error({ err }, 'Svix webhook verification failed');
+    return false;
+  }
 }
 
 /**
@@ -48,18 +61,24 @@ export async function POST(request: NextRequest) {
   try {
     const headersList = await headers();
     const signature = headersList.get('svix-signature');
-    
+
     const payload = await request.text();
-    
+
     // Verify webhook signature
-    const isValid = await verifyWebhookSignature(payload, signature);
+    // Resolve headers and pass to verifier
+    const headerObj: Record<string, string> = {};
+    for (const [key, value] of headersList.entries()) {
+      headerObj[key] = value;
+    }
+
+    const isValid = await verifyWebhookSignature(payload, signature, headerObj);
     if (!isValid) {
       logger.error('Invalid webhook signature');
       return new NextResponse('Invalid signature', { status: 401 });
     }
 
     const event = JSON.parse(payload);
-    
+
     logger.info({ type: event.type }, 'Received Resend webhook event');
 
     // Handle different event types
@@ -67,20 +86,20 @@ export async function POST(request: NextRequest) {
       case 'email.bounced':
         await handleEmailBounced(event.data);
         break;
-      
+
       case 'email.complained':
         await handleEmailComplained(event.data);
         break;
-      
+
       case 'email.delivered':
         await handleEmailDelivered(event.data);
         break;
-      
+
       case 'email.opened':
       case 'email.clicked':
         // Optional: track engagement metrics
         break;
-      
+
       default:
         logger.info({ type: event.type }, 'Unhandled webhook event type');
     }
@@ -97,7 +116,7 @@ export async function POST(request: NextRequest) {
  */
 async function handleEmailBounced(data: { to?: string[]; email?: string; bounce_type?: string }) {
   const email = data.to?.[0] || data.email;
-  
+
   if (!email) {
     logger.error({ data }, 'No email address in bounce event');
     return;
@@ -126,7 +145,7 @@ async function handleEmailBounced(data: { to?: string[]; email?: string; bounce_
  */
 async function handleEmailComplained(data: { to?: string[]; email?: string }) {
   const email = data.to?.[0] || data.email;
-  
+
   if (!email) {
     logger.error({ data }, 'No email address in complaint event');
     return;

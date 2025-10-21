@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { JobCategory, DigestFrequency } from '@prisma/client';
+import { JobCategory, DigestFrequency, Prisma } from '@prisma/client';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('digest-service');
@@ -47,7 +47,7 @@ export async function getJobsForDigest(
   // Determine time window based on frequency
   const now = new Date();
   const timeWindow = new Date();
-  
+
   if (frequency === 'DAILY') {
     timeWindow.setDate(now.getDate() - 1); // Last 24 hours
   } else if (frequency === 'WEEKLY') {
@@ -57,22 +57,21 @@ export async function getJobsForDigest(
   }
 
   // Build query filters
-  const categoryFilter = preferences.professionFilters.length > 0
-    ? { category: { in: preferences.professionFilters } }
-    : preferences.user.trades.length > 0
-    ? { category: { in: preferences.user.trades } }
-    : {};
+  let categoryFilter: Prisma.JobWhereInput = {};
+  if (preferences.professionFilters && preferences.professionFilters.length > 0) {
+    categoryFilter = { category: { in: preferences.professionFilters } };
+  } else if (preferences.user.trades && preferences.user.trades.length > 0) {
+    categoryFilter = { category: { in: preferences.user.trades } };
+  }
 
-  const regionFilter = preferences.regionFilters.length > 0
+  const regionFilter = preferences.regionFilters && preferences.regionFilters.length > 0
     ? {
-        OR: preferences.regionFilters.map(region => ({
-          OR: [
-            { city: { contains: region, mode: 'insensitive' as const } },
-            { postcode: { contains: region, mode: 'insensitive' as const } },
-            { location: { contains: region, mode: 'insensitive' as const } },
-          ],
-        })),
-      }
+      OR: preferences.regionFilters.flatMap(region => [
+        { city: { contains: region, mode: 'insensitive' as const } },
+        { postcode: { contains: region, mode: 'insensitive' as const } },
+        { location: { contains: region, mode: 'insensitive' as const } },
+      ]),
+    }
     : {};
 
   // Query jobs

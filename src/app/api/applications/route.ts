@@ -136,7 +136,11 @@ export async function POST(request: NextRequest) {
             jobTitle: application.job.title,
             customerEmail: application.job.customer.email,
             customerName: application.job.customer.firstName || 'there',
-            tradespersonName: `${application.tradesperson.firstName || ''} ${application.tradesperson.lastName || ''}`.trim() || 'A tradesperson',
+            tradespersonName: (
+                `${application.tradesperson.firstName || ''} ${application.tradesperson.lastName || ''}`.trim()
+                || application.tradesperson.email
+                || 'A tradesperson'
+            ),
             message: validatedData.message,
             quote: validatedData.quote ? Number(validatedData.quote) : undefined,
         }).catch((error) => {

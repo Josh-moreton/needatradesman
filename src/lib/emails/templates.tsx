@@ -12,10 +12,6 @@ interface EmailLayoutProps {
 
 export const EmailLayout: React.FC<EmailLayoutProps> = ({ children, preheader }) => (
   <html lang="en">
-    <head>
-      <meta charSet="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    </head>
     <body style={{ fontFamily: 'Arial, sans-serif', lineHeight: '1.6', color: '#333', backgroundColor: '#f5f5f5', margin: 0, padding: 0 }}>
       {preheader && (
         <div style={{ display: 'none', maxHeight: 0, overflow: 'hidden' }}>

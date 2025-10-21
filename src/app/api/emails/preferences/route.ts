@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getUserEmailPreferences, updateEmailPreferences } from '@/lib/notifications/preferences';
 import { z } from 'zod';
 import { createLogger } from '@/lib/logger';
+import { JobCategory } from '@prisma/client';
 
 const logger = createLogger('email-preferences-api');
 
@@ -72,12 +73,7 @@ export async function PUT(request: NextRequest) {
     // Convert profession filters to JobCategory enum if provided
     const professionFilters = data.professionFilters?.map((p) => {
       const upperCase = p.toUpperCase();
-      // Validate it's a valid JobCategory
-      const validCategories = [
-        'PLUMBING', 'ELECTRICAL', 'CARPENTRY', 'BRICKLAYING',
-        'PLASTERING', 'PAINTING', 'LANDSCAPING', 'CLEANING',
-        'HANDYMAN', 'OTHER'
-      ];
+      const validCategories = Object.values(JobCategory) as string[];
       if (!validCategories.includes(upperCase)) {
         throw new Error(`Invalid profession: ${p}`);
       }
@@ -86,7 +82,7 @@ export async function PUT(request: NextRequest) {
 
     const preferences = await updateEmailPreferences(user.id, {
       allowDigest: data.allowDigest,
-      digestFrequency: data.digestFrequency as 'DAILY' | 'WEEKLY' | 'NEVER' | undefined,
+      digestFrequency: data.digestFrequency,
       professionFilters: professionFilters as unknown as import('@prisma/client').JobCategory[],
       regionFilters: data.regionFilters,
     });

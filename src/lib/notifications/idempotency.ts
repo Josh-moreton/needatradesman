@@ -3,7 +3,7 @@
  * Uses SHA-256 hash to prevent duplicate email sends
  */
 
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { EmailEvent } from './events';
 
@@ -33,8 +33,24 @@ export async function isEventProcessed(idempotencyKey: string): Promise<boolean>
   const existingEvent = await prisma.emailEvent.findUnique({
     where: { idempotencyKey },
   });
-  
-  return existingEvent?.status === 'SENT' || existingEvent?.status === 'PENDING';
+
+  if (!existingEvent) return false;
+
+  // Consider SENT and PENDING as processed. For FAILED events, avoid indefinite retries by
+  // treating an old failure as processed (no immediate retry). We allow retries within 24h.
+  if (existingEvent.status === 'SENT' || existingEvent.status === 'PENDING') {
+    return true;
+  }
+
+  if (existingEvent.status === 'FAILED') {
+    const createdAt = new Date(existingEvent.createdAt).getTime();
+    const ageMs = Date.now() - createdAt;
+    const retryWindowMs = 24 * 60 * 60 * 1000; // 24 hours
+    // If the failure is older than retry window, treat as processed to prevent infinite retries
+    return ageMs > retryWindowMs;
+  }
+
+  return false;
 }
 
 /**
