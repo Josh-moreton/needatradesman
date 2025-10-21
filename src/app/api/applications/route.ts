@@ -5,6 +5,7 @@ import { createApplicationSchema, UserRole } from "@/lib/schemas";
 import { applicationRateLimit, redis } from "@/lib/redis";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
+import { emitEmailEvent, EmailEventType } from "@/lib/notifications";
 
 const logger = createLogger('applications-api');
 
@@ -119,9 +120,34 @@ export async function POST(request: NextRequest) {
                     select: {
                         title: true,
                         customerId: true,
+                        customer: {
+                            select: {
+                                email: true,
+                                firstName: true,
+                            },
+                        },
                     },
                 },
             },
+        });
+
+        // Send email notification to customer (async, non-blocking)
+        emitEmailEvent({
+            type: EmailEventType.JOB_RESPONDED,
+            jobId: job.id,
+            jobTitle: application.job.title,
+            customerEmail: application.job.customer.email,
+            customerName: application.job.customer.firstName || 'there',
+            tradespersonName: (
+                `${application.tradesperson.firstName || ''} ${application.tradesperson.lastName || ''}`.trim()
+                || application.tradesperson.email
+                || 'A tradesperson'
+            ),
+            message: validatedData.message,
+            quote: validatedData.quote ? Number(validatedData.quote) : undefined,
+        }).catch((error) => {
+            // Don't fail the application creation if email fails
+            logger.error({ error }, 'Failed to send job response email');
         });
 
         // Invalidate relevant caches after application creation

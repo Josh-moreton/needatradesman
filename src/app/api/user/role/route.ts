@@ -5,6 +5,7 @@ import { UserRole, JobCategory } from '@/lib/schemas'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
 import { revalidateTag } from 'next/cache'
+import { emitEmailEvent, EmailEventType } from '@/lib/notifications'
 
 const logger = createLogger('user-role-api');
 
@@ -58,6 +59,19 @@ export async function POST(request: NextRequest) {
             // Invalidate the auth gate cache so the layout picks up the new user immediately
             revalidateTag(`user:${userId}`)
             revalidateTag('user-gate')
+
+            // Send welcome email for new users (only if role is being set for first time from PENDING)
+            if (existingUser.role === UserRole.PENDING && role !== UserRole.PENDING) {
+                emitEmailEvent({
+                    type: EmailEventType.USER_REGISTERED,
+                    userId: existingUser.id,
+                    email: existingUser.email,
+                    firstName: existingUser.firstName || 'there',
+                    role: role === UserRole.CUSTOMER ? 'customer' : 'tradesperson',
+                }).catch((error) => {
+                    logger.error({ error }, 'Failed to send welcome email');
+                });
+            }
 
             return NextResponse.json({
                 success: true,
@@ -134,6 +148,17 @@ export async function POST(request: NextRequest) {
             // Invalidate the auth gate cache so the layout picks up the new user immediately
             revalidateTag(`user:${userId}`)
             revalidateTag('user-gate')
+
+            // Send welcome email for new users completing onboarding
+            emitEmailEvent({
+                type: EmailEventType.USER_REGISTERED,
+                userId: newUser.id,
+                email: newUser.email,
+                firstName: newUser.firstName || 'there',
+                role: role === UserRole.CUSTOMER ? 'customer' : 'tradesperson',
+            }).catch((error) => {
+                logger.error({ error }, 'Failed to send welcome email');
+            });
 
             return NextResponse.json({
                 success: true,
