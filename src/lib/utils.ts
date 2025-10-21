@@ -1,8 +1,30 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { Decimal } from "@prisma/client/runtime/library"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Calculate deposit amount based on quote and percentage
+ * @param quote - The total quote amount
+ * @param depositPercentage - The deposit percentage (0-100)
+ * @returns The calculated deposit amount
+ */
+export function calculateDepositAmount(quote: number | Decimal, depositPercentage: number): number {
+  return (Number(quote) * depositPercentage) / 100;
+}
+
+/**
+ * Format currency amount for display
+ * @param amount - The amount to format (can be number or Decimal)
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Formatted currency string (e.g., "£123.45")
+ */
+export function formatCurrency(amount: number | Decimal | null | undefined, decimals: number = 2): string {
+  if (amount === null || amount === undefined) return "£0.00";
+  return `£${Number(amount).toFixed(decimals)}`;
 }
 
 /**

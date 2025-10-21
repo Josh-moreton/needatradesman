@@ -102,6 +102,8 @@ export async function POST(request: NextRequest) {
                 message: validatedData.message,
                 quote: validatedData.quote,
                 quoteItems: validatedData.quoteItems ? JSON.stringify(validatedData.quoteItems) : undefined,
+                requiresDeposit: validatedData.requiresDeposit ?? true,
+                depositPercentage: validatedData.depositPercentage ?? 50,
                 jobId: job.id,
                 tradespersonId: user.id,
                 status: "PENDING",

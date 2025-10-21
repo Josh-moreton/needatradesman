@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { stripe, calculatePlatformFee } from "@/lib/stripe";
+import { stripe, calculateCustomerFee, calculateTradespersonFee, calculateCustomerTotal } from "@/lib/stripe";
 import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("stripe-final-payment");
@@ -106,11 +106,13 @@ export async function POST(request: NextRequest) {
             finalAmount = Number(fullAmount);
         }
 
-        // Format for Stripe (amount in cents/pennies)
-        const formattedAmount = Math.round(finalAmount * 100);
-
-        // Calculate platform fee for final payment
-        const platformFee = calculatePlatformFee(finalAmount);
+        // Calculate split commission for final payment:
+        // - Customer pays: finalAmount + 6% customer fee
+        // - Tradesperson receives: finalAmount - 4% tradesperson fee
+        // - Platform gets: 4% + 6% = 10% total
+        const customerFee = calculateCustomerFee(finalAmount);
+        const tradespersonFee = calculateTradespersonFee(finalAmount);
+        const customerTotal = calculateCustomerTotal(finalAmount);
 
         // Verify tradesperson's Stripe account is still active
         const tradesperson = application.tradesperson;
@@ -153,6 +155,8 @@ export async function POST(request: NextRequest) {
             : [...paymentMethodTypes] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[];
 
         // Create a Checkout Session for final payment with Connect
+        // Customer pays: finalAmount + 6% fee
+        // Tradesperson receives: finalAmount - 4% fee (via application_fee_amount deduction)
         const session = await stripe.checkout.sessions.create({
             payment_method_types: allPaymentMethods,
             mode: "payment",
@@ -162,15 +166,17 @@ export async function POST(request: NextRequest) {
                         currency: "gbp",
                         product_data: {
                             name: paymentName,
-                            description: paymentDescription,
+                            description: `${paymentDescription} (includes 6% platform fee)`,
                         },
-                        unit_amount: formattedAmount,
+                        unit_amount: customerTotal, // Customer pays finalAmount + 6%
                     },
                     quantity: 1,
                 },
             ],
             payment_intent_data: {
-                application_fee_amount: platformFee,
+                // Total platform fee: customer's 6% + tradesperson's 4%
+                // Stripe deducts this from the transfer to tradesperson
+                application_fee_amount: customerFee + tradespersonFee,
                 transfer_group: `job_${jobId}`,
                 transfer_data: {
                     destination: tradesperson.stripeAccountId,
@@ -185,7 +191,9 @@ export async function POST(request: NextRequest) {
                 applicationType: "final_payment",  // Fixed: matches webhook check
                 depositAmount: depositAmount.toString(),
                 finalAmount: finalAmount.toString(),
-                platformFee: platformFee.toString(),
+                customerFee: customerFee.toString(),
+                tradespersonFee: tradespersonFee.toString(),
+                totalPlatformFee: (customerFee + tradespersonFee).toString(),
                 requiresDeposit: application.requiresDeposit.toString(),
             },
         });

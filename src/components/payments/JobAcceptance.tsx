@@ -4,12 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
+import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
+import { calculateDepositAmount } from '@/lib/utils';
 
 interface JobAcceptanceProps {
   jobId: string;
   tradespersonId: string;
   jobTitle: string;
   quote: number;
+  depositPercentage?: number;
 }
 
 export function JobAcceptance({
@@ -17,11 +20,17 @@ export function JobAcceptance({
   tradespersonId,
   jobTitle,
   quote,
+  depositPercentage = 50,
 }: JobAcceptanceProps) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
-  // Calculate deposit as 50% of the quote
-  const depositAmount = quote * 0.5;
+  // Calculate deposit based on the configured percentage
+  const depositAmount = calculateDepositAmount(quote, depositPercentage);
+  
+  // Calculate customer platform fee using centralized function
+  const depositCustomerFeeInPence = calculateCustomerFee(depositAmount);
+  const depositCustomerFee = depositCustomerFeeInPence / 100; // Convert pence to pounds for display
+  const depositTotal = depositAmount + depositCustomerFee;
 
   return (
     <Card>
@@ -34,21 +43,30 @@ export function JobAcceptance({
             <h3 className="font-medium mb-2">Job Details</h3>
             <p className="text-sm mb-2">{jobTitle}</p>
             <div className="flex justify-between text-sm">
-              <span>Quote:</span>
+              <span>Tradesperson Quote:</span>
               <span className="font-medium">£{quote.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Deposit (50%):</span>
+            <div className="flex justify-between text-sm mt-2 pt-2 border-t">
+              <span>Deposit ({depositPercentage}%):</span>
               <span className="font-medium">£{depositAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
+              <span>£{depositCustomerFee.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm font-semibold mt-2 pt-2 border-t">
+              <span>Total Due Now:</span>
+              <span className="text-primary">£{depositTotal.toFixed(2)}</span>
             </div>
           </div>
 
           <div className="text-sm text-muted-foreground">
             <p>By accepting this quote, you agree to:</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Pay a 50% deposit to secure your booking</li>
+              <li>Pay a {depositPercentage}% deposit plus {STRIPE_CONFIG.customerFeePercentage}% platform fee to secure your booking</li>
               <li>Funds will be held securely until job completion</li>
-              <li>The remaining 50% will be due after job completion</li>
+              <li>The remaining {100 - depositPercentage}% plus {STRIPE_CONFIG.customerFeePercentage}% platform fee will be due after job completion</li>
+              <li>The tradesperson receives the quote amount minus a {STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</li>
             </ul>
           </div>
 
