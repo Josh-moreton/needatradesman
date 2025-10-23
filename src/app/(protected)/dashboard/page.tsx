@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
+import { UserRole, JobCategory } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
@@ -257,7 +257,7 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
 }
 
 // Tradesperson Dashboard Server Component
-async function TradespersonDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
+async function TradespersonDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null; trades: JobCategory[] } }) {
   // Get tradesperson stats - matching original tradesperson page
   const [applications, jobs] = await Promise.all([
     prisma.application.count({
@@ -266,6 +266,10 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; firstNa
     prisma.job.count({
       where: {
         status: "OPEN",
+        // Filter by user's selected trades to show relevant jobs only
+        ...(user.trades.length > 0 && {
+          category: { in: user.trades },
+        }),
         // Only show jobs not applied to yet
         applications: {
           none: {
