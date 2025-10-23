@@ -10,11 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createLogger } from '@/lib/logger';
-import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
+import { calculateCustomerFee } from '@/lib/stripe';
+import { PriceBreakdownModal } from "@/components/pricing/PriceBreakdownModal";
 
 const logger = createLogger('final-payment-modal');
 
@@ -36,6 +36,7 @@ export function FinalPaymentModal({
   depositAmount,
 }: FinalPaymentModalProps) {
   const [loading, setLoading] = useState(false);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
 
   const remainingAmount = fullAmount - depositAmount;
   
@@ -87,42 +88,27 @@ export function FinalPaymentModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Total Quote:</span>
-                <span className="font-medium">£{fullAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Deposit Paid:</span>
-                <span>-£{depositAmount.toFixed(2)}</span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-sm">
-                <span>Remaining Balance:</span>
-                <span className="font-medium">£{remainingAmount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
-                <span>£{customerFee.toFixed(2)}</span>
-              </div>
-              <hr />
-              <div className="flex justify-between text-base font-semibold">
-                <span>Total Due:</span>
-                <span className="text-primary">£{totalDue.toFixed(2)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Airbnb-style: Show total prominently */}
+        <div className="bg-primary/5 p-6 rounded-lg text-center">
+          <p className="text-sm text-muted-foreground mb-2">Final payment due</p>
+          <p className="text-3xl font-bold text-primary mb-2">
+            £{totalDue.toFixed(2)}
+          </p>
+          <button
+            onClick={() => setBreakdownOpen(true)}
+            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+            type="button"
+          >
+            View price breakdown
+          </button>
+        </div>
 
         <div className="space-y-3 text-sm text-muted-foreground">
           <div className="bg-muted p-3 rounded-md">
-            <p className="font-medium mb-1">Payment Details:</p>
+            <p className="font-medium mb-1 text-foreground">Payment Details:</p>
             <ul className="space-y-1 text-xs">
               <li>• This is the final payment for your completed job</li>
-              <li>• Includes a {STRIPE_CONFIG.customerFeePercentage}% platform fee on the remaining balance</li>
-              <li>• The tradesperson receives the balance minus a {STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</li>
+              <li>• Remaining balance after your deposit</li>
               <li>• Funds will be transferred to the tradesperson upon payment</li>
               <li>• You&apos;ll receive a confirmation email after payment</li>
             </ul>
@@ -147,6 +133,15 @@ export function FinalPaymentModal({
             )}
           </Button>
         </DialogFooter>
+
+        <PriceBreakdownModal
+          isOpen={breakdownOpen}
+          onClose={() => setBreakdownOpen(false)}
+          quoteAmount={remainingAmount}
+          customerFee={customerFee}
+          total={totalDue}
+          title="Final Payment Breakdown"
+        />
       </DialogContent>
     </Dialog>
   );

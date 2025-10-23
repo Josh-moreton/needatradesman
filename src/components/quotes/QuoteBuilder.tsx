@@ -15,6 +15,13 @@ import {
 import { QuoteItem } from "@/lib/schemas";
 import { TemplateModal } from "@/components/quotes/TemplateModal";
 import { createLogger } from '@/lib/logger';
+import { Info } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { STRIPE_CONFIG, calculateTradespersonPayout } from "@/lib/stripe";
 
 const logger = createLogger('quote-builder');
 
@@ -103,6 +110,10 @@ export function QuoteBuilder({
   );
 
   const depositAmount = requiresDeposit ? (total * depositPercentage) / 100 : 0;
+  
+  // Calculate what tradesperson will actually receive after platform fee
+  const tradespersonNetPayoutInPence = calculateTradespersonPayout(total);
+  const tradespersonNetPayout = tradespersonNetPayoutInPence / 100;
 
   // Handle template selection
   const handleTemplateSelection = (templateId: string) => {
@@ -193,7 +204,53 @@ export function QuoteBuilder({
       </Button>
 
       <div className="border-t pt-4 mt-4">
-        <div className="font-medium">Total: £{total.toFixed(2)}</div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">Quote Total:</span>
+            <span className="text-lg font-semibold">£{total.toFixed(2)}</span>
+          </div>
+          
+          {total > 0 && (
+            <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">You&apos;ll receive after platform fee:</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Fee information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">How platform fees work</h4>
+                        <p className="text-sm text-muted-foreground">
+                          We apply a <strong>{STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</strong> to cover payment processing and platform costs.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          The customer pays the quote amount plus a <strong>{STRIPE_CONFIG.customerFeePercentage}% service fee</strong>.
+                        </p>
+                        <div className="pt-2 border-t text-xs text-muted-foreground">
+                          Your quote is what the customer sees as the project cost. Set this based on your desired take-home amount.
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <span className="font-semibold text-green-600 dark:text-green-400">
+                  £{tradespersonNetPayout.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Platform fee ({STRIPE_CONFIG.tradespersonFeePercentage}%): £{(total - tradespersonNetPayout).toFixed(2)}
+              </div>
+            </div>
+          )}
+        </div>
 
         {onRequiresDepositChange && (
           <div className="flex items-center space-x-2 mt-4">
