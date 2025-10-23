@@ -9,11 +9,11 @@ import { calculateCustomerFee } from '@/lib/stripe';
 import { calculateDepositAmount } from '@/lib/utils';
 
 interface JobAcceptanceProps {
-  readonly jobId: string;
-  readonly tradespersonId: string;
-  readonly jobTitle: string;
-  readonly quote: number;
-  readonly depositPercentage?: number;
+  jobId: string;
+  tradespersonId: string;
+  jobTitle: string;
+  quote: number;
+  depositPercentage?: number;
 }
 
 export function JobAcceptance({
