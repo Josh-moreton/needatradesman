@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormLabel } from "@/components/ui/form";
@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/select";
 import { QuoteItem } from "@/lib/schemas";
 import { TemplateModal } from "@/components/quotes/TemplateModal";
+import { QuoteFeesPopover } from "@/components/quotes/QuoteFeesPopover";
+import { NetTargetSwitch } from "@/components/quotes/NetTargetSwitch";
+import { poundsToSafePence } from "@/lib/pricing";
+import { PricingBreakdown } from "@/lib/types/pricing";
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('quote-builder');
@@ -37,6 +41,7 @@ interface QuoteBuilderProps {
   onRequiresDepositChange?: (value: boolean) => void;
   userId?: string; // Optional user ID for fetching templates
   showTemplates?: boolean; // Whether to show template selection
+  enableAirbnbPricing?: boolean; // Enable Airbnb-style pricing with live fee preview
 }
 
 export function QuoteBuilder({
@@ -48,10 +53,16 @@ export function QuoteBuilder({
   onRequiresDepositChange,
   userId,
   showTemplates = false,
+  enableAirbnbPricing = false,
 }: QuoteBuilderProps) {
   const [items, setItems] = useState<QuoteItem[]>(value);
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  
+  // Airbnb pricing state
+  const [pricingMode, setPricingMode] = useState<'GROSS' | 'NET_TARGET'>('GROSS');
+  const [pricingBreakdown, setPricingBreakdown] = useState<PricingBreakdown | null>(null);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
 
   useEffect(() => {
     onChange(items);
@@ -103,6 +114,55 @@ export function QuoteBuilder({
   );
 
   const depositAmount = requiresDeposit ? (total * depositPercentage) / 100 : 0;
+
+  // Fetch pricing breakdown from server
+  const fetchPricingBreakdown = useCallback(async (amountPounds: number) => {
+    if (!enableAirbnbPricing || amountPounds <= 0) {
+      setPricingBreakdown(null);
+      return;
+    }
+
+    setIsLoadingPricing(true);
+    try {
+      const amountPence = poundsToSafePence(amountPounds);
+      const response = await fetch('/api/pricing/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: pricingMode,
+          amountPence,
+          depositPercentage: requiresDeposit ? depositPercentage : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pricing breakdown');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setPricingBreakdown(data);
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error fetching pricing breakdown');
+    } finally {
+      setIsLoadingPricing(false);
+    }
+  }, [enableAirbnbPricing, pricingMode, requiresDeposit, depositPercentage]);
+
+  // Debounced pricing fetch
+  useEffect(() => {
+    if (!enableAirbnbPricing || total <= 0) {
+      setPricingBreakdown(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchPricingBreakdown(total);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [total, enableAirbnbPricing, fetchPricingBreakdown]);
 
   // Handle template selection
   const handleTemplateSelection = (templateId: string) => {
@@ -193,7 +253,63 @@ export function QuoteBuilder({
       </Button>
 
       <div className="border-t pt-4 mt-4">
-        <div className="font-medium">Total: £{total.toFixed(2)}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-medium">
+            {pricingMode === 'NET_TARGET' ? 'Your net target' : 'Your quote'}: £{total.toFixed(2)}
+          </div>
+          {enableAirbnbPricing && (
+            <QuoteFeesPopover
+              platformFeePercentage={pricingBreakdown?.feeConfig.platformFeePercentage}
+              processorFeePercentage={pricingBreakdown?.feeConfig.processorFeePercentage}
+            />
+          )}
+        </div>
+
+        {enableAirbnbPricing && (
+          <div className="mt-3 space-y-2">
+            <NetTargetSwitch
+              mode={pricingMode}
+              onModeChange={(mode) => {
+                setPricingMode(mode);
+                if (total > 0) {
+                  fetchPricingBreakdown(total);
+                }
+              }}
+              disabled={isLoadingPricing}
+            />
+
+            {pricingBreakdown && (
+              <div className="text-sm space-y-1 bg-muted/50 p-3 rounded-md">
+                {pricingMode === 'GROSS' ? (
+                  <>
+                    <div className="font-medium">
+                      Estimated take-home after fees: {pricingBreakdown.total.netFormatted}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      Customer sees: {pricingBreakdown.total.grossFormatted}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="font-medium">
+                      Quote to customer: {pricingBreakdown.total.grossFormatted}
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      You receive: {pricingBreakdown.total.netFormatted} after fees
+                    </div>
+                  </>
+                )}
+
+                {pricingBreakdown.hasDeposit && pricingBreakdown.deposit && pricingBreakdown.balance && (
+                  <div className="text-xs text-muted-foreground pt-2 border-t mt-2 space-y-1">
+                    <div>Deposit ({depositPercentage}%): {pricingBreakdown.deposit.grossFormatted} → you get {pricingBreakdown.deposit.netFormatted}</div>
+                    <div>Balance: {pricingBreakdown.balance.grossFormatted} → you get {pricingBreakdown.balance.netFormatted}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {onRequiresDepositChange && (
           <div className="flex items-center space-x-2 mt-4">
@@ -231,9 +347,11 @@ export function QuoteBuilder({
               />
               <span className="text-sm text-muted-foreground">%</span>
             </div>
-            <div className="text-sm text-muted-foreground mt-1">
-              Deposit amount: £{depositAmount.toFixed(2)}
-            </div>
+            {!enableAirbnbPricing && (
+              <div className="text-sm text-muted-foreground mt-1">
+                Deposit amount: £{depositAmount.toFixed(2)}
+              </div>
+            )}
           </div>
         )}
       </div>
