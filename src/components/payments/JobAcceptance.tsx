@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DepositPaymentModal } from "@/components/payments/DepositPaymentModal";
-import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
+import { PriceBreakdownModal } from "@/components/pricing/PriceBreakdownModal";
+import { calculateCustomerFee } from '@/lib/stripe';
 import { calculateDepositAmount } from '@/lib/utils';
 
 interface JobAcceptanceProps {
@@ -23,6 +24,7 @@ export function JobAcceptance({
   depositPercentage = 50,
 }: JobAcceptanceProps) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
 
   // Calculate deposit based on the configured percentage
   const depositAmount = calculateDepositAmount(quote, depositPercentage);
@@ -39,43 +41,37 @@ export function JobAcceptance({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="bg-muted p-4 rounded-lg">
-            <h3 className="font-medium mb-2">Job Details</h3>
-            <p className="text-sm mb-2">{jobTitle}</p>
-            <div className="flex justify-between text-sm">
-              <span>Tradesperson Quote:</span>
-              <span className="font-medium">£{quote.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm mt-2 pt-2 border-t">
-              <span>Deposit ({depositPercentage}%):</span>
-              <span className="font-medium">£{depositAmount.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
-              <span>£{depositCustomerFee.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm font-semibold mt-2 pt-2 border-t">
-              <span>Total Due Now:</span>
-              <span className="text-primary">£{depositTotal.toFixed(2)}</span>
-            </div>
+          {/* Airbnb-style: Show total prominently */}
+          <div className="bg-primary/5 p-6 rounded-lg text-center">
+            <p className="text-sm text-muted-foreground mb-2">Total to pay now</p>
+            <p className="text-4xl font-bold text-primary mb-2">
+              £{depositTotal.toFixed(2)}
+            </p>
+            <button
+              onClick={() => setBreakdownModalOpen(true)}
+              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+            >
+              View price breakdown
+            </button>
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            <p>By accepting this quote, you agree to:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Pay a {depositPercentage}% deposit plus {STRIPE_CONFIG.customerFeePercentage}% platform fee to secure your booking</li>
-              <li>Funds will be held securely until job completion</li>
-              <li>The remaining {100 - depositPercentage}% plus {STRIPE_CONFIG.customerFeePercentage}% platform fee will be due after job completion</li>
-              <li>The tradesperson receives the quote amount minus a {STRIPE_CONFIG.tradespersonFeePercentage}% platform fee</li>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">What happens next:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Pay {depositPercentage}% deposit to secure your booking</li>
+              <li>Funds are held securely until job completion</li>
+              <li>Pay the remaining {100 - depositPercentage}% after work is complete</li>
+              <li>Both payments include the service fee</li>
             </ul>
           </div>
 
           <div className="flex justify-end mt-6">
             <Button
               className="w-full sm:w-auto"
+              size="lg"
               onClick={() => setPaymentModalOpen(true)}
             >
-              Accept & Pay Deposit
+              Accept & Pay £{depositTotal.toFixed(2)}
             </Button>
           </div>
         </div>
@@ -87,6 +83,15 @@ export function JobAcceptance({
           tradespersonId={tradespersonId}
           jobTitle={jobTitle}
           depositAmount={depositAmount}
+        />
+
+        <PriceBreakdownModal
+          isOpen={breakdownModalOpen}
+          onClose={() => setBreakdownModalOpen(false)}
+          quoteAmount={depositAmount}
+          customerFee={depositCustomerFee}
+          total={depositTotal}
+          title="Deposit Payment Breakdown"
         />
       </CardContent>
     </Card>

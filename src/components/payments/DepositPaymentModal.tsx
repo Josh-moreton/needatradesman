@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { createLogger } from '@/lib/logger';
-import { calculateCustomerFee, STRIPE_CONFIG } from '@/lib/stripe';
+import { calculateCustomerFee } from '@/lib/stripe';
+import { PriceBreakdownModal } from "@/components/pricing/PriceBreakdownModal";
 
 const logger = createLogger('deposit-payment-modal');
 
@@ -35,6 +36,7 @@ export function DepositPaymentModal({
 }: DepositPaymentModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   
   // Calculate customer platform fee using centralized function
   const customerFeeInPence = calculateCustomerFee(depositAmount);
@@ -88,32 +90,27 @@ export function DepositPaymentModal({
         </DialogHeader>
 
         <div className="flex flex-col space-y-4 py-4">
-          <div className="rounded-md bg-muted p-4">
-            <h4 className="font-medium mb-2">Payment Breakdown</h4>
-            <ul className="text-sm space-y-2">
-              <li className="flex justify-between">
-                <span>Job:</span>
-                <span className="font-medium">{jobTitle}</span>
-              </li>
-              <li className="flex justify-between pt-2 mt-2 border-t">
-                <span>Deposit Amount:</span>
-                <span className="font-medium">
-                  £{depositAmount?.toFixed(2)}
-                </span>
-              </li>
-              <li className="flex justify-between text-muted-foreground">
-                <span>Platform Fee ({STRIPE_CONFIG.customerFeePercentage}%):</span>
-                <span>£{customerFee?.toFixed(2)}</span>
-              </li>
-              <li className="flex justify-between font-semibold pt-2 mt-2 border-t">
-                <span>Total Due:</span>
-                <span className="text-primary">£{totalAmount?.toFixed(2)}</span>
-              </li>
-              <li className="text-xs text-muted-foreground mt-3">
-                The deposit secures your booking and will be held in escrow
-                until job completion. The tradesperson receives the deposit minus a 4% platform fee.
-              </li>
-            </ul>
+          {/* Airbnb-style: Show total prominently */}
+          <div className="bg-primary/5 p-6 rounded-lg text-center">
+            <p className="text-sm text-muted-foreground mb-2">Total due</p>
+            <p className="text-3xl font-bold text-primary mb-2">
+              £{totalAmount?.toFixed(2)}
+            </p>
+            <button
+              onClick={() => setBreakdownOpen(true)}
+              className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+              type="button"
+            >
+              View price breakdown
+            </button>
+          </div>
+
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">Secure payment</p>
+            <p>
+              The deposit secures your booking and will be held in escrow
+              until job completion. You&apos;ll pay the remaining balance after the work is done.
+            </p>
           </div>
 
           {error && (
@@ -134,10 +131,19 @@ export function DepositPaymentModal({
                 Processing...
               </>
             ) : (
-              "Pay Deposit"
+              `Pay £${totalAmount?.toFixed(2)}`
             )}
           </Button>
         </DialogFooter>
+
+        <PriceBreakdownModal
+          isOpen={breakdownOpen}
+          onClose={() => setBreakdownOpen(false)}
+          quoteAmount={depositAmount}
+          customerFee={customerFee}
+          total={totalAmount}
+          title="Deposit Payment Breakdown"
+        />
       </DialogContent>
     </Dialog>
   );
