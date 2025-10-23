@@ -95,6 +95,20 @@ export const createApplicationSchema = z.object({
     quoteItems: z.array(quoteItemSchema).optional(),
     depositPercentage: z.number().min(0, 'Deposit percentage cannot be negative').max(100, 'Deposit percentage cannot exceed 100%').default(50).optional(),
     requiresDeposit: z.boolean().default(true).optional(),
+    pricingSnapshot: z.object({
+        grossPence: z.number().int(),
+        netPence: z.number().int(),
+        platformFeePence: z.number().int(),
+        processorFeePence: z.number().int(),
+        processorFeeFixedPence: z.number().int(),
+        feeRates: z.object({
+            platform: z.number(),
+            processor: z.number(),
+            processorFixed: z.number(),
+        }),
+        computedAt: z.string(),
+        depositPercentage: z.number().optional(),
+    }).optional(),
 })
 
 export const createMessageSchema = z.object({

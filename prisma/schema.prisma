@@ -96,6 +96,7 @@ model Application {
   quoteItems        Json?
   requiresDeposit   Boolean           @default(true)
   depositPercentage Int               @default(50)
+  pricingSnapshot   Json?             // Pricing breakdown snapshot (JSON)
   status            ApplicationStatus @default(PENDING)
   jobId             String
   tradespersonId    String
