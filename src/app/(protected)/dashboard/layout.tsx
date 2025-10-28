@@ -4,9 +4,9 @@ import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
 export default async function DashboardLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   const user = await getCurrentUser();
 
   // Authentication check (should be handled by middleware, but defensive)
