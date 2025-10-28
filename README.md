@@ -12,6 +12,7 @@ Need A Tradesman is a marketplace for homeowners to connect with vetted tradespe
 - **Redis** – caching, rate limiting and foundation for real‑time features
 - **Pusher** – real‑time chat and notifications
 - **Stripe** – planned escrow and payout system
+- **Capacitor** – native iOS and Android mobile apps
 - **ESLint** – linting with strict configuration
 
 ## Features
@@ -63,6 +64,62 @@ See `.env.example` for a complete template.
 - `pnpm start` – start the production build
 - `pnpm lint` – run ESLint across the project
 - `pnpm type-check` – run TypeScript type checking
+
+### Mobile App Scripts
+
+- `pnpm cap:add:ios` – initialize iOS native project
+- `pnpm cap:add:android` – initialize Android native project
+- `pnpm cap:sync` – sync web assets to native projects
+- `pnpm cap:open:ios` – open iOS project in Xcode
+- `pnpm cap:open:android` – open Android project in Android Studio
+- `pnpm cap:run:ios` – build and run iOS app
+- `pnpm cap:run:android` – build and run Android app
+
+See [docs/MOBILE_DEVELOPMENT.md](docs/MOBILE_DEVELOPMENT.md) for complete mobile development guide.
+
+## Mobile Apps
+
+The Need A Tradesman marketplace is available as native iOS and Android apps powered by [Capacitor](https://capacitorjs.com/). The mobile apps provide the full marketplace experience optimized for mobile devices.
+
+### Architecture
+
+The mobile apps use a **hybrid architecture** where the Next.js application runs on a hosted server and the native apps load it in a WebView. This approach:
+
+- ✅ Preserves all existing features (Server Components, API routes, real-time messaging)
+- ✅ Requires minimal code changes
+- ✅ Enables native device capabilities through Capacitor plugins
+- ✅ Maintains a single codebase for web and mobile
+
+### Getting Started with Mobile
+
+**Prerequisites:**
+- For iOS: macOS with Xcode 14+, CocoaPods
+- For Android: Android Studio, JDK 11+
+
+**Initialize platforms:**
+```bash
+# iOS (requires macOS)
+pnpm cap:add:ios
+
+# Android
+pnpm cap:add:android
+```
+
+**Development workflow:**
+1. Start your Next.js dev server: `pnpm dev`
+2. Update `capacitor.config.ts` with your local IP
+3. Sync and run: `pnpm cap:sync && pnpm cap:run:ios`
+
+**Complete documentation:** [docs/MOBILE_DEVELOPMENT.md](docs/MOBILE_DEVELOPMENT.md)
+
+### Available Plugins
+
+- **App** – Lifecycle management and deep linking
+- **Splash Screen** – Native splash screens with brand colors
+- **Status Bar** – Status bar styling
+- **Keyboard** – Keyboard behavior management
+
+Additional plugins (camera, geolocation, push notifications, etc.) will be added in future updates.
 
 ## Security
 
