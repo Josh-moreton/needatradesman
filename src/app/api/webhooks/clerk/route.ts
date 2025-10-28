@@ -15,6 +15,10 @@ type UserEventData = {
     last_name: string | null;
 }
 
+type UserDeletedEventData = {
+    id: string;
+}
+
 function extractPrimaryEmail(data: UserEventData): string | null {
     const primaryEmail = data.email_addresses.find(
         (email) => email.id === data.primary_email_address_id
@@ -88,7 +92,7 @@ async function handleUserUpdated(data: UserEventData): Promise<NextResponse | nu
     return null;
 }
 
-async function handleUserDeleted(data: { id: string }): Promise<void> {
+async function handleUserDeleted(data: UserDeletedEventData): Promise<void> {
     const { id: clerkId } = data;
 
     try {
@@ -155,11 +159,11 @@ export async function POST(req: Request) {
     let response: NextResponse | null = null;
 
     if (eventType === 'user.created') {
-        response = await handleUserCreated(evt.data as UserEventData);
+        response = await handleUserCreated(evt.data as unknown as UserEventData);
     } else if (eventType === 'user.updated') {
-        response = await handleUserUpdated(evt.data as UserEventData);
+        response = await handleUserUpdated(evt.data as unknown as UserEventData);
     } else if (eventType === 'user.deleted') {
-        await handleUserDeleted(evt.data as { id: string });
+        await handleUserDeleted(evt.data as unknown as UserDeletedEventData);
     }
 
     return response || new Response('', { status: 200 })
