@@ -147,7 +147,7 @@ export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
       data.senderId !== selectedConversation.participantId
     ) {
       // Refresh conversations to show updated last message
-      fetchConversations();
+      fetchConversations(false);
     }
   }, [selectedConversation, fetchConversations]);
 
@@ -265,7 +265,7 @@ export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
         // const data = await response.json();
         // setMessages((prev) => [...prev, data.message]);
         // Refresh conversations to update last message
-        fetchConversations();
+        fetchConversations(false);
       }
     } catch (error) {
       logger.error({ error }, "Error sending message");
