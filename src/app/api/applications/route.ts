@@ -6,8 +6,93 @@ import { applicationRateLimit, redis } from "@/lib/redis";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
 import { emitEmailEvent, EmailEventType } from "@/lib/notifications";
+import type { Job } from "@prisma/client";
 
 const logger = createLogger('applications-api');
+
+// Helper function to check rate limits
+async function checkRateLimit(clerkId: string): Promise<NextResponse | null> {
+    if (!applicationRateLimit) {
+        return null;
+    }
+
+    try {
+        const { success, limit, reset, remaining } = await applicationRateLimit.limit(clerkId);
+
+        if (!success) {
+            const resetDate = new Date(reset);
+            const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
+
+            return new NextResponse(
+                `Rate limit exceeded. You can only submit ${limit} applications per hour. ${remaining} remaining.`,
+                {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': String(limit),
+                        'X-RateLimit-Remaining': String(remaining),
+                        'X-RateLimit-Reset': String(reset),
+                        'Retry-After': String(retryAfter),
+                    }
+                }
+            );
+        }
+    } catch (error) {
+        // Redis connection error - log it and continue
+        logger.error({ error }, 'Rate limiter error (likely Redis connection issue)');
+    }
+
+    return null;
+}
+
+// Helper function to validate job and check if application already exists
+async function validateJobAndApplication(jobId: string, userId: string): Promise<{ job: Job } | NextResponse> {
+    const job = await prisma.job.findUnique({
+        where: { id: jobId },
+    });
+
+    if (!job) {
+        return new NextResponse("Job not found", { status: 404 });
+    }
+
+    if (job.status !== "OPEN") {
+        return new NextResponse("Job is no longer accepting applications", { status: 400 });
+    }
+
+    const existingApplication = await prisma.application.findUnique({
+        where: {
+            jobId_tradespersonId: {
+                jobId: job.id,
+                tradespersonId: userId,
+            },
+        },
+    });
+
+    if (existingApplication) {
+        return new NextResponse("You have already applied to this job", { status: 400 });
+    }
+
+    return { job };
+}
+
+// Helper function to invalidate caches after application creation
+async function invalidateCaches(userId: string, customerId: string): Promise<void> {
+    if (!redis) {
+        return;
+    }
+
+    try {
+        revalidateTag('applications');
+        revalidateTag(`applications-${userId}`);
+        revalidateTag(`applications-${customerId}`);
+        revalidateTag('jobs');
+        revalidateTag('job-detail');
+        revalidateTag(`user-stats-${userId}`);
+        revalidateTag(`user-stats-${customerId}`);
+        logger.debug('Invalidated caches after application creation');
+    } catch (cacheError) {
+        logger.error({ error: cacheError }, 'Cache invalidation error');
+    }
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -30,33 +115,10 @@ export async function POST(request: NextRequest) {
             return new NextResponse("Only tradespeople can apply to jobs", { status: 403 });
         }
 
-        // Rate limiting for applications (use clerkId to avoid reuse of internal IDs)
-        if (applicationRateLimit) {
-            try {
-                const { success, limit, reset, remaining } = await applicationRateLimit.limit(user.clerkId);
-
-                if (!success) {
-                    const resetDate = new Date(reset);
-                    const retryAfter = Math.ceil((resetDate.getTime() - Date.now()) / 1000);
-
-                    return new NextResponse(
-                        `Rate limit exceeded. You can only submit ${limit} applications per hour. ${remaining} remaining.`,
-                        {
-                            status: 429,
-                            headers: {
-                                'X-RateLimit-Limit': String(limit),
-                                'X-RateLimit-Remaining': String(remaining),
-                                'X-RateLimit-Reset': String(reset),
-                                'Retry-After': String(retryAfter),
-                            }
-                        }
-                    );
-                }
-            } catch (error) {
-                // This is a Redis connection error - log it and continue
-                logger.error({ error }, 'Rate limiter error (likely Redis connection issue)');
-                // Allow the request to proceed if rate limiting fails due to connection issues
-            }
+        // Check rate limits
+        const rateLimitResponse = await checkRateLimit(user.clerkId);
+        if (rateLimitResponse) {
+            return rateLimitResponse;
         }
 
         // Parse and validate request body
@@ -69,32 +131,12 @@ export async function POST(request: NextRequest) {
 
         const validatedData = createApplicationSchema.parse(applicationData);
 
-        // Check if job exists and is open
-        const job = await prisma.job.findUnique({
-            where: { id: jobId },
-        });
-
-        if (!job) {
-            return new NextResponse("Job not found", { status: 404 });
+        // Validate job and check for existing application
+        const validation = await validateJobAndApplication(jobId, user.id);
+        if (validation instanceof NextResponse) {
+            return validation;
         }
-
-        if (job.status !== "OPEN") {
-            return new NextResponse("Job is no longer accepting applications", { status: 400 });
-        }
-
-        // Check if user already applied
-        const existingApplication = await prisma.application.findUnique({
-            where: {
-                jobId_tradespersonId: {
-                    jobId: job.id,
-                    tradespersonId: user.id,
-                },
-            },
-        });
-
-        if (existingApplication) {
-            return new NextResponse("You have already applied to this job", { status: 400 });
-        }
+        const { job } = validation;
 
         // Create application in database
         const application = await prisma.application.create({
@@ -150,25 +192,8 @@ export async function POST(request: NextRequest) {
             logger.error({ error }, 'Failed to send job response email');
         });
 
-        // Invalidate relevant caches after application creation
-        if (redis) {
-            try {
-                // Invalidate application caches for both tradesperson and customer
-                revalidateTag('applications');
-                revalidateTag(`applications-${user.id}`);
-                revalidateTag(`applications-${application.job.customerId}`);
-                // Also invalidate job list caches as application count has changed
-                revalidateTag('jobs');
-                revalidateTag('job-detail');
-                // Invalidate user stats for both users
-                revalidateTag(`user-stats-${user.id}`);
-                revalidateTag(`user-stats-${application.job.customerId}`);
-                logger.debug('Invalidated caches after application creation');
-            } catch (cacheError) {
-                logger.error({ error: cacheError }, 'Cache invalidation error');
-                // Don't fail the request if cache invalidation fails
-            }
-        }
+        // Invalidate caches
+        await invalidateCaches(user.id, application.job.customerId);
 
         return NextResponse.json(application, { status: 201 });
     } catch (error) {
