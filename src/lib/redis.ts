@@ -7,32 +7,37 @@ const logger = createLogger('redis');
 // Check if Redis is configured (Upstash provides these via Vercel integration)
 const isRedisConfigured = !!process.env.REDIS_URL || (!!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN);
 
-let redis: Redis | null = null;
+const createRedisInstance = (): Redis | null => {
+    if (!isRedisConfigured) {
+        logger.warn('Redis not configured - Redis features disabled (no REDIS_URL or KV credentials found)');
+        return null;
+    }
 
-if (isRedisConfigured) {
     try {
         logger.info('Initializing Upstash Redis...');
 
         // Upstash Redis can be initialized in two ways:
         // 1. Using REDIS_URL (if using standard Upstash Redis)
         // 2. Using KV_REST_API_URL and KV_REST_API_TOKEN (if using Vercel KV)
+        let instance: Redis | null = null;
         if (process.env.REDIS_URL) {
-            redis = Redis.fromEnv();
+            instance = Redis.fromEnv();
         } else if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-            redis = new Redis({
+            instance = new Redis({
                 url: process.env.KV_REST_API_URL,
                 token: process.env.KV_REST_API_TOKEN,
             });
         }
 
         logger.info('Upstash Redis initialized successfully');
+        return instance;
     } catch (error) {
         logger.error({ error }, 'Failed to initialize Upstash Redis');
-        redis = null;
+        return null;
     }
-} else {
-    logger.warn('Redis not configured - Redis features disabled (no REDIS_URL or KV credentials found)');
-}
+};
+
+const redis = createRedisInstance();
 
 export { redis };
 
@@ -108,10 +113,12 @@ export const invalidateJobCaches = async () => {
 
         // Add category-specific cache keys (common categories)
         const categories = ['ELECTRICAL', 'PLUMBING', 'CARPENTRY', 'PAINTING', 'GARDENING', 'GENERAL'];
-        categories.forEach(category => {
-            commonCacheKeys.push(`jobs:list:${category}:all:all:1`);
-            commonCacheKeys.push(`jobs:list:${category}:all:all:2`);
-        });
+        for (const category of categories) {
+            commonCacheKeys.push(
+                `jobs:list:${category}:all:all:1`,
+                `jobs:list:${category}:all:all:2`
+            );
+        }
 
         // Delete all common cache keys
         await Promise.all(commonCacheKeys.map(key => redis!.del(key)));
