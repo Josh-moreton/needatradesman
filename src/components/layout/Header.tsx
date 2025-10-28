@@ -77,7 +77,101 @@ export default function Header({ userRole = null }: HeaderProps) {
     { href: "/dashboard/support", label: "Support", icon: HelpCircle },
   ];
 
-  const navLinks = isCustomer ? customerLinks : isTradesperson ? tradespersonLinks : [];
+  // Get navigation links based on user role
+  const getNavLinks = () => {
+    if (isCustomer) return customerLinks;
+    if (isTradesperson) return tradespersonLinks;
+    return [];
+  };
+  const navLinks = getNavLinks();
+
+  // Get main job link based on user role
+  const getMainJobLink = () => {
+    if (isTradesperson) return "/dashboard/jobs";
+    return "/dashboard/jobs/new";
+  };
+
+  // Get main job title based on user role
+  const getMainJobTitle = () => {
+    if (isTradesperson) return "Browse Jobs";
+    return "Post a Job";
+  };
+
+  // Get main job description based on user role
+  const getMainJobDescription = () => {
+    if (isTradesperson) {
+      return "Find work opportunities in your area and apply to jobs that match your skills.";
+    }
+    return "Create a new job posting to find skilled tradespeople.";
+  };
+
+  // Render job menu items based on user role
+  const renderJobMenuItems = () => {
+    if (isCustomer) {
+      return (
+        <>
+          <ListItem
+            href="/dashboard/jobs/new"
+            title="Post a Job"
+          >
+            Create a new job posting to find skilled
+            tradespeople.
+          </ListItem>
+          <ListItem
+            href="/dashboard/my-jobs"
+            title="My Jobs"
+          >
+            Manage your posted jobs and view applications.
+          </ListItem>
+          <ListItem
+            href="/dashboard/messages"
+            title="Messages"
+          >
+            Communicate with tradespeople.
+          </ListItem>
+        </>
+      );
+    }
+    
+    if (isTradesperson) {
+      return (
+        <>
+          <ListItem
+            href="/dashboard/jobs"
+            title="Browse Jobs"
+          >
+            Find work opportunities in your area.
+          </ListItem>
+          <ListItem
+            href="/dashboard/my-responses"
+            title="My Responses"
+          >
+            Track your job applications and responses.
+          </ListItem>
+          <ListItem
+            href="/dashboard/messages"
+            title="Messages"
+          >
+            Communicate with customers.
+          </ListItem>
+        </>
+      );
+    }
+    
+    return (
+      <>
+        <ListItem href="/sign-up" title="Post a Job">
+          Sign up as a customer to post jobs.
+        </ListItem>
+        <ListItem href="/sign-up" title="Find Work">
+          Sign up as a tradesperson to find work.
+        </ListItem>
+        <ListItem href="/sign-in" title="Sign In">
+          Access your account.
+        </ListItem>
+      </>
+    );
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -143,79 +237,18 @@ export default function Header({ userRole = null }: HeaderProps) {
                           <NavigationMenuLink asChild>
                             <Link
                               className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                              href={
-                                isTradesperson
-                                  ? "/dashboard/jobs"
-                                  : "/dashboard/jobs/new"
-                              }
+                              href={getMainJobLink()}
                             >
                               <div className="mb-2 mt-4 text-lg font-medium">
-                                {isTradesperson ? "Browse Jobs" : "Post a Job"}
+                                {getMainJobTitle()}
                               </div>
                               <p className="text-sm leading-tight text-muted-foreground">
-                                {isTradesperson
-                                  ? "Find work opportunities in your area and apply to jobs that match your skills."
-                                  : "Create a new job posting to find skilled tradespeople."}
+                                {getMainJobDescription()}
                               </p>
                             </Link>
                           </NavigationMenuLink>
                         </li>
-                        {isCustomer ? (
-                          <>
-                            <ListItem
-                              href="/dashboard/jobs/new"
-                              title="Post a Job"
-                            >
-                              Create a new job posting to find skilled
-                              tradespeople.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/my-jobs"
-                              title="My Jobs"
-                            >
-                              Manage your posted jobs and view applications.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/messages"
-                              title="Messages"
-                            >
-                              Communicate with tradespeople.
-                            </ListItem>
-                          </>
-                        ) : isTradesperson ? (
-                          <>
-                            <ListItem
-                              href="/dashboard/jobs"
-                              title="Browse Jobs"
-                            >
-                              Find work opportunities in your area.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/my-responses"
-                              title="My Responses"
-                            >
-                              Track your job applications and responses.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/messages"
-                              title="Messages"
-                            >
-                              Communicate with customers.
-                            </ListItem>
-                          </>
-                        ) : (
-                          <>
-                            <ListItem href="/sign-up" title="Post a Job">
-                              Sign up as a customer to post jobs.
-                            </ListItem>
-                            <ListItem href="/sign-up" title="Find Work">
-                              Sign up as a tradesperson to find work.
-                            </ListItem>
-                            <ListItem href="/sign-in" title="Sign In">
-                              Access your account.
-                            </ListItem>
-                          </>
-                        )}
+                        {renderJobMenuItems()}
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
