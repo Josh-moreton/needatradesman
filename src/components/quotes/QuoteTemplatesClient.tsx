@@ -84,9 +84,9 @@ export default function QuoteTemplatesClient() {
   };
 
   // Update item in form
-  const updateItem = (index: number, field: keyof QuoteItem, value: string) => {
-    const updated = items.map((item, i) =>
-      i === index
+  const updateItem = (id: string, field: keyof QuoteItem, value: string) => {
+    const updated = items.map((item) =>
+      item._id === id
         ? {
             ...item,
             [field]: field === "description" ? value : Number(value),
@@ -97,9 +97,9 @@ export default function QuoteTemplatesClient() {
   };
 
   // Remove item from form
-  const removeItem = (index: number) => {
+  const removeItem = (id: string) => {
     if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
+      setItems(items.filter((item) => item._id !== id));
     } else {
       toast.error("Template must have at least one item");
     }
@@ -110,7 +110,6 @@ export default function QuoteTemplatesClient() {
     try {
       setCreating(true);
       // Remove _id from items before sending to API
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const itemsForApi = items.map(({ _id, ...item }) => item);
       const response = await fetch("/api/quote-templates", {
         method: "POST",
@@ -251,10 +250,9 @@ export default function QuoteTemplatesClient() {
                         </FormLabel>
                         <Input
                           value={item.description}
-                          onChange={(e) => {
-                            const index = items.findIndex(i => i._id === item._id);
-                            updateItem(index, "description", e.target.value);
-                          }}
+                          onChange={(e) =>
+                            updateItem(item._id, "description", e.target.value)
+                          }
                           placeholder="Item description"
                         />
                       </div>
@@ -263,10 +261,9 @@ export default function QuoteTemplatesClient() {
                         <Input
                           type="number"
                           value={item.quantity}
-                          onChange={(e) => {
-                            const index = items.findIndex(i => i._id === item._id);
-                            updateItem(index, "quantity", e.target.value);
-                          }}
+                          onChange={(e) =>
+                            updateItem(item._id, "quantity", e.target.value)
+                          }
                           className="w-20"
                         />
                       </div>
@@ -275,10 +272,9 @@ export default function QuoteTemplatesClient() {
                         <Input
                           type="number"
                           value={item.unitPrice}
-                          onChange={(e) => {
-                            const index = items.findIndex(i => i._id === item._id);
-                            updateItem(index, "unitPrice", e.target.value);
-                          }}
+                          onChange={(e) =>
+                            updateItem(item._id, "unitPrice", e.target.value)
+                          }
                           className="w-24"
                           step="0.01"
                         />
@@ -286,10 +282,7 @@ export default function QuoteTemplatesClient() {
                       <Button
                         type="button"
                         variant="destructive"
-                        onClick={() => {
-                          const index = items.findIndex(i => i._id === item._id);
-                          removeItem(index);
-                        }}
+                        onClick={() => removeItem(item._id)}
                       >
                         Remove
                       </Button>

@@ -34,7 +34,14 @@ const config = [
   {
     rules: {
       // TypeScript
-      "@typescript-eslint/no-unused-vars": ["warn"],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { 
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_",
+          "destructuredArrayIgnorePattern": "^_"
+        }
+      ],
       "@typescript-eslint/explicit-function-return-type": "off",
       // React
       "react-hooks/exhaustive-deps": "warn",
