@@ -121,8 +121,6 @@ export type CreateMessageInput = z.infer<typeof createMessageSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 
 // Export enums for easy access
-export { UserRole } from '@prisma/client'
-export { JobCategory } from '@prisma/client'
+export { UserRole, JobCategory, MessageType }
 export { JobStatus } from '@prisma/client'
 export { ApplicationStatus } from '@prisma/client'
-export { MessageType } from '@prisma/client'
