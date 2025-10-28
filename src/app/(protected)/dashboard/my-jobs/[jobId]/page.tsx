@@ -1,4 +1,5 @@
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,8 +14,8 @@ const metadataLogger = createLogger('customer-manage-job-metadata');
 export const dynamic = "force-dynamic";
 
 interface ManageResponsesPageProps {
-  params: Promise<{
-    jobId: string;
+  readonly params: Promise<{
+    readonly jobId: string;
   }>;
 }
 
