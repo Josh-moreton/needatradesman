@@ -34,7 +34,7 @@ export function FinalPaymentModal({
   jobTitle,
   fullAmount,
   depositAmount,
-}: FinalPaymentModalProps) {
+}: Readonly<FinalPaymentModalProps>) {
   const [loading, setLoading] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 
@@ -63,7 +63,7 @@ export function FinalPaymentModal({
 
       if (response.ok && data.url) {
         // Redirect to Stripe Checkout
-        window.location.href = data.url;
+        globalThis.location.href = data.url;
       } else {
         toast.error(data.error || "Failed to initiate payment");
         setLoading(false);
