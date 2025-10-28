@@ -28,10 +28,10 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('application-form');
 
 interface ApplicationFormProps {
-  readonly jobId: string;
+  jobId: string;
 }
 
-export function ApplicationForm({ jobId }: ApplicationFormProps) {
+export function ApplicationForm({ jobId }: Readonly<ApplicationFormProps>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
