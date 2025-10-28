@@ -7,6 +7,100 @@ import { createLogger } from '@/lib/logger'
 
 const logger = createLogger('clerk-webhook');
 
+type UserEventData = {
+    id: string;
+    email_addresses: Array<{ id: string; email_address: string }>;
+    primary_email_address_id: string;
+    first_name: string | null;
+    last_name: string | null;
+}
+
+function extractPrimaryEmail(data: UserEventData): string | null {
+    const primaryEmail = data.email_addresses.find(
+        (email) => email.id === data.primary_email_address_id
+    );
+    return primaryEmail?.email_address || null;
+}
+
+async function handleUserCreated(data: UserEventData): Promise<NextResponse | null> {
+    const { id: clerkId, first_name, last_name } = data;
+    const email = extractPrimaryEmail(data);
+
+    if (!email) {
+        logger.error({ clerkId }, 'No email found for user');
+        return NextResponse.json({ error: 'No email found' }, { status: 400 });
+    }
+
+    try {
+        await prisma.user.upsert({
+            where: { clerkId },
+            create: {
+                clerkId,
+                email,
+                firstName: first_name || null,
+                lastName: last_name || null,
+            },
+            update: {
+                email,
+                firstName: first_name || null,
+                lastName: last_name || null,
+            },
+        });
+        logger.info({ clerkId }, 'User synced to database');
+    } catch (error) {
+        logger.error({ error }, 'Error syncing user to database');
+        return NextResponse.json({ error: 'Database sync failed' }, { status: 500 });
+    }
+
+    return null;
+}
+
+async function handleUserUpdated(data: UserEventData): Promise<NextResponse | null> {
+    const { id: clerkId, first_name, last_name } = data;
+    const email = extractPrimaryEmail(data);
+
+    if (!email) {
+        logger.error({ clerkId }, 'No email found for user');
+        return NextResponse.json({ error: 'No email found' }, { status: 400 });
+    }
+
+    try {
+        const existingUser = await prisma.user.findUnique({
+            where: { clerkId }
+        });
+
+        if (existingUser) {
+            await prisma.user.update({
+                where: { clerkId },
+                data: {
+                    email,
+                    firstName: first_name || null,
+                    lastName: last_name || null,
+                },
+            });
+            logger.info({ clerkId }, 'User updated in database');
+        }
+    } catch (error) {
+        logger.error({ error }, 'Error updating user in database');
+        return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
+    }
+
+    return null;
+}
+
+async function handleUserDeleted(data: { id: string }): Promise<void> {
+    const { id: clerkId } = data;
+
+    try {
+        await prisma.user.delete({
+            where: { clerkId }
+        });
+        logger.info({ clerkId }, 'User deleted from database');
+    } catch (error) {
+        logger.error({ error }, 'Error deleting user from database');
+    }
+}
+
 export async function POST(req: Request) {
     // Get the webhook secret from environment variables
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -58,95 +152,15 @@ export async function POST(req: Request) {
     logger.info({ id, eventType }, 'Webhook received')
     logger.debug({ body }, 'Webhook body')
 
-    // Handle user.created event
+    let response: NextResponse | null = null;
+
     if (eventType === 'user.created') {
-        const { id: clerkId, email_addresses, first_name, last_name } = evt.data
-
-        try {
-            // Get the primary email address
-            const primaryEmail = email_addresses.find((email) => email.id === evt.data.primary_email_address_id)
-            const email = primaryEmail?.email_address
-
-            if (!email) {
-                logger.error({ clerkId }, 'No email found for user')
-                return NextResponse.json({ error: 'No email found' }, { status: 400 })
-            }
-
-            // Upsert user in database - with PENDING role (they will set it during onboarding)
-            await prisma.user.upsert({
-                where: { clerkId },
-                create: {
-                    clerkId,
-                    email,
-                    firstName: first_name || null,
-                    lastName: last_name || null,
-                    // role defaults to PENDING in schema, but explicit here for clarity
-                },
-                update: {
-                    email,
-                    firstName: first_name || null,
-                    lastName: last_name || null,
-                },
-            })
-
-            logger.info({ clerkId }, 'User synced to database')
-        } catch (error) {
-            logger.error({ error }, 'Error syncing user to database')
-            return NextResponse.json({ error: 'Database sync failed' }, { status: 500 })
-        }
+        response = await handleUserCreated(evt.data as UserEventData);
+    } else if (eventType === 'user.updated') {
+        response = await handleUserUpdated(evt.data as UserEventData);
+    } else if (eventType === 'user.deleted') {
+        await handleUserDeleted(evt.data as { id: string });
     }
 
-    // Handle user.updated event
-    if (eventType === 'user.updated') {
-        const { id: clerkId, email_addresses, first_name, last_name } = evt.data
-
-        try {
-            // Get the primary email address
-            const primaryEmail = email_addresses.find((email) => email.id === evt.data.primary_email_address_id)
-            const email = primaryEmail?.email_address
-
-            if (!email) {
-                logger.error({ clerkId }, 'No email found for user')
-                return NextResponse.json({ error: 'No email found' }, { status: 400 })
-            }
-
-            // Update user in database if they exist
-            const existingUser = await prisma.user.findUnique({
-                where: { clerkId }
-            })
-
-            if (existingUser) {
-                await prisma.user.update({
-                    where: { clerkId },
-                    data: {
-                        email,
-                        firstName: first_name || null,
-                        lastName: last_name || null,
-                    },
-                })
-                logger.info({ clerkId }, 'User updated in database')
-            }
-        } catch (error) {
-            logger.error({ error }, 'Error updating user in database')
-            return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
-        }
-    }
-
-    // Handle user.deleted event
-    if (eventType === 'user.deleted') {
-        const { id: clerkId } = evt.data
-
-        try {
-            // Soft delete or remove user from database
-            await prisma.user.delete({
-                where: { clerkId }
-            })
-            logger.info({ clerkId }, 'User deleted from database')
-        } catch (error) {
-            logger.error({ error }, 'Error deleting user from database')
-            // Don't return error for delete operations as user might not exist
-        }
-    }
-
-    return new Response('', { status: 200 })
+    return response || new Response('', { status: 200 })
 }
