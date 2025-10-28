@@ -44,9 +44,9 @@ export default clerkMiddleware(
 export const config = {
     matcher: [
         // Skip Next.js internals and all static files, unless found in search params
-        // Note: String.raw cannot be used here as Next.js requires statically analyzable literal values in middleware config
+        // NOSONAR: typescript:S7780 - String.raw cannot be used here as Next.js requires statically analyzable literal values in middleware config
         // References: https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
-        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)', // NOSONAR
+        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
         // Always run for API routes
         '/(api|trpc)(.*)',
     ],
