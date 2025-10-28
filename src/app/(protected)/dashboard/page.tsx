@@ -52,6 +52,30 @@ export default async function DashboardPage() {
   }
 }
 
+// Helper function to get status badge styles
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case "OPEN":
+      return "bg-green-100 text-green-800";
+    case "IN_PROGRESS":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+    case "COMPLETED":
+      return "bg-muted text-muted-foreground";
+    default:
+      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+  }
+}
+
+// Helper function to get display name
+function getDisplayName(firstName: string | null, lastName: string | null): string {
+  if (!firstName) {
+    return "there";
+  }
+  
+  const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+  return fullName;
+}
+
 // Customer Dashboard Server Component
 async function CustomerDashboardPage({ user }: { user: { id: string; firstName: string | null; lastName: string | null } }) {
   // Get user's job stats for quick overview - matching original customer page
@@ -75,9 +99,7 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
     }),
   ]);
 
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
+  const displayName = getDisplayName(user.firstName, user.lastName);
 
   // Return the exact same content as the original customer page
   return (
@@ -218,15 +240,7 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
                     <div className="flex items-center gap-3 mb-2">
                       <h4 className="font-medium">{job.title}</h4>
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          job.status === "OPEN"
-                            ? "bg-green-100 text-green-800"
-                            : job.status === "IN_PROGRESS"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                            : job.status === "COMPLETED"
-                            ? "bg-muted text-muted-foreground"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                        }`}
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(job.status)}`}
                       >
                         {job.status.toLowerCase()}
                       </span>
@@ -280,9 +294,7 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; firstNa
     }),
   ]);
 
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
+  const displayName = getDisplayName(user.firstName, user.lastName);
 
   // Return the exact same content as the original tradesperson page
   return (
