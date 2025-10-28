@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { createApplicationSchema, UserRole } from "@/lib/schemas";
-import { applicationRateLimit, redis } from "@/lib/redis";
+import { applicationRateLimit } from "@/lib/redis";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { createLogger } from "@/lib/logger";
 import { emitEmailEvent, EmailEventType } from "@/lib/notifications";
@@ -76,10 +76,6 @@ async function validateJobAndApplication(jobId: string, userId: string): Promise
 
 // Helper function to invalidate caches after application creation
 async function invalidateCaches(userId: string, customerId: string): Promise<void> {
-    if (!redis) {
-        return;
-    }
-
     try {
         revalidateTag('applications');
         revalidateTag(`applications-${userId}`);
