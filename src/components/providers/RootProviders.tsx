@@ -9,8 +9,8 @@ import { ReactNode } from "react";
 import { UserRole } from "@prisma/client";
 
 interface RootProvidersProps {
-  children: ReactNode;
-  userRole?: UserRole | null;
+  readonly children: ReactNode;
+  readonly userRole?: UserRole | null;
 }
 
 export default function RootProviders({ children, userRole = null }: RootProvidersProps) {
