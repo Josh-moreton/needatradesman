@@ -42,10 +42,25 @@ async function processDepositPayment(
                 throw new Error('Job already has accepted tradesperson');
             }
 
+            // Ensure payment_intent exists before proceeding
+            if (!session.payment_intent) {
+                throw new Error('Payment intent is missing from session');
+            }
+
+            // Extract payment intent ID (can be string or object)
+            const paymentIntentId = typeof session.payment_intent === 'string' 
+                ? session.payment_intent 
+                : session.payment_intent.id;
+
             // Retrieve payment intent to get charge and transfer details
-            const paymentIntent = await stripe.paymentIntents.retrieve(
-                session.payment_intent as string
-            );
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+            // Extract charge ID (can be string, Charge object, or null)
+            const chargeId = paymentIntent.latest_charge 
+                ? (typeof paymentIntent.latest_charge === 'string' 
+                    ? paymentIntent.latest_charge 
+                    : paymentIntent.latest_charge.id)
+                : null;
 
             // 2. Update job status and store payment information atomically
             await tx.job.update({
@@ -53,10 +68,10 @@ async function processDepositPayment(
                 data: {
                     status: "IN_PROGRESS",
                     depositPaid: true,
-                    depositPaymentIntentId: session.payment_intent as string,
+                    depositPaymentIntentId: paymentIntentId,
                     acceptedTradespersonId: tradespersonId,
                     // New payment tracking fields
-                    depositChargeId: paymentIntent.latest_charge as string | null,
+                    depositChargeId: chargeId,
                     transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
                     chargeModel: ChargeModel.DESTINATION_CHARGE,
                     // For DESTINATION_CHARGE: transfer is created immediately and automatically
@@ -127,19 +142,34 @@ async function processFinalPayment(
                 throw new Error('Job already has final payment processed');
             }
 
+            // Ensure payment_intent exists before proceeding
+            if (!session.payment_intent) {
+                throw new Error('Payment intent is missing from session');
+            }
+
+            // Extract payment intent ID (can be string or object)
+            const paymentIntentId = typeof session.payment_intent === 'string' 
+                ? session.payment_intent 
+                : session.payment_intent.id;
+
             // Retrieve payment intent to get charge and transfer details
-            const paymentIntent = await stripe.paymentIntents.retrieve(
-                session.payment_intent as string
-            );
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+            // Extract charge ID (can be string, Charge object, or null)
+            const chargeId = paymentIntent.latest_charge 
+                ? (typeof paymentIntent.latest_charge === 'string' 
+                    ? paymentIntent.latest_charge 
+                    : paymentIntent.latest_charge.id)
+                : null;
 
             // 2. Update job with final payment information atomically
             await tx.job.update({
                 where: { id: jobId },
                 data: {
                     finalPaid: true,
-                    finalPaymentIntentId: session.payment_intent as string,
+                    finalPaymentIntentId: paymentIntentId,
                     // New payment tracking fields
-                    finalChargeId: paymentIntent.latest_charge as string | null,
+                    finalChargeId: chargeId,
                     // For DESTINATION_CHARGE: transfer is created immediately and automatically
                     // by Stripe at payment time (via transfer_data in checkout session).
                     // For future SC_AND_T: this will be set when we manually create the transfer.
