@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import { UserRole, JobCategory } from "@prisma/client";
+import { UserRole, JobCategory, JobStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,18 @@ export default async function DashboardPage() {
       // Should never reach here - all roles are handled
       redirect("/dashboard");
   }
+}
+
+// Helper function to get status badge classes
+function getStatusBadgeClass(status: JobStatus): string {
+  const statusClasses: Record<JobStatus, string> = {
+    OPEN: "bg-green-100 text-green-800",
+    IN_PROGRESS: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+    COMPLETED: "bg-muted text-muted-foreground",
+    CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  };
+  
+  return statusClasses[status] || "bg-muted text-muted-foreground";
 }
 
 // Customer Dashboard Server Component
@@ -218,15 +230,7 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
                     <div className="flex items-center gap-3 mb-2">
                       <h4 className="font-medium">{job.title}</h4>
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          job.status === "OPEN"
-                            ? "bg-green-100 text-green-800"
-                            : job.status === "IN_PROGRESS"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                            : job.status === "COMPLETED"
-                            ? "bg-muted text-muted-foreground"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                        }`}
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(job.status)}`}
                       >
                         {job.status.toLowerCase()}
                       </span>
