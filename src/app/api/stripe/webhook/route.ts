@@ -17,6 +17,25 @@ const logger = createLogger('stripe-webhook');
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 /**
+ * Extract payment intent ID from Stripe session
+ * Handles both string and PaymentIntent object types
+ */
+function extractPaymentIntentId(paymentIntent: string | Stripe.PaymentIntent): string {
+    return typeof paymentIntent === 'string' ? paymentIntent : paymentIntent.id;
+}
+
+/**
+ * Extract charge ID from payment intent
+ * Handles string, Charge object, and null types
+ */
+function extractChargeId(latestCharge: string | Stripe.Charge | null): string | null {
+    if (!latestCharge) {
+        return null;
+    }
+    return typeof latestCharge === 'string' ? latestCharge : latestCharge.id;
+}
+
+/**
  * Process deposit payment for a job
  */
 async function processDepositPayment(
@@ -48,19 +67,13 @@ async function processDepositPayment(
             }
 
             // Extract payment intent ID (can be string or object)
-            const paymentIntentId = typeof session.payment_intent === 'string' 
-                ? session.payment_intent 
-                : session.payment_intent.id;
+            const paymentIntentId = extractPaymentIntentId(session.payment_intent);
 
             // Retrieve payment intent to get charge and transfer details
             const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
             // Extract charge ID (can be string, Charge object, or null)
-            const chargeId = paymentIntent.latest_charge 
-                ? (typeof paymentIntent.latest_charge === 'string' 
-                    ? paymentIntent.latest_charge 
-                    : paymentIntent.latest_charge.id)
-                : null;
+            const chargeId = extractChargeId(paymentIntent.latest_charge);
 
             // 2. Update job status and store payment information atomically
             await tx.job.update({
@@ -148,19 +161,13 @@ async function processFinalPayment(
             }
 
             // Extract payment intent ID (can be string or object)
-            const paymentIntentId = typeof session.payment_intent === 'string' 
-                ? session.payment_intent 
-                : session.payment_intent.id;
+            const paymentIntentId = extractPaymentIntentId(session.payment_intent);
 
             // Retrieve payment intent to get charge and transfer details
             const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
             // Extract charge ID (can be string, Charge object, or null)
-            const chargeId = paymentIntent.latest_charge 
-                ? (typeof paymentIntent.latest_charge === 'string' 
-                    ? paymentIntent.latest_charge 
-                    : paymentIntent.latest_charge.id)
-                : null;
+            const chargeId = extractChargeId(paymentIntent.latest_charge);
 
             // 2. Update job with final payment information atomically
             await tx.job.update({
