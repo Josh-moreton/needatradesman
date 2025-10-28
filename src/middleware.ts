@@ -44,7 +44,9 @@ export default clerkMiddleware(
 export const config = {
     matcher: [
         // Skip Next.js internals and all static files, unless found in search params
-        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+        // Note: String.raw cannot be used here as Next.js config export requires literal values
+        // See: https://nextjs.org/docs/messages/invalid-page-config
+        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)', // NOSONAR
         // Always run for API routes
         '/(api|trpc)(.*)',
     ],
