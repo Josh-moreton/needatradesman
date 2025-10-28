@@ -40,7 +40,7 @@ interface ResponseFormProps {
   userId?: string;
 }
 
-export function ResponseForm({ jobId, userId }: ResponseFormProps) {
+export function ResponseForm({ jobId, userId }: Readonly<ResponseFormProps>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
