@@ -4,11 +4,13 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { ReactNode, useEffect, useState } from "react";
 
+interface ClerkThemeProviderProps {
+  children: ReactNode;
+}
+
 export default function ClerkThemeProvider({
   children,
-}: {
-  readonly children: ReactNode;
-}) {
+}: Readonly<ClerkThemeProviderProps>) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
