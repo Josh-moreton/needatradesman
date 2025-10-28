@@ -30,10 +30,8 @@ interface JobCardProps {
   readonly variant?: "customer" | "public";
 }
 
-export function JobCard({ job, variant = "public" }: JobCardProps) {
-  const getStatusColor = (
-    status: string
-  ): "default" | "secondary" | "destructive" => {
+export function JobCard({ job, variant = "public" }: Readonly<JobCardProps>) {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "OPEN":
         return "default";
