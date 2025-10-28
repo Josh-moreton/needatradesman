@@ -47,21 +47,21 @@ interface Job {
 }
 
 interface ManageResponsesClientProps {
-  job: Job;
+  readonly job: Job;
 }
 
 interface AcceptRejectButtonsProps {
-  applicationId: string;
-  onStatusChange: () => void;
+  readonly applicationId: string;
+  readonly onStatusChange: () => void;
 }
 
 interface PayDepositButtonProps {
-  jobId: string;
-  tradespersonId: string;
-  quote: Decimal | null;
-  depositPercentage: number;
-  jobTitle: string;
-  onPaymentComplete: () => void;
+  readonly jobId: string;
+  readonly tradespersonId: string;
+  readonly quote: Decimal | null;
+  readonly depositPercentage: number;
+  readonly jobTitle: string;
+  readonly onPaymentComplete: () => void;
 }
 
 function PayDepositButton({
@@ -483,13 +483,7 @@ export function ManageResponsesClient({ job }: ManageResponsesClientProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
-                      variant={
-                        getStatusColor(application.status) as
-                          | "default"
-                          | "secondary"
-                          | "destructive"
-                          | "outline"
-                      }
+                      variant={getStatusColor(application.status)}
                     >
                       {application.status}
                     </Badge>
