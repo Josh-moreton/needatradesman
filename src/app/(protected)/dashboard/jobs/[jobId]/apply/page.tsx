@@ -22,8 +22,8 @@ const logger = createLogger("dashboard-apply");
 export const dynamic = "force-dynamic";
 
 interface ApplyPageProps {
-  readonly params: Promise<{
-    readonly jobId: string;
+  params: Promise<{
+    jobId: string;
   }>;
 }
 
