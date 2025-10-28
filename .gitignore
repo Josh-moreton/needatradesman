@@ -45,3 +45,17 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# capacitor
+ios/App/Pods
+ios/App/App.xcodeproj/project.xcworkspace
+ios/App/App.xcodeproj/xcuserdata
+ios/App/Podfile.lock
+android/app/build
+android/app/.cxx
+android/build
+android/.gradle
+android/.idea
+android/local.properties
+android/*.iml
+*.log

@@ -5,12 +5,28 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate --no-engine && next build",
+    "build:mobile": "prisma generate --no-engine && NEXT_OUTPUT_MODE=export next build && pnpm cap:copy",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "cap:init": "cap init 'Need A Tradesman' 'com.needatradesman.app' --web-dir=out",
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync",
+    "cap:copy": "cap copy",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:run:ios": "cap run ios",
+    "cap:run:android": "cap run android"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/keyboard": "^7.0.3",
+    "@capacitor/splash-screen": "^7.0.3",
+    "@capacitor/status-bar": "^7.0.3",
     "@clerk/nextjs": "^6.33.5",
     "@clerk/themes": "^2.4.27",
     "@googlemaps/js-api-loader": "^2.0.1",
@@ -52,6 +68,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.14",
     "@types/google.maps": "^3.58.1",
