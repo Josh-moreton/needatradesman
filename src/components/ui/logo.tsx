@@ -9,10 +9,10 @@ export type LogoVariant = "black" | "white" | "teal" | "yellow" | "auto";
 export type LogoSize = "sm" | "md" | "lg" | "xl" | "hero";
 
 interface LogoProps {
-  variant?: LogoVariant;
-  size?: LogoSize;
-  className?: string;
-  priority?: boolean;
+  readonly variant?: LogoVariant;
+  readonly size?: LogoSize;
+  readonly className?: string;
+  readonly priority?: boolean;
 }
 
 const sizeMap = {
