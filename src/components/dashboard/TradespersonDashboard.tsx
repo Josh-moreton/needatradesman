@@ -143,12 +143,12 @@ function StatsCard({
   value,
   description,
   icon,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   description: string;
   icon: React.ReactNode;
-}) {
+}>) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -170,14 +170,14 @@ function ActionCard({
   href,
   buttonText,
   variant = "default",
-}: {
+}: Readonly<{
   title: string;
   description: string;
   icon: React.ReactNode;
   href: string;
   buttonText: string;
   variant?: "default" | "primary";
-}) {
+}>) {
   return (
     <Card className="transition-all hover:shadow-md">
       <CardHeader>

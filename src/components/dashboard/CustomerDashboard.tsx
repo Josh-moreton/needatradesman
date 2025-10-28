@@ -193,12 +193,12 @@ function StatsCard({
   value,
   description,
   icon,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   description: string;
   icon: React.ReactNode;
-}) {
+}>) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -220,14 +220,14 @@ function ActionCard({
   href,
   buttonText,
   variant = "default",
-}: {
+}: Readonly<{
   title: string;
   description: string;
   icon: React.ReactNode;
   href: string;
   buttonText: string;
   variant?: "default" | "primary";
-}) {
+}>) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
@@ -252,7 +252,7 @@ function ActionCard({
   );
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job }: Readonly<{ job: Job }>) {
   const statusColors = {
     OPEN: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
     IN_PROGRESS: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
