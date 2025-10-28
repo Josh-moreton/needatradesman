@@ -14,9 +14,9 @@ interface SearchParams {
 
 export default async function DashboardJobsPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<SearchParams>;
-}) {
+}>) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -40,17 +40,17 @@ export default async function DashboardJobsPage({
 async function TradespersonJobsView({
   user,
   searchParams,
-}: {
+}: Readonly<{
   user: { trades?: JobCategory[] };
   searchParams: Promise<SearchParams>;
-}) {
+}>) {
   const resolvedSearchParams = await searchParams;
 
   // Get user's trades for filtering
   const userTrades = user.trades || [];
 
   // Build query filters
-  const page = parseInt(resolvedSearchParams.page || "1");
+  const page = Number.parseInt(resolvedSearchParams.page || "1");
   const limit = 12;
   const offset = (page - 1) * limit;
 
