@@ -29,7 +29,7 @@ const categoryOptions = [
 ];
 
 interface JobFiltersProps {
-  userTrades?: JobCategory[];
+  readonly userTrades?: JobCategory[];
 }
 
 export function JobFilters({ userTrades }: JobFiltersProps) {
