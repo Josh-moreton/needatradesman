@@ -31,7 +31,7 @@ interface ApplicationFormProps {
   readonly jobId: string;
 }
 
-export function ApplicationForm({ jobId }: ApplicationFormProps) {
+export function ApplicationForm({ jobId }: Readonly<ApplicationFormProps>) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();

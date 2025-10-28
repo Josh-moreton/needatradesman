@@ -46,7 +46,7 @@ interface HeaderProps {
   userRole?: UserRole | null;
 }
 
-export default function Header({ userRole = null }: HeaderProps) {
+export default function Header({ userRole = null }: Readonly<HeaderProps>) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

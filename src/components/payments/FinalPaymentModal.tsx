@@ -34,7 +34,7 @@ export function FinalPaymentModal({
   jobTitle,
   fullAmount,
   depositAmount,
-}: FinalPaymentModalProps) {
+}: Readonly<FinalPaymentModalProps>) {
   const [loading, setLoading] = useState(false);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
 

@@ -13,7 +13,7 @@ interface RootProvidersProps {
   userRole?: UserRole | null;
 }
 
-export default function RootProviders({ children, userRole = null }: RootProvidersProps) {
+export default function RootProviders({ children, userRole = null }: Readonly<RootProvidersProps>) {
   return (
     <ThemeProvider
       attribute="class"

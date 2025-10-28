@@ -308,7 +308,7 @@ function RoleCard({
   isSelected,
   isLoading,
   onSelect,
-}: RoleCardProps) {
+}: Readonly<RoleCardProps>) {
   return (
     <Card
       className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${

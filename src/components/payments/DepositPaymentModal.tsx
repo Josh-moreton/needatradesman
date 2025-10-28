@@ -33,7 +33,7 @@ export function DepositPaymentModal({
   tradespersonId,
   jobTitle,
   depositAmount,
-}: DepositPaymentModalProps) {
+}: Readonly<DepositPaymentModalProps>) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);

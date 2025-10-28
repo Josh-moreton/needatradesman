@@ -38,7 +38,7 @@ interface TradespersonDashboardProps {
 export default function TradespersonDashboard({
   user,
   stats,
-}: TradespersonDashboardProps) {
+}: Readonly<TradespersonDashboardProps>) {
   const displayName = user.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
     : "there";

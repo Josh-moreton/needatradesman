@@ -7,7 +7,7 @@ interface JsonLdProps {
   data: unknown;
 }
 
-export function JsonLd({ data }: JsonLdProps) {
+export function JsonLd({ data }: Readonly<JsonLdProps>) {
   return (
     <script
       type="application/ld+json"

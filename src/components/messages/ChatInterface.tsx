@@ -65,7 +65,7 @@ interface ChatInterfaceProps {
   currentUserId: string;
 }
 
-export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
+export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<{
     jobId: string;

@@ -39,7 +39,7 @@ export function PaymentStatusCard({
   userRole,
   customerConfirmedComplete = false,
   tradespersonConfirmedComplete = false,
-}: PaymentStatusCardProps) {
+}: Readonly<PaymentStatusCardProps>) {
   const [finalPaymentModalOpen, setFinalPaymentModalOpen] = useState(false);
 
   const bothConfirmedComplete = customerConfirmedComplete && tradespersonConfirmedComplete;

@@ -32,7 +32,7 @@ export function JobCompletionCard({
   jobStatus,
   payoutReleased = false,
   onStatusUpdate,
-}: JobCompletionCardProps) {
+}: Readonly<JobCompletionCardProps>) {
   const [loading, setLoading] = useState(false);
 
   const userHasConfirmed = userRole === "CUSTOMER" ? customerConfirmed : tradespersonConfirmed;

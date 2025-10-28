@@ -55,7 +55,7 @@ export function QuoteBuilder({
   onRequiresDepositChange,
   userId,
   showTemplates = false,
-}: QuoteBuilderProps) {
+}: Readonly<QuoteBuilderProps>) {
   const [items, setItems] = useState<QuoteItem[]>(value);
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);

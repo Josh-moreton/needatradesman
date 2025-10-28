@@ -32,7 +32,7 @@ interface JobFiltersProps {
   userTrades?: JobCategory[];
 }
 
-export function JobFilters({ userTrades }: JobFiltersProps) {
+export function JobFilters({ userTrades }: Readonly<JobFiltersProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();

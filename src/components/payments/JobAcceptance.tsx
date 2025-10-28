@@ -22,7 +22,7 @@ export function JobAcceptance({
   jobTitle,
   quote,
   depositPercentage = 50,
-}: JobAcceptanceProps) {
+}: Readonly<JobAcceptanceProps>) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
 

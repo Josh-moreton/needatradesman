@@ -28,7 +28,7 @@ export function Logo({
   size = "md",
   className,
   priority = false,
-}: LogoProps) {
+}: Readonly<LogoProps>) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 

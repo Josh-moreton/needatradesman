@@ -34,7 +34,7 @@ interface QuoteTemplate {
   }[];
 }
 
-export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
+export function TemplateModal({ onTemplateAdded }: Readonly<TemplateModalProps>) {
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);

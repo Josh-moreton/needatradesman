@@ -48,7 +48,7 @@ export default function CustomerDashboard({
   user,
   stats,
   recentJobs,
-}: CustomerDashboardProps) {
+}: Readonly<CustomerDashboardProps>) {
   const displayName = user.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
     : "there";

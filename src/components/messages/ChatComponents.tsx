@@ -59,7 +59,7 @@ export function ConversationList({
   currentUserId,
   onSelectConversation,
   selectedConversation,
-}: ConversationListProps) {
+}: Readonly<ConversationListProps>) {
   const getParticipantName = (
     participant: Conversation["otherParticipant"]
   ) => {
@@ -128,7 +128,7 @@ interface MessageListProps {
   currentUserId: string;
 }
 
-export function MessageList({ messages, currentUserId }: MessageListProps) {
+export function MessageList({ messages, currentUserId }: Readonly<MessageListProps>) {
   return (
     <div className="flex-1 overflow-y-auto space-y-4 p-4">
       {messages.map((message) => (
@@ -169,7 +169,7 @@ interface MessageInputProps {
   disabled?: boolean;
 }
 
-export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
+export function MessageInput({ onSendMessage, disabled }: Readonly<MessageInputProps>) {
   const [message, setMessage] = React.useState("");
 
   const handleSubmit = (e: React.FormEvent) => {

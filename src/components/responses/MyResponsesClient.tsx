@@ -39,7 +39,7 @@ interface MyResponsesClientProps {
   applications: ApplicationWithJob[];
 }
 
-export function MyResponsesClient({ applications }: MyResponsesClientProps) {
+export function MyResponsesClient({ applications }: Readonly<MyResponsesClientProps>) {
   const [chatLoading, setChatLoading] = useState<string | null>(null);
   const router = useRouter();
 
