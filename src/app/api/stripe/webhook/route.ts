@@ -16,6 +16,152 @@ import {
 const logger = createLogger('stripe-webhook');
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+/**
+ * Process deposit payment for a job
+ */
+async function processDepositPayment(
+    jobId: string,
+    tradespersonId: string,
+    applicationId: string | undefined,
+    session: Stripe.Checkout.Session
+) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Check if job already has accepted tradesperson (prevent race condition)
+            const currentJob = await tx.job.findUnique({
+                where: { id: jobId },
+                select: { depositPaid: true, acceptedTradespersonId: true }
+            });
+
+            if (currentJob?.depositPaid) {
+                logger.error({
+                    jobId,
+                    tradespersonId,
+                    sessionId: session.id
+                }, "Race condition blocked - job already has deposit paid");
+                throw new Error('Job already has accepted tradesperson');
+            }
+
+            // Retrieve payment intent to get charge and transfer details
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+                session.payment_intent as string
+            );
+
+            // 2. Update job status and store payment information atomically
+            await tx.job.update({
+                where: { id: jobId },
+                data: {
+                    status: "IN_PROGRESS",
+                    depositPaid: true,
+                    depositPaymentIntentId: session.payment_intent as string,
+                    acceptedTradespersonId: tradespersonId,
+                    // New payment tracking fields
+                    depositChargeId: paymentIntent.latest_charge as string | null,
+                    transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
+                    chargeModel: ChargeModel.DESTINATION_CHARGE,
+                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
+                    // by Stripe at payment time (via transfer_data in checkout session).
+                    // For future SC_AND_T: this will be set when we manually create the transfer.
+                    depositReleasedAt: new Date(),
+                },
+            });
+
+            // 3. Update application status
+            if (applicationId) {
+                await tx.application.update({
+                    where: { id: applicationId },
+                    data: {
+                        status: "ACCEPTED",
+                    },
+                });
+
+                // 4. Reject all other applications for this job
+                await tx.application.updateMany({
+                    where: {
+                        jobId: jobId,
+                        id: { not: applicationId },
+                    },
+                    data: {
+                        status: "REJECTED",
+                    },
+                });
+            }
+        });
+
+        logger.info({
+            jobId,
+            tradespersonId,
+            sessionId: session.id
+        }, "Deposit payment processed successfully");
+    } catch (transactionError) {
+        logger.error({
+            jobId,
+            tradespersonId,
+            error: transactionError
+        }, "Transaction failed for deposit payment");
+        // Transaction will rollback automatically
+        // Consider alerting admin here for non-race-condition errors
+    }
+}
+
+/**
+ * Process final payment for a job
+ */
+async function processFinalPayment(
+    jobId: string,
+    session: Stripe.Checkout.Session
+) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Check if job already has final payment (prevent race condition)
+            const currentJob = await tx.job.findUnique({
+                where: { id: jobId },
+                select: { finalPaid: true, finalPaymentIntentId: true, transferGroup: true }
+            });
+
+            if (currentJob?.finalPaid) {
+                logger.error({
+                    jobId,
+                    sessionId: session.id
+                }, "Race condition blocked - job already has final payment paid");
+                throw new Error('Job already has final payment processed');
+            }
+
+            // Retrieve payment intent to get charge and transfer details
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+                session.payment_intent as string
+            );
+
+            // 2. Update job with final payment information atomically
+            await tx.job.update({
+                where: { id: jobId },
+                data: {
+                    finalPaid: true,
+                    finalPaymentIntentId: session.payment_intent as string,
+                    // New payment tracking fields
+                    finalChargeId: paymentIntent.latest_charge as string | null,
+                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
+                    // by Stripe at payment time (via transfer_data in checkout session).
+                    // For future SC_AND_T: this will be set when we manually create the transfer.
+                    finalReleasedAt: new Date(),
+                },
+            });
+        });
+
+        logger.info({
+            jobId,
+            sessionId: session.id
+        }, "Final payment processed successfully");
+    } catch (transactionError) {
+        logger.error({
+            jobId,
+            error: transactionError
+        }, "Transaction failed for final payment");
+        // Transaction will rollback automatically
+        // Consider alerting admin here for non-race-condition errors
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Get client identifier for rate limiting and failure tracking
@@ -131,9 +277,9 @@ export async function POST(request: NextRequest) {
         // Handle specific event types
         switch (event.type) {
             case "checkout.session.completed": {
-                const session = event.data.object as Stripe.Checkout.Session;
+                const session = event.data.object;
 
-                if (!session.metadata || !session.metadata.jobId || !session.metadata.tradespersonId) {
+                if (!session.metadata?.jobId || !session.metadata?.tradespersonId) {
                     logger.error("Missing metadata in checkout session");
                     break;
                 }
@@ -142,143 +288,18 @@ export async function POST(request: NextRequest) {
 
                 // Handle deposit payment with atomic transaction
                 if (applicationType === "deposit") {
-                    try {
-                        await prisma.$transaction(async (tx) => {
-                            // 1. Check if job already has accepted tradesperson (prevent race condition)
-                            const currentJob = await tx.job.findUnique({
-                                where: { id: jobId },
-                                select: { depositPaid: true, acceptedTradespersonId: true }
-                            });
-
-                            if (currentJob?.depositPaid) {
-                                logger.error({
-                                    jobId,
-                                    tradespersonId,
-                                    sessionId: session.id
-                                }, "Race condition blocked - job already has deposit paid");
-                                throw new Error('Job already has accepted tradesperson');
-                            }
-
-                            // Retrieve payment intent to get charge and transfer details
-                            const paymentIntent = await stripe.paymentIntents.retrieve(
-                                session.payment_intent as string
-                            );
-
-                            // 2. Update job status and store payment information atomically
-                            await tx.job.update({
-                                where: { id: jobId },
-                                data: {
-                                    status: "IN_PROGRESS",
-                                    depositPaid: true,
-                                    depositPaymentIntentId: session.payment_intent as string,
-                                    acceptedTradespersonId: tradespersonId,
-                                    // New payment tracking fields
-                                    depositChargeId: paymentIntent.latest_charge as string | null,
-                                    transferGroup: paymentIntent.transfer_group || `job_${jobId}`,
-                                    chargeModel: ChargeModel.DESTINATION_CHARGE,
-                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
-                                    // by Stripe at payment time (via transfer_data in checkout session).
-                                    // For future SC_AND_T: this will be set when we manually create the transfer.
-                                    depositReleasedAt: new Date(),
-                                },
-                            });
-
-                            // 3. Update application status
-                            if (applicationId) {
-                                await tx.application.update({
-                                    where: { id: applicationId },
-                                    data: {
-                                        status: "ACCEPTED",
-                                    },
-                                });
-
-                                // 4. Reject all other applications for this job
-                                await tx.application.updateMany({
-                                    where: {
-                                        jobId: jobId,
-                                        id: { not: applicationId },
-                                    },
-                                    data: {
-                                        status: "REJECTED",
-                                    },
-                                });
-                            }
-                        });
-
-                        logger.info({
-                            jobId,
-                            tradespersonId,
-                            sessionId: session.id
-                        }, "Deposit payment processed successfully");
-                    } catch (transactionError) {
-                        logger.error({
-                            jobId,
-                            tradespersonId,
-                            error: transactionError
-                        }, "Transaction failed for deposit payment");
-                        // Transaction will rollback automatically
-                        // Consider alerting admin here for non-race-condition errors
-                    }
+                    await processDepositPayment(jobId, tradespersonId, applicationId, session);
                 }
-
                 // Handle final payment with atomic transaction
                 else if (applicationType === "final_payment") {
-                    try {
-                        await prisma.$transaction(async (tx) => {
-                            // 1. Check if job already has final payment (prevent race condition)
-                            const currentJob = await tx.job.findUnique({
-                                where: { id: jobId },
-                                select: { finalPaid: true, finalPaymentIntentId: true, transferGroup: true }
-                            });
-
-                            if (currentJob?.finalPaid) {
-                                logger.error({
-                                    jobId,
-                                    sessionId: session.id
-                                }, "Race condition blocked - job already has final payment paid");
-                                throw new Error('Job already has final payment processed');
-                            }
-
-                            // Retrieve payment intent to get charge and transfer details
-                            const paymentIntent = await stripe.paymentIntents.retrieve(
-                                session.payment_intent as string
-                            );
-
-                            // 2. Update job with final payment information atomically
-                            await tx.job.update({
-                                where: { id: jobId },
-                                data: {
-                                    finalPaid: true,
-                                    finalPaymentIntentId: session.payment_intent as string,
-                                    // New payment tracking fields
-                                    finalChargeId: paymentIntent.latest_charge as string | null,
-                                    // For DESTINATION_CHARGE: transfer is created immediately and automatically
-                                    // by Stripe at payment time (via transfer_data in checkout session).
-                                    // For future SC_AND_T: this will be set when we manually create the transfer.
-                                    finalReleasedAt: new Date(),
-                                },
-                            });
-                        });
-
-                        logger.info({
-                            jobId,
-                            sessionId: session.id
-                        }, "Final payment processed successfully");
-                    } catch (transactionError) {
-                        logger.error({
-                            jobId,
-                            error: transactionError
-                        }, "Transaction failed for final payment");
-                        // Transaction will rollback automatically
-                        // Consider alerting admin here for non-race-condition errors
-                    }
+                    await processFinalPayment(jobId, session);
                 }
 
                 break;
             }
 
             case "account.updated": {
-                const account = event.data.object as Stripe.Account;
+                const account = event.data.object;
 
                 // Find user with this Stripe account ID
                 const user = await prisma.user.findFirst({
