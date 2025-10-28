@@ -17,7 +17,7 @@ const logger = createLogger('payout-setup-card');
 
 type StatusType = "not_setup" | "pending" | "verified";
 
-export function PayoutSetupCard({ status }: { status: StatusType }) {
+export function PayoutSetupCard({ status }: { readonly status: StatusType }) {
   const [loading, setLoading] = useState(false);
 
   const handleSetup = async () => {
@@ -31,7 +31,7 @@ export function PayoutSetupCard({ status }: { status: StatusType }) {
 
       if (data.url) {
         // Redirect to Stripe onboarding
-        window.location.href = data.url;
+        globalThis.location.href = data.url;
       } else {
         alert("Failed to start onboarding. Please try again.");
       }
@@ -89,7 +89,7 @@ export function PayoutSetupCard({ status }: { status: StatusType }) {
   );
 }
 
-function StatusBadge({ status }: { status: StatusType }) {
+function StatusBadge({ status }: { readonly status: StatusType }) {
   if (status === "not_setup") {
     return <Badge variant="outline">Not Set Up</Badge>;
   }
