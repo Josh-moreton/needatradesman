@@ -62,7 +62,7 @@ interface Conversation {
 }
 
 interface ChatInterfaceProps {
-  currentUserId: string;
+  readonly currentUserId: string;
 }
 
 export function ChatInterface({ currentUserId }: ChatInterfaceProps) {

@@ -48,10 +48,10 @@ interface Conversation {
 }
 
 interface ConversationListProps {
-  conversations: Conversation[];
-  currentUserId: string;
-  onSelectConversation: (jobId: string, participantId: string) => void;
-  selectedConversation?: { jobId: string; participantId: string } | null;
+  readonly conversations: Conversation[];
+  readonly currentUserId: string;
+  readonly onSelectConversation: (jobId: string, participantId: string) => void;
+  readonly selectedConversation?: { jobId: string; participantId: string } | null;
 }
 
 export function ConversationList({
@@ -124,8 +124,8 @@ export function ConversationList({
 }
 
 interface MessageListProps {
-  messages: Message[];
-  currentUserId: string;
+  readonly messages: Message[];
+  readonly currentUserId: string;
 }
 
 export function MessageList({ messages, currentUserId }: MessageListProps) {
@@ -165,8 +165,8 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
 }
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
-  disabled?: boolean;
+  readonly onSendMessage: (content: string) => void;
+  readonly disabled?: boolean;
 }
 
 export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
