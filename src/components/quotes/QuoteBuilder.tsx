@@ -164,7 +164,7 @@ export function QuoteBuilder({
       )}
 
       {items.map((item, index) => (
-        <div key={`${item.description}-${index}`} className="flex gap-2 items-end">
+        <div key={`item-${index}`} className="flex gap-2 items-end">
           <div className="flex-1">
             <FormLabel>Description</FormLabel>
             <Input
@@ -277,7 +277,7 @@ export function QuoteBuilder({
                 type="number"
                 value={depositPercentage}
                 onChange={(e) => {
-                  const value = Number.parseInt(e.target.value);
+                  const value = Number.parseInt(e.target.value, 10);
                   if (!Number.isNaN(value) && value >= 0 && value <= 100) {
                     onDepositPercentageChange(value);
                   }
