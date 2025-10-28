@@ -72,8 +72,7 @@ function getDisplayName(firstName: string | null, lastName: string | null): stri
     return "there";
   }
   
-  const fullName = lastName ? `${firstName} ${lastName}` : firstName;
-  return fullName;
+  return lastName ? `${firstName} ${lastName}` : firstName;
 }
 
 // Customer Dashboard Server Component
