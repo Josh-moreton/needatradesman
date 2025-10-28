@@ -12,7 +12,20 @@ interface JobWithApplications {
     status: string;
     applications: Array<{
         tradespersonId: string;
+        status: string;
     }>;
+}
+
+interface JobCompletionUpdate {
+    customerConfirmedComplete?: boolean;
+    customerCompletedAt?: Date;
+    tradespersonConfirmedComplete?: boolean;
+    tradespersonCompletedAt?: Date;
+}
+
+interface JobWithCompletionFields {
+    customerConfirmedComplete: boolean;
+    tradespersonConfirmedComplete: boolean;
 }
 
 /**
@@ -23,7 +36,7 @@ function validateUserAuthorization(
     userId: string
 ): { isCustomer: boolean; isTradesperson: boolean } {
     const isCustomer = job.customerId === userId;
-    const acceptedApplication = job.applications[0];
+    const acceptedApplication = job.applications.find(app => app.status === "ACCEPTED");
     const isTradesperson = acceptedApplication?.tradespersonId === userId;
     
     return { isCustomer, isTradesperson };
@@ -35,8 +48,8 @@ function validateUserAuthorization(
 function buildCompletionUpdateData(
     isCustomer: boolean,
     isTradesperson: boolean
-): Record<string, boolean | Date> {
-    const updateData: Record<string, boolean | Date> = {};
+): JobCompletionUpdate {
+    const updateData: JobCompletionUpdate = {};
     const now = new Date();
 
     if (isCustomer) {
@@ -55,15 +68,10 @@ function buildCompletionUpdateData(
 /**
  * Checks if both parties have confirmed completion
  */
-function areBothPartiesConfirmed(updatedJob: unknown): boolean {
-    const jobWithCompletionFields = updatedJob as {
-        customerConfirmedComplete: boolean;
-        tradespersonConfirmedComplete: boolean;
-    };
-    
+function areBothPartiesConfirmed(updatedJob: JobWithCompletionFields): boolean {
     return Boolean(
-        jobWithCompletionFields.customerConfirmedComplete &&
-        jobWithCompletionFields.tradespersonConfirmedComplete
+        updatedJob.customerConfirmedComplete &&
+        updatedJob.tradespersonConfirmedComplete
     );
 }
 
@@ -137,7 +145,7 @@ export async function POST(
         });
 
         // Check if both parties have confirmed and finalize if needed
-        const bothConfirmed = areBothPartiesConfirmed(updatedJob);
+        const bothConfirmed = areBothPartiesConfirmed(updatedJob as JobWithCompletionFields);
         await finalizeJobIfBothConfirmed(jobId, bothConfirmed);
 
         return NextResponse.json({
