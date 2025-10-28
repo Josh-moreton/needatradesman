@@ -1,4 +1,4 @@
-import { Region, TradeCategory, VerificationType } from '@prisma/client'
+import { Region, TradeCategory, VerificationType, JobCategory, JobStatus, Prisma } from '@prisma/client'
 import { prisma } from './prisma'
 import { resolveRequiredVerifications, isEligibleToViewOrQuote } from './verification'
 
@@ -101,8 +101,8 @@ export async function checkJobEligibility(userId: string, jobId: string): Promis
  * Get all jobs a user is eligible for
  */
 export async function getEligibleJobs(userId: string, filters?: {
-  status?: string
-  category?: string
+  status?: JobStatus | string
+  category?: JobCategory | string
   limit?: number
   offset?: number
 }) {
@@ -134,18 +134,20 @@ export async function getEligibleJobs(userId: string, filters?: {
   )
 
   // Get all jobs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: { status?: string; category?: any } = {
-    status: filters?.status || 'OPEN',
+  const where: Prisma.JobWhereInput = {}
+
+  if (filters?.status) {
+    where.status = filters.status as JobStatus
+  } else {
+    where.status = JobStatus.OPEN
   }
 
   if (filters?.category) {
-    where.category = filters.category
+    where.category = filters.category as JobCategory
   }
 
   const allJobs = await prisma.job.findMany({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    where: where as any,
+    where,
     take: filters?.limit || 50,
     skip: filters?.offset || 0,
     orderBy: { createdAt: 'desc' },
