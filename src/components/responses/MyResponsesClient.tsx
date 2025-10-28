@@ -36,7 +36,7 @@ interface ApplicationWithJob {
 }
 
 interface MyResponsesClientProps {
-  applications: ApplicationWithJob[];
+  readonly applications: ApplicationWithJob[];
 }
 
 export function MyResponsesClient({ applications }: MyResponsesClientProps) {
