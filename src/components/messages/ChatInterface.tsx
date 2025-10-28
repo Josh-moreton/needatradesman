@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import {
@@ -65,7 +65,7 @@ interface ChatInterfaceProps {
   currentUserId: string;
 }
 
-export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
+export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<{
     jobId: string;
@@ -82,6 +82,73 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
   const jobId = searchParams.get("jobId");
   const withUserId = searchParams.get("with");
 
+  // Fetch conversations on component mount
+  const fetchConversations = useCallback(async () => {
+    try {
+      const response = await fetch("/api/messages");
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data.conversations || []);
+      }
+    } catch (error) {
+      logger.error({ error }, "Error fetching conversations");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Helper function to handle new message updates
+  const handleNewMessage = useCallback((data: { message: Message; timestamp: string }) => {
+    setMessages((prev) => {
+      // Avoid duplicates
+      if (prev.some((msg) => msg.id === data.message.id)) {
+        return prev;
+      }
+      return [
+        ...prev,
+        { ...data.message, createdAt: new Date(data.message.createdAt) },
+      ];
+    });
+
+    // Update conversations list to reflect new last message
+    if (selectedConversation) {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.jobId === selectedConversation.jobId &&
+          conv.otherParticipant.id === selectedConversation.participantId
+            ? {
+                ...conv,
+                lastMessage: {
+                  content: data.message.content,
+                  createdAt: new Date(data.message.createdAt),
+                  senderId: data.message.senderId,
+                },
+              }
+            : conv
+        )
+      );
+    }
+  }, [selectedConversation]);
+
+  // Helper function to handle message notifications
+  const handleMessageNotification = useCallback((data: {
+    messageId: string;
+    senderId: string;
+    senderName: string;
+    jobTitle?: string;
+    preview: string;
+    timestamp: string;
+  }) => {
+    // Only show notification if the message is not from current conversation
+    if (
+      !selectedConversation ||
+      data.senderId !== selectedConversation.participantId
+    ) {
+      // Refresh conversations to show updated last message
+      fetchConversations();
+    }
+  }, [selectedConversation, fetchConversations]);
+
   // Set up Pusher subscription for real-time messages
   useEffect(() => {
     if (selectedConversation) {
@@ -96,38 +163,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
       subscribedChannels.add(conversationChannel);
 
       // Listen for new messages
-      channel.bind(
-        "new-message",
-        (data: { message: Message; timestamp: string }) => {
-          setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.some((msg) => msg.id === data.message.id)) {
-              return prev;
-            }
-            return [
-              ...prev,
-              { ...data.message, createdAt: new Date(data.message.createdAt) },
-            ];
-          });
-
-          // Update conversations list to reflect new last message
-          setConversations((prev) =>
-            prev.map((conv) =>
-              conv.jobId === selectedConversation.jobId &&
-              conv.otherParticipant.id === selectedConversation.participantId
-                ? {
-                    ...conv,
-                    lastMessage: {
-                      content: data.message.content,
-                      createdAt: new Date(data.message.createdAt),
-                      senderId: data.message.senderId,
-                    },
-                  }
-                : conv
-            )
-          );
-        }
-      );
+      channel.bind("new-message", handleNewMessage);
 
       return () => {
         // Cleanup: unsubscribe from channel
@@ -135,7 +171,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
         subscribedChannels.delete(conversationChannel);
       };
     }
-  }, [selectedConversation, currentUserId]);
+  }, [selectedConversation, currentUserId, handleNewMessage]);
 
   // Subscribe to user notifications channel
   useEffect(() => {
@@ -145,40 +181,21 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
     subscribedChannels.add(userChannel);
 
     // Listen for message notifications (for conversations not currently open)
-    channel.bind(
-      "message-notification",
-      (data: {
-        messageId: string;
-        senderId: string;
-        senderName: string;
-        jobTitle?: string;
-        preview: string;
-        timestamp: string;
-      }) => {
-        // Only show notification if the message is not from current conversation
-        if (
-          !selectedConversation ||
-          data.senderId !== selectedConversation.participantId
-        ) {
-          // Refresh conversations to show updated last message
-          fetchConversations();
-        }
-      }
-    );
+    channel.bind("message-notification", handleMessageNotification);
 
     return () => {
       pusherClient.unsubscribe(userChannel);
       subscribedChannels.delete(userChannel);
     };
-  }, [currentUserId, selectedConversation]);
+  }, [currentUserId, handleMessageNotification]);
 
   // Cleanup all subscriptions on unmount
   useEffect(() => {
     const subscribedChannels = subscribedChannelsRef.current;
     return () => {
-      subscribedChannels.forEach((channelName) => {
+      for (const channelName of subscribedChannels) {
         pusherClient.unsubscribe(channelName);
-      });
+      }
       subscribedChannels.clear();
     };
   }, []);
@@ -186,7 +203,7 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
   // Fetch conversations on component mount
   useEffect(() => {
     fetchConversations();
-  }, []);
+  }, [fetchConversations]);
 
   // Auto-select conversation if URL parameters are provided
   useEffect(() => {
@@ -209,20 +226,6 @@ export function ChatInterface({ currentUserId }: ChatInterfaceProps) {
       );
     }
   }, [selectedConversation]);
-
-  const fetchConversations = async () => {
-    try {
-      const response = await fetch("/api/messages");
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-      }
-    } catch (error) {
-      logger.error({ error }, "Error fetching conversations");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchMessages = async (jobId: string, participantId: string) => {
     try {
