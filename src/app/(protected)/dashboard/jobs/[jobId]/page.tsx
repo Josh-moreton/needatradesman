@@ -32,10 +32,10 @@ const metadataLogger = createLogger("dashboard-job-detail-metadata");
 export const dynamic = "force-dynamic";
 
 interface JobDetailPageProps {
-  params: Promise<{
+  readonly params: Promise<{
     jobId: string;
   }>;
-  searchParams: Promise<{
+  readonly searchParams: Promise<{
     payment_success?: string;
     payment_cancelled?: string;
     final_payment_success?: string;
@@ -170,9 +170,7 @@ export default async function JobDetailPage({
       hasResponded = !!userApplication;
     }
 
-    const getStatusColor = (
-      status: string
-    ): "default" | "secondary" | "destructive" => {
+    const getStatusColor = (status: string) => {
       switch (status) {
         case "OPEN":
           return "default";
@@ -188,15 +186,18 @@ export default async function JobDetailPage({
     };
 
     const formatBudget = (budget: unknown) => {
-      if (!budget) return "Budget not specified";
-      return `£${Number(budget).toFixed(0)}`;
+      if (budget) {
+        return `£${Number(budget).toFixed(0)}`;
+      }
+      return "Budget not specified";
     };
 
     const getCustomerName = () => {
-      if (!job.customer) return "Anonymous";
-      const { firstName, lastName } = job.customer;
-      if (firstName && lastName) return `${firstName} ${lastName}`;
-      if (firstName) return firstName;
+      if (job.customer) {
+        const { firstName, lastName } = job.customer;
+        if (firstName && lastName) return `${firstName} ${lastName}`;
+        if (firstName) return firstName;
+      }
       return "Anonymous";
     };
 
