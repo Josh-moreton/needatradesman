@@ -28,20 +28,23 @@ interface TradespersonStats {
 }
 
 interface TradespersonDashboardProps {
-  user: {
-    firstName?: string | null;
-    lastName?: string | null;
+  readonly user: {
+    readonly firstName?: string | null;
+    readonly lastName?: string | null;
   };
-  stats: TradespersonStats;
+  readonly stats: TradespersonStats;
 }
 
 export default function TradespersonDashboard({
   user,
   stats,
 }: TradespersonDashboardProps) {
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
+  // Extract nested ternary into independent statement
+  let displayName = "there";
+  if (user.firstName) {
+    const lastName = user.lastName ? ` ${user.lastName}` : "";
+    displayName = `${user.firstName}${lastName}`;
+  }
 
   return (
     <div className="space-y-8">
@@ -143,12 +146,12 @@ function StatsCard({
   value,
   description,
   icon,
-}: {
+}: Readonly<{
   title: string;
   value: string;
   description: string;
   icon: React.ReactNode;
-}) {
+}>) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -170,14 +173,14 @@ function ActionCard({
   href,
   buttonText,
   variant = "default",
-}: {
+}: Readonly<{
   title: string;
   description: string;
   icon: React.ReactNode;
   href: string;
   buttonText: string;
   variant?: "default" | "primary";
-}) {
+}>) {
   return (
     <Card className="transition-all hover:shadow-md">
       <CardHeader>
