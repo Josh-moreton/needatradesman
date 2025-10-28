@@ -11,9 +11,9 @@
 
 export default async function ProtectedLayout({
     children,
-}: {
+}: Readonly<{
     children: React.ReactNode
-}) {
+}>) {
     // Middleware ensures user is authenticated
     // Child layouts (like dashboard) handle role checks and onboarding
     return <>{children}</>
