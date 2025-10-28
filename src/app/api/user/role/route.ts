@@ -14,6 +14,117 @@ const setRoleSchema = z.object({
     trades: z.array(z.nativeEnum(JobCategory)).optional()
 })
 
+// Helper function to update Clerk metadata
+async function updateClerkMetadata(userId: string, role: UserRole) {
+    const client = await clerkClient();
+    await client.users.updateUserMetadata(userId, {
+        publicMetadata: {
+            onboardingComplete: true,
+            role: role
+        }
+    });
+}
+
+// Helper function to invalidate caches
+function invalidateUserCaches(userId: string) {
+    revalidateTag(`user:${userId}`)
+    revalidateTag('user-gate')
+}
+
+// Helper function to send welcome email
+async function sendWelcomeEmail(userId: string, email: string, firstName: string | null, role: UserRole) {
+    try {
+        await emitEmailEvent({
+            type: EmailEventType.USER_REGISTERED,
+            userId: userId,
+            email: email,
+            firstName: firstName || 'there',
+            role: role === UserRole.CUSTOMER ? 'customer' : 'tradesperson',
+        });
+    } catch (error) {
+        logger.error({ error }, 'Failed to send welcome email');
+    }
+}
+
+// Helper function to handle existing user update
+async function handleExistingUserUpdate(
+    existingUser: { id: string; email: string; firstName: string | null; role: UserRole },
+    userId: string,
+    role: UserRole,
+    trades?: JobCategory[]
+) {
+    const updateData: Record<string, unknown> = { role };
+    if (trades && role === UserRole.TRADESPERSON) {
+        updateData.trades = trades;
+    }
+
+    const updatedUser = await prisma.user.update({
+        where: { clerkId: userId },
+        data: updateData
+    });
+
+    await updateClerkMetadata(userId, role);
+    invalidateUserCaches(userId);
+
+    // Send welcome email for new users (only if role is being set for first time from PENDING)
+    if (existingUser.role === UserRole.PENDING && role !== UserRole.PENDING) {
+        await sendWelcomeEmail(existingUser.id, existingUser.email, existingUser.firstName, role);
+    }
+
+    return updatedUser;
+}
+
+// Helper function to create or update user by email
+async function createOrUpdateUserByEmail(
+    email: string,
+    userId: string,
+    firstName: string | null,
+    lastName: string | null,
+    role: UserRole,
+    trades?: JobCategory[]
+) {
+    const userByEmail = await prisma.user.findUnique({ where: { email } });
+    
+    if (userByEmail) {
+        // Update existing user with new clerkId
+        const updatedUser = await prisma.user.update({
+            where: { email },
+            data: {
+                clerkId: userId,
+                firstName,
+                lastName,
+                role,
+                ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
+            }
+        });
+
+        await updateClerkMetadata(userId, role);
+        invalidateUserCaches(userId);
+
+        return updatedUser;
+    }
+
+    // Create new user
+    const createData = {
+        clerkId: userId,
+        email,
+        firstName,
+        lastName,
+        role,
+        ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
+    };
+
+    const newUser = await prisma.user.create({
+        data: createData
+    });
+
+    await updateClerkMetadata(userId, role);
+    invalidateUserCaches(userId);
+    await sendWelcomeEmail(newUser.id, newUser.email, newUser.firstName, role);
+
+    return newUser;
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Get the authenticated user
@@ -35,136 +146,34 @@ export async function POST(request: NextRequest) {
             where: { clerkId: userId }
         })
 
+        let user;
+
         if (existingUser) {
-            // Update existing user's role and trades (if provided)
-            const updateData: Record<string, unknown> = { role };
-            if (trades && role === UserRole.TRADESPERSON) {
-                updateData.trades = trades;
-            }
-
-            const updatedUser = await prisma.user.update({
-                where: { clerkId: userId },
-                data: updateData
-            });
-
-            // Set onboarding complete metadata in Clerk
-            const client = await clerkClient();
-            await client.users.updateUserMetadata(userId, {
-                publicMetadata: {
-                    onboardingComplete: true,
-                    role: role
-                }
-            });
-
-            // Invalidate the auth gate cache so the layout picks up the new user immediately
-            revalidateTag(`user:${userId}`)
-            revalidateTag('user-gate')
-
-            // Send welcome email for new users (only if role is being set for first time from PENDING)
-            if (existingUser.role === UserRole.PENDING && role !== UserRole.PENDING) {
-                emitEmailEvent({
-                    type: EmailEventType.USER_REGISTERED,
-                    userId: existingUser.id,
-                    email: existingUser.email,
-                    firstName: existingUser.firstName || 'there',
-                    role: role === UserRole.CUSTOMER ? 'customer' : 'tradesperson',
-                }).catch((error) => {
-                    logger.error({ error }, 'Failed to send welcome email');
-                });
-            }
-
-            return NextResponse.json({
-                success: true,
-                user: updatedUser
-            });
+            // Update existing user's role and trades
+            user = await handleExistingUserUpdate(existingUser, userId, role, trades);
         } else {
             // Fetch user info from Clerk
             const clerkUser = await currentUser();
             if (!clerkUser) {
                 return NextResponse.json({ error: 'Clerk user not found' }, { status: 404 });
             }
+            
             const email = clerkUser.emailAddresses?.[0]?.emailAddress || clerkUser.primaryEmailAddress?.emailAddress;
-            const firstName = clerkUser.firstName || null;
-            const lastName = clerkUser.lastName || null;
             if (!email) {
                 return NextResponse.json({ error: 'No email found for user' }, { status: 400 });
             }
-            // Check if a user with this email already exists (unique constraint)
-            const userByEmail = await prisma.user.findUnique({ where: { email } });
-            if (userByEmail) {
-                // Update the user with the new clerkId and other info
-                const updatedUser = await prisma.user.update({
-                    where: { email },
-                    data: {
-                        clerkId: userId,
-                        firstName,
-                        lastName,
-                        role,
-                        ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
-                    }
-                });
-
-                // Set onboarding complete metadata in Clerk
-                const client = await clerkClient();
-                await client.users.updateUserMetadata(userId, {
-                    publicMetadata: {
-                        onboardingComplete: true,
-                        role: role
-                    }
-                });
-
-                // Invalidate the auth gate cache so the layout picks up the new user immediately
-                revalidateTag(`user:${userId}`)
-                revalidateTag('user-gate')
-
-                return NextResponse.json({
-                    success: true,
-                    user: updatedUser
-                });
-            }
-            // Create new user record
-            const createData = {
-                clerkId: userId,
-                email,
-                firstName,
-                lastName,
-                role,
-                ...(trades && role === UserRole.TRADESPERSON ? { trades } : {})
-            };
-
-            const newUser = await prisma.user.create({
-                data: createData
-            });
-
-            // Set onboarding complete metadata in Clerk
-            const client = await clerkClient();
-            await client.users.updateUserMetadata(userId, {
-                publicMetadata: {
-                    onboardingComplete: true,
-                    role: role
-                }
-            });
-
-            // Invalidate the auth gate cache so the layout picks up the new user immediately
-            revalidateTag(`user:${userId}`)
-            revalidateTag('user-gate')
-
-            // Send welcome email for new users completing onboarding
-            emitEmailEvent({
-                type: EmailEventType.USER_REGISTERED,
-                userId: newUser.id,
-                email: newUser.email,
-                firstName: newUser.firstName || 'there',
-                role: role === UserRole.CUSTOMER ? 'customer' : 'tradesperson',
-            }).catch((error) => {
-                logger.error({ error }, 'Failed to send welcome email');
-            });
-
-            return NextResponse.json({
-                success: true,
-                user: newUser
-            });
+            
+            const firstName = clerkUser.firstName || null;
+            const lastName = clerkUser.lastName || null;
+            
+            // Create or update user by email
+            user = await createOrUpdateUserByEmail(email, userId, firstName, lastName, role, trades);
         }
+
+        return NextResponse.json({
+            success: true,
+            user: user
+        });
     } catch (error) {
         logger.error({ error }, 'Error setting user role');
 
