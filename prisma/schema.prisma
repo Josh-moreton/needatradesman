@@ -168,6 +168,7 @@ enum UserRole {
   PENDING // User has not completed onboarding
   CUSTOMER
   TRADESPERSON
+  ADMIN
 }
 
 enum JobCategory {

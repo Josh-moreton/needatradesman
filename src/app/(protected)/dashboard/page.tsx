@@ -41,6 +41,11 @@ export default async function DashboardPage() {
     case UserRole.TRADESPERSON:
       return <TradespersonDashboardPage user={user} />;
     
+    case UserRole.ADMIN:
+      // Redirect admin users to admin portal
+      redirect("/dashboard/admin");
+      break;
+    
     case UserRole.PENDING:
       // Should never reach here - layout handles PENDING users
       redirect("/dashboard");
