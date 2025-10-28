@@ -175,7 +175,7 @@ export function JobCompletionCard({
         <div className="space-y-4">
           {/* Completion Status */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="space-y-2">
               <span className="text-sm font-medium">Customer</span>
               <CompletionBadge 
                 confirmed={customerConfirmed}
@@ -183,7 +183,7 @@ export function JobCompletionCard({
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <span className="text-sm font-medium">Tradesperson</span>
               <CompletionBadge 
                 confirmed={tradespersonConfirmed}
