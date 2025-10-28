@@ -6,6 +6,79 @@ import { createLogger } from "@/lib/logger";
 
 const logger = createLogger("jobs-complete-api");
 
+interface JobWithApplications {
+    id: string;
+    customerId: string;
+    status: string;
+    applications: Array<{
+        tradespersonId: string;
+    }>;
+}
+
+/**
+ * Validates user authorization for job completion
+ */
+function validateUserAuthorization(
+    job: JobWithApplications,
+    userId: string
+): { isCustomer: boolean; isTradesperson: boolean } {
+    const isCustomer = job.customerId === userId;
+    const acceptedApplication = job.applications[0];
+    const isTradesperson = acceptedApplication?.tradespersonId === userId;
+    
+    return { isCustomer, isTradesperson };
+}
+
+/**
+ * Builds the update data for job completion confirmation
+ */
+function buildCompletionUpdateData(
+    isCustomer: boolean,
+    isTradesperson: boolean
+): Record<string, boolean | Date> {
+    const updateData: Record<string, boolean | Date> = {};
+    const now = new Date();
+
+    if (isCustomer) {
+        updateData.customerConfirmedComplete = true;
+        updateData.customerCompletedAt = now;
+    }
+
+    if (isTradesperson) {
+        updateData.tradespersonConfirmedComplete = true;
+        updateData.tradespersonCompletedAt = now;
+    }
+
+    return updateData;
+}
+
+/**
+ * Checks if both parties have confirmed completion
+ */
+function areBothPartiesConfirmed(updatedJob: unknown): boolean {
+    const jobWithCompletionFields = updatedJob as {
+        customerConfirmedComplete: boolean;
+        tradespersonConfirmedComplete: boolean;
+    };
+    
+    return Boolean(
+        jobWithCompletionFields.customerConfirmedComplete &&
+        jobWithCompletionFields.tradespersonConfirmedComplete
+    );
+}
+
+/**
+ * Marks job as completed if both parties have confirmed
+ */
+async function finalizeJobIfBothConfirmed(jobId: string, bothConfirmed: boolean): Promise<void> {
+    if (bothConfirmed) {
+        await prisma.job.update({
+            where: { id: jobId },
+            data: { status: "COMPLETED" }
+        });
+    }
+}
+
 export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ jobId: string }> }
@@ -40,10 +113,8 @@ export async function POST(
             return NextResponse.json({ error: "Job not found" }, { status: 404 });
         }
 
-        // Check if user is either the customer or the accepted tradesperson
-        const isCustomer = job.customerId === user.id;
-        const acceptedApplication = job.applications[0];
-        const isTradesperson = acceptedApplication?.tradespersonId === user.id;
+        // Validate user authorization
+        const { isCustomer, isTradesperson } = validateUserAuthorization(job, user.id);
 
         if (!isCustomer && !isTradesperson) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -57,46 +128,17 @@ export async function POST(
             );
         }
 
-        // Update completion status based on user role
-        // Using Record type to ensure type safety for dynamic updates
-        const updateData: Record<string, boolean | Date> = {};
-        const now = new Date();
-
-        if (isCustomer) {
-            updateData.customerConfirmedComplete = true;
-            updateData.customerCompletedAt = now;
-        }
-
-        if (isTradesperson) {
-            updateData.tradespersonConfirmedComplete = true;
-            updateData.tradespersonCompletedAt = now;
-        }
-
-        // Update the job
+        // Build and apply completion update
+        const updateData = buildCompletionUpdateData(isCustomer, isTradesperson);
+        
         const updatedJob = await prisma.job.update({
             where: { id: jobId },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            data: updateData as any, // Prisma type inference limitation with dynamic field updates
+            data: updateData,
         });
 
-        // Check if both parties have confirmed completion
-        // These fields exist on the Job model but TypeScript needs help inferring them after update
-        const jobWithCompletionFields = updatedJob as unknown as {
-            customerConfirmedComplete: boolean;
-            tradespersonConfirmedComplete: boolean;
-        };
-        const bothConfirmed = Boolean(
-            jobWithCompletionFields.customerConfirmedComplete &&
-            jobWithCompletionFields.tradespersonConfirmedComplete
-        );
-
-        if (bothConfirmed) {
-            // Mark job as completed
-            await prisma.job.update({
-                where: { id: jobId },
-                data: { status: "COMPLETED" }
-            });
-        }
+        // Check if both parties have confirmed and finalize if needed
+        const bothConfirmed = areBothPartiesConfirmed(updatedJob);
+        await finalizeJobIfBothConfirmed(jobId, bothConfirmed);
 
         return NextResponse.json({
             message: isCustomer ? "Customer confirmed completion" : "Tradesperson confirmed completion",
