@@ -83,7 +83,7 @@ export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
   const withUserId = searchParams.get("with");
 
   // Fetch conversations on component mount
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (isInitialLoad = false) => {
     try {
       const response = await fetch("/api/messages");
       if (response.ok) {
@@ -93,7 +93,9 @@ export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
     } catch (error) {
       logger.error({ error }, "Error fetching conversations");
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -202,7 +204,7 @@ export function ChatInterface({ currentUserId }: Readonly<ChatInterfaceProps>) {
 
   // Fetch conversations on component mount
   useEffect(() => {
-    fetchConversations();
+    fetchConversations(true);
   }, [fetchConversations]);
 
   // Auto-select conversation if URL parameters are provided
