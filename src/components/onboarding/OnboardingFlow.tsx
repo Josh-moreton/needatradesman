@@ -157,7 +157,6 @@ export default function OnboardingFlow() {
             {/* Role Selection Cards */}
             <div className="grid gap-6 md:grid-cols-2">
               <RoleCard
-                role={UserRole.CUSTOMER}
                 title="I need work done"
                 description="Post jobs and hire trusted tradespeople for your home projects"
                 icon={<Home className="h-12 w-12" />}
@@ -173,7 +172,6 @@ export default function OnboardingFlow() {
               />
 
               <RoleCard
-                role={UserRole.TRADESPERSON}
                 title="I'm a tradesperson"
                 description="Find work opportunities and grow your business with new customers"
                 icon={<Hammer className="h-12 w-12" />}
@@ -247,9 +245,9 @@ export default function OnboardingFlow() {
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                         >
                           {trade
-                            .replace(/_/g, " ")
+                            .replaceAll("_", " ")
                             .toLowerCase()
-                            .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                            .replaceAll(/\b\w/g, (l: string) => l.toUpperCase())}
                         </label>
                       </div>
                     )
@@ -290,14 +288,13 @@ export default function OnboardingFlow() {
 }
 
 interface RoleCardProps {
-  role: UserRole;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  features: string[];
-  isSelected: boolean;
-  isLoading: boolean;
-  onSelect: () => void;
+  readonly title: string;
+  readonly description: string;
+  readonly icon: React.ReactNode;
+  readonly features: readonly string[];
+  readonly isSelected: boolean;
+  readonly isLoading: boolean;
+  readonly onSelect: () => void;
 }
 
 function RoleCard({
@@ -316,7 +313,7 @@ function RoleCard({
           ? "ring-2 ring-primary ring-offset-2 shadow-lg"
           : "hover:shadow-md"
       }`}
-      onClick={!isLoading ? onSelect : undefined}
+      onClick={isLoading ? undefined : onSelect}
     >
       <CardHeader className="text-center pb-4">
         <div className="flex justify-center mb-4">
@@ -334,8 +331,8 @@ function RoleCard({
 
       <CardContent className="space-y-4">
         <ul className="space-y-2">
-          {features.map((feature, index) => (
-            <li key={index} className="flex items-center text-sm">
+          {features.map((feature) => (
+            <li key={feature} className="flex items-center text-sm">
               <ArrowRight className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
               {feature}
             </li>
@@ -348,7 +345,8 @@ function RoleCard({
           disabled={isLoading}
           onClick={(e) => {
             e.stopPropagation();
-            if (!isLoading) onSelect();
+            if (isLoading) return;
+            onSelect();
           }}
         >
           {isLoading ? (
