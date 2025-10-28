@@ -116,7 +116,6 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: templateName,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           items: items.map(({ tempId, ...item }) => item),
         }),
       });
