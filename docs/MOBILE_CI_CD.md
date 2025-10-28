@@ -54,8 +54,7 @@ jobs:
           
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-        with:
-          version: 10.18.3
+        # Version will be read from package.json packageManager field
           
       - name: Install dependencies
         run: pnpm install
@@ -114,8 +113,7 @@ jobs:
           
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-        with:
-          version: 10.18.3
+        # Version will be read from package.json packageManager field
           
       - name: Setup JDK
         uses: actions/setup-java@v4

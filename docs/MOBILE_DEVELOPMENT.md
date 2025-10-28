@@ -58,7 +58,7 @@ Therefore, we use the **hosted server approach** which is production-ready and r
 
 - Android Studio Arctic Fox or later
 - Android SDK Platform 33 (Android 13) or later
-- Java Development Kit (JDK) 11 or later
+- Java Development Kit (JDK) 17 (recommended) or JDK 11 minimum
 - Android device or emulator
 
 ### For All Platforms

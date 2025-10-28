@@ -14,7 +14,7 @@ This guide provides a quick reference for common mobile development tasks with C
 ### For Android Development
 - [ ] Android Studio Arctic Fox or later
 - [ ] Android SDK Platform 33+
-- [ ] JDK 11 or later
+- [ ] JDK 17 (recommended) or JDK 11 minimum
 - [ ] Android device/emulator configured
 
 ### For All Platforms
@@ -104,6 +104,11 @@ After adding new Capacitor plugins:
 ```bash
 pnpm install
 pnpm cap:sync
+```
+
+To update all Capacitor packages (recommended for compatibility):
+```bash
+pnpm update "@capacitor/core" "@capacitor/cli" "@capacitor/ios" "@capacitor/android" "@capacitor/app" "@capacitor/splash-screen" "@capacitor/status-bar" "@capacitor/keyboard"
 ```
 
 ### Debugging
@@ -230,8 +235,8 @@ cat capacitor.config.ts
 # Check Capacitor installation
 npx cap doctor
 
-# Update Capacitor
-pnpm update @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
+# Update all Capacitor packages (keep in sync for compatibility)
+pnpm update "@capacitor/core" "@capacitor/cli" "@capacitor/ios" "@capacitor/android" "@capacitor/app" "@capacitor/splash-screen" "@capacitor/status-bar" "@capacitor/keyboard"
 
 # View native logs
 # iOS: Xcode → Window → Devices and Simulators → Select device → Console
