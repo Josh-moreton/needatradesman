@@ -18,12 +18,12 @@ import { PriceBreakdownModal } from "@/components/pricing/PriceBreakdownModal";
 const logger = createLogger('deposit-payment-modal');
 
 interface DepositPaymentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  jobId: string;
-  tradespersonId: string;
-  jobTitle: string;
-  depositAmount: number;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly jobId: string;
+  readonly tradespersonId: string;
+  readonly jobTitle: string;
+  readonly depositAmount: number;
 }
 
 export function DepositPaymentModal({
@@ -68,7 +68,7 @@ export function DepositPaymentModal({
 
       // Redirect to Stripe Checkout
       if (data.url) {
-        window.location.href = data.url;
+        globalThis.location.href = data.url;
       } else {
         throw new Error("No checkout URL returned");
       }
