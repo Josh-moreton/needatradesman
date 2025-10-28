@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-export function Sidebar({}: Readonly<object>) {
+export function Sidebar({}: Readonly<Record<string, never>>) {
   const pathname = usePathname();
 
   const links = [
