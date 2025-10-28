@@ -14,17 +14,17 @@ import {
 import { FinalPaymentModal } from "./FinalPaymentModal";
 
 interface PaymentStatusCardProps {
-  jobId: string;
-  jobTitle: string;
-  jobStatus: string;
-  depositPaid: boolean;
-  finalPaid: boolean;
-  payoutReleased?: boolean;
-  fullAmount?: number;
-  depositAmount?: number;
-  userRole: "CUSTOMER" | "TRADESPERSON";
-  customerConfirmedComplete?: boolean;
-  tradespersonConfirmedComplete?: boolean;
+  readonly jobId: string;
+  readonly jobTitle: string;
+  readonly jobStatus: string;
+  readonly depositPaid: boolean;
+  readonly finalPaid: boolean;
+  readonly payoutReleased?: boolean;
+  readonly fullAmount?: number;
+  readonly depositAmount?: number;
+  readonly userRole: "CUSTOMER" | "TRADESPERSON";
+  readonly customerConfirmedComplete?: boolean;
+  readonly tradespersonConfirmedComplete?: boolean;
 }
 
 export function PaymentStatusCard({
@@ -45,6 +45,26 @@ export function PaymentStatusCard({
   const bothConfirmedComplete = customerConfirmedComplete && tradespersonConfirmedComplete;
   const remainingAmount = fullAmount - depositAmount;
   const needsFinalPayment = jobStatus === "COMPLETED" && depositPaid && !finalPaid && remainingAmount > 0;
+
+  const getFinalPaymentIcon = () => {
+    if (finalPaid) {
+      return <CheckCircle2 className="h-3 w-3 text-green-600" />;
+    }
+    if (needsFinalPayment) {
+      return <AlertTriangle className="h-3 w-3 text-amber-600" />;
+    }
+    return <Clock className="h-3 w-3 text-gray-400" />;
+  };
+
+  const getFinalPaymentClassName = () => {
+    if (finalPaid) {
+      return "text-green-700";
+    }
+    if (needsFinalPayment) {
+      return "text-amber-700";
+    }
+    return "text-gray-500";
+  };
 
   const getPaymentStatus = () => {
     if (!depositPaid) return "pending_deposit";
@@ -112,15 +132,9 @@ export function PaymentStatusCard({
                   <div className="flex justify-between text-sm">
                     <span className="flex items-center gap-1">
                       Final Payment:
-                      {finalPaid ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      ) : needsFinalPayment ? (
-                        <AlertTriangle className="h-3 w-3 text-amber-600" />
-                      ) : (
-                        <Clock className="h-3 w-3 text-gray-400" />
-                      )}
+                      {getFinalPaymentIcon()}
                     </span>
-                    <span className={finalPaid ? "text-green-700" : needsFinalPayment ? "text-amber-700" : "text-gray-500"}>
+                    <span className={getFinalPaymentClassName()}>
                       £{remainingAmount.toFixed(2)}
                     </span>
                   </div>
