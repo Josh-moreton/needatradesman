@@ -20,7 +20,10 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
  * Extract payment intent ID from Stripe session
  * Handles both string and PaymentIntent object types
  */
-function extractPaymentIntentId(paymentIntent: string | Stripe.PaymentIntent): string {
+function extractPaymentIntentId(paymentIntent: string | Stripe.PaymentIntent | null): string {
+    if (!paymentIntent) {
+        throw new Error('Payment intent cannot be null or undefined');
+    }
     return typeof paymentIntent === 'string' ? paymentIntent : paymentIntent.id;
 }
 
@@ -32,7 +35,14 @@ function extractChargeId(latestCharge: string | Stripe.Charge | null): string | 
     if (!latestCharge) {
         return null;
     }
-    return typeof latestCharge === 'string' ? latestCharge : latestCharge.id;
+    if (typeof latestCharge === 'string') {
+        return latestCharge;
+    }
+    // Verify it's a valid Charge object with an id
+    if (typeof latestCharge === 'object' && 'id' in latestCharge && typeof latestCharge.id === 'string') {
+        return latestCharge.id;
+    }
+    return null;
 }
 
 /**
