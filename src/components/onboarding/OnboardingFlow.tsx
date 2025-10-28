@@ -247,7 +247,7 @@ export default function OnboardingFlow() {
                           {trade
                             .replaceAll("_", " ")
                             .toLowerCase()
-                            .replaceAll(/\b\w/g, (l: string) => l.toUpperCase())}
+                            .replace(/\b\w/g, (l: string) => l.toUpperCase())}
                         </label>
                       </div>
                     )
@@ -291,7 +291,7 @@ interface RoleCardProps {
   readonly title: string;
   readonly description: string;
   readonly icon: React.ReactNode;
-  readonly features: readonly string[];
+  readonly features: string[];
   readonly isSelected: boolean;
   readonly isLoading: boolean;
   readonly onSelect: () => void;
