@@ -10,6 +10,49 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 
+interface ErrorContentProps {
+  user: Awaited<ReturnType<typeof getCurrentUser>>;
+}
+
+function ErrorContent({ user }: ErrorContentProps) {
+  if (user === null) {
+    return (
+      <>
+        <p className="text-sm text-muted-foreground text-center">
+          Please sign in to access your dashboard
+        </p>
+        <Button asChild className="w-full">
+          <Link href="/sign-in">Sign In</Link>
+        </Button>
+      </>
+    );
+  }
+
+  if (user.role === null) {
+    return (
+      <>
+        <p className="text-sm text-muted-foreground text-center">
+          Complete your account setup to continue
+        </p>
+        <Button asChild className="w-full">
+          <Link href="/dashboard">Complete Setup</Link>
+        </Button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground text-center">
+        Your account role is not recognized. Please contact support.
+      </p>
+      <Button asChild variant="outline" className="w-full">
+        <Link href="/dashboard">Reset Account</Link>
+      </Button>
+    </>
+  );
+}
+
 export default async function DashboardErrorPage() {
   const user = await getCurrentUser();
 
@@ -25,34 +68,7 @@ export default async function DashboardErrorPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!user ? (
-              <>
-                <p className="text-sm text-muted-foreground text-center">
-                  Please sign in to access your dashboard
-                </p>
-                <Button asChild className="w-full">
-                  <Link href="/sign-in">Sign In</Link>
-                </Button>
-              </>
-            ) : !user.role ? (
-              <>
-                <p className="text-sm text-muted-foreground text-center">
-                  Complete your account setup to continue
-                </p>
-                <Button asChild className="w-full">
-                  <Link href="/dashboard">Complete Setup</Link>
-                </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground text-center">
-                  Your account role is not recognized. Please contact support.
-                </p>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/dashboard">Reset Account</Link>
-                </Button>
-              </>
-            )}
+            <ErrorContent user={user} />
           </CardContent>
         </Card>
       </div>
