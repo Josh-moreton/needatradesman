@@ -55,7 +55,7 @@ export function QuoteBuilder({
   onRequiresDepositChange,
   userId,
   showTemplates = false,
-}: QuoteBuilderProps) {
+}: Readonly<QuoteBuilderProps>) {
   const [items, setItems] = useState<QuoteItem[]>(value);
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
@@ -123,7 +123,7 @@ export function QuoteBuilder({
       const newItems = selectedTemplate.items.map((item) => ({
         description: item.description,
         quantity: 1,
-        unitPrice: parseFloat(item.price.toString()),
+        unitPrice: Number.parseFloat(item.price.toString()),
       }));
       setItems(newItems);
     }
@@ -164,7 +164,7 @@ export function QuoteBuilder({
       )}
 
       {items.map((item, index) => (
-        <div key={index} className="flex gap-2 items-end">
+        <div key={`${item.description}-${index}`} className="flex gap-2 items-end">
           <div className="flex-1">
             <FormLabel>Description</FormLabel>
             <Input
@@ -277,8 +277,8 @@ export function QuoteBuilder({
                 type="number"
                 value={depositPercentage}
                 onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value >= 0 && value <= 100) {
+                  const value = Number.parseInt(e.target.value);
+                  if (!Number.isNaN(value) && value >= 0 && value <= 100) {
                     onDepositPercentageChange(value);
                   }
                 }}
