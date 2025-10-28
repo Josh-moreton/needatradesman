@@ -21,7 +21,7 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('template-modal');
 
 interface TemplateModalProps {
-  onTemplateAdded: () => void;
+  readonly onTemplateAdded: () => void;
 }
 
 interface QuoteTemplate {
@@ -34,13 +34,17 @@ interface QuoteTemplate {
   }[];
 }
 
+interface QuoteItemWithKey extends QuoteItem {
+  tempId: string;
+}
+
 export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [items, setItems] = useState<QuoteItem[]>([
-    { description: "", quantity: 1, unitPrice: 0 },
+  const [items, setItems] = useState<QuoteItemWithKey[]>([
+    { description: "", quantity: 1, unitPrice: 0, tempId: crypto.randomUUID() },
   ]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -68,7 +72,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
 
   // Add new item to form
   const addItem = () => {
-    setItems([...items, { description: "", quantity: 1, unitPrice: 0 }]);
+    setItems([...items, { description: "", quantity: 1, unitPrice: 0, tempId: crypto.randomUUID() }]);
   };
 
   // Update item in form
@@ -112,7 +116,8 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: templateName,
-          items: items,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          items: items.map(({ tempId, ...item }) => item),
         }),
       });
 
@@ -122,7 +127,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
       setTemplates([...templates, newTemplate]);
       setCreating(false);
       setTemplateName("");
-      setItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+      setItems([{ description: "", quantity: 1, unitPrice: 0, tempId: crypto.randomUUID() }]);
       toast.success("Template created successfully");
       onTemplateAdded();
       setIsOpen(false);
@@ -172,13 +177,13 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
           {/* Existing Templates */}
           <div>
             <h3 className="text-lg font-medium mb-4">Your Templates</h3>
-            {loading ? (
-              <p>Loading templates...</p>
-            ) : templates.length === 0 ? (
+            {loading && <p>Loading templates...</p>}
+            {!loading && templates.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 No templates yet. Create your first one below.
               </p>
-            ) : (
+            )}
+            {!loading && templates.length > 0 && (
               <div className="grid gap-4">
                 {templates.map((template) => (
                   <div key={template.id} className="border rounded-md p-4">
@@ -195,7 +200,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
                     <div className="text-sm space-y-1">
                       {template.items.map((item, i) => (
                         <div
-                          key={item.id || i}
+                          key={item.id || `item-${template.id}-${i}`}
                           className="flex justify-between"
                         >
                           <span>{item.description}</span>
@@ -232,7 +237,7 @@ export function TemplateModal({ onTemplateAdded }: TemplateModalProps) {
                 <h4 className="font-medium">Items</h4>
 
                 {items.map((item, index) => (
-                  <div key={index} className="flex gap-2 items-end">
+                  <div key={item.tempId} className="flex gap-2 items-end">
                     <div className="flex-1">
                       <FormLabel>Description</FormLabel>
                       <Input
