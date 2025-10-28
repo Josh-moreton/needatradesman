@@ -134,7 +134,8 @@ export async function getEligibleJobs(userId: string, filters?: {
   )
 
   // Get all jobs
-  const where: { status?: string; category?: string } = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: { status?: string; category?: any } = {
     status: filters?.status || 'OPEN',
   }
 
@@ -143,7 +144,8 @@ export async function getEligibleJobs(userId: string, filters?: {
   }
 
   const allJobs = await prisma.job.findMany({
-    where,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    where: where as any,
     take: filters?.limit || 50,
     skip: filters?.offset || 0,
     orderBy: { createdAt: 'desc' },
