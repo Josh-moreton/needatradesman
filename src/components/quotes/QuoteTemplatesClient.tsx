@@ -20,6 +20,11 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('quote-templates-client');
 
+// Extended QuoteItem with a unique identifier for React keys
+interface QuoteItemWithId extends QuoteItem {
+  _id: string;
+}
+
 // Template creation form schema
 const templateFormSchema = z.object({
   name: z.string().min(1, "Template name is required"),
@@ -42,8 +47,8 @@ export default function QuoteTemplatesClient() {
   const [templates, setTemplates] = useState<QuoteTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [items, setItems] = useState<QuoteItem[]>([
-    { description: "", quantity: 1, unitPrice: 0 },
+  const [items, setItems] = useState<QuoteItemWithId[]>([
+    { description: "", quantity: 1, unitPrice: 0, _id: crypto.randomUUID() },
   ]);
 
   const form = useForm<TemplateFormValues>({
@@ -75,7 +80,7 @@ export default function QuoteTemplatesClient() {
 
   // Add new item to form
   const addItem = () => {
-    setItems([...items, { description: "", quantity: 1, unitPrice: 0 }]);
+    setItems([...items, { description: "", quantity: 1, unitPrice: 0, _id: crypto.randomUUID() }]);
   };
 
   // Update item in form
@@ -104,12 +109,15 @@ export default function QuoteTemplatesClient() {
   const handleCreateTemplate = async (values: TemplateFormValues) => {
     try {
       setCreating(true);
+      // Remove _id from items before sending to API
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const itemsForApi = items.map(({ _id, ...item }) => item);
       const response = await fetch("/api/quote-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: values.name,
-          items: items,
+          items: itemsForApi,
         }),
       });
 
@@ -118,7 +126,7 @@ export default function QuoteTemplatesClient() {
       const newTemplate = await response.json();
       setTemplates([...templates, newTemplate]);
       setCreating(false);
-      setItems([{ description: "", quantity: 1, unitPrice: 0 }]);
+      setItems([{ description: "", quantity: 1, unitPrice: 0, _id: crypto.randomUUID() }]);
       form.reset();
       toast.success("Template created successfully");
     } catch (error) {
@@ -147,54 +155,63 @@ export default function QuoteTemplatesClient() {
     }
   };
 
+  // Render templates list content based on loading and data state
+  const renderTemplatesList = () => {
+    if (loading) {
+      return <p>Loading templates...</p>;
+    }
+
+    if (templates.length === 0) {
+      return <p>You don&apos;t have any templates yet. Create your first one below.</p>;
+    }
+
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {templates.map((template) => (
+          <Card key={template.id}>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>{template.name}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteTemplate(template.id)}
+                >
+                  Delete
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {template.items.map((item, i) => (
+                  <div
+                    key={item.id || i}
+                    className="flex justify-between text-sm"
+                  >
+                    <span>{item.description}</span>
+                    <span>£{Number(item.price).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="border-t pt-2 mt-2 font-medium">
+                  Total: £
+                  {template.items
+                    .reduce((sum, item) => sum + Number(item.price), 0)
+                    .toFixed(2)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8">
       {/* Templates list */}
       <div>
         <h2 className="text-xl font-medium mb-4">Your Quote Templates</h2>
-        {loading ? (
-          <p>Loading templates...</p>
-        ) : templates.length === 0 ? (
-          <p>You don&apos;t have any templates yet. Create your first one below.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {templates.map((template) => (
-              <Card key={template.id}>
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-center">
-                    <span>{template.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteTemplate(template.id)}
-                    >
-                      Delete
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {template.items.map((item, i) => (
-                      <div
-                        key={item.id || i}
-                        className="flex justify-between text-sm"
-                      >
-                        <span>{item.description}</span>
-                        <span>£{Number(item.price).toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <div className="border-t pt-2 mt-2 font-medium">
-                      Total: £
-                      {template.items
-                        .reduce((sum, item) => sum + Number(item.price), 0)
-                        .toFixed(2)}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        {renderTemplatesList()}
       </div>
 
       {/* Create new template form */}
@@ -226,17 +243,18 @@ export default function QuoteTemplatesClient() {
                 <div className="space-y-6">
                   <h3 className="font-medium">Items</h3>
 
-                  {items.map((item, index) => (
-                    <div key={index} className="flex gap-4 items-end">
+                  {items.map((item) => (
+                    <div key={item._id} className="flex gap-4 items-end">
                       <div className="flex-1">
                         <FormLabel className="block mb-2">
                           Description
                         </FormLabel>
                         <Input
                           value={item.description}
-                          onChange={(e) =>
-                            updateItem(index, "description", e.target.value)
-                          }
+                          onChange={(e) => {
+                            const index = items.findIndex(i => i._id === item._id);
+                            updateItem(index, "description", e.target.value);
+                          }}
                           placeholder="Item description"
                         />
                       </div>
@@ -245,9 +263,10 @@ export default function QuoteTemplatesClient() {
                         <Input
                           type="number"
                           value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(index, "quantity", e.target.value)
-                          }
+                          onChange={(e) => {
+                            const index = items.findIndex(i => i._id === item._id);
+                            updateItem(index, "quantity", e.target.value);
+                          }}
                           className="w-20"
                         />
                       </div>
@@ -256,9 +275,10 @@ export default function QuoteTemplatesClient() {
                         <Input
                           type="number"
                           value={item.unitPrice}
-                          onChange={(e) =>
-                            updateItem(index, "unitPrice", e.target.value)
-                          }
+                          onChange={(e) => {
+                            const index = items.findIndex(i => i._id === item._id);
+                            updateItem(index, "unitPrice", e.target.value);
+                          }}
                           className="w-24"
                           step="0.01"
                         />
@@ -266,7 +286,10 @@ export default function QuoteTemplatesClient() {
                       <Button
                         type="button"
                         variant="destructive"
-                        onClick={() => removeItem(index)}
+                        onClick={() => {
+                          const index = items.findIndex(i => i._id === item._id);
+                          removeItem(index);
+                        }}
                       >
                         Remove
                       </Button>
