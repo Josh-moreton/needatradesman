@@ -39,6 +39,8 @@ import {
   Briefcase,
   BarChart3,
   DollarSign,
+  Shield,
+  Users,
 } from "lucide-react";
 import { UserRole } from "@prisma/client";
 
@@ -53,6 +55,7 @@ export default function Header({ userRole = null }: HeaderProps) {
 
   const isCustomer = userRole === UserRole.CUSTOMER;
   const isTradesperson = userRole === UserRole.TRADESPERSON;
+  const isAdmin = userRole === UserRole.ADMIN;
 
   useEffect(() => {
     setMounted(true);
@@ -77,7 +80,13 @@ export default function Header({ userRole = null }: HeaderProps) {
     { href: "/dashboard/support", label: "Support", icon: HelpCircle },
   ];
 
-  const navLinks = isCustomer ? customerLinks : isTradesperson ? tradespersonLinks : [];
+  const adminLinks = [
+    { href: "/dashboard/admin", label: "Admin Portal", icon: Shield },
+    { href: "/dashboard/admin/jobs", label: "All Jobs", icon: Briefcase },
+    { href: "/dashboard/admin/users", label: "All Users", icon: Users },
+  ];
+
+  const navLinks = isCustomer ? customerLinks : isTradesperson ? tradespersonLinks : isAdmin ? adminLinks : [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -135,90 +144,92 @@ export default function Header({ userRole = null }: HeaderProps) {
             <NavigationMenu className="hidden md:flex">
               <NavigationMenuList>
                 <SignedIn>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger>Jobs</NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                        <li className="row-span-3">
-                          <NavigationMenuLink asChild>
-                            <Link
-                              className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                              href={
-                                isTradesperson
-                                  ? "/dashboard/jobs"
-                                  : "/dashboard/jobs/new"
-                              }
-                            >
-                              <div className="mb-2 mt-4 text-lg font-medium">
-                                {isTradesperson ? "Browse Jobs" : "Post a Job"}
-                              </div>
-                              <p className="text-sm leading-tight text-muted-foreground">
-                                {isTradesperson
-                                  ? "Find work opportunities in your area and apply to jobs that match your skills."
-                                  : "Create a new job posting to find skilled tradespeople."}
-                              </p>
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                        {isCustomer ? (
-                          <>
-                            <ListItem
-                              href="/dashboard/jobs/new"
-                              title="Post a Job"
-                            >
-                              Create a new job posting to find skilled
-                              tradespeople.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/my-jobs"
-                              title="My Jobs"
-                            >
-                              Manage your posted jobs and view applications.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/messages"
-                              title="Messages"
-                            >
-                              Communicate with tradespeople.
-                            </ListItem>
-                          </>
-                        ) : isTradesperson ? (
-                          <>
-                            <ListItem
-                              href="/dashboard/jobs"
-                              title="Browse Jobs"
-                            >
-                              Find work opportunities in your area.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/my-responses"
-                              title="My Responses"
-                            >
-                              Track your job applications and responses.
-                            </ListItem>
-                            <ListItem
-                              href="/dashboard/messages"
-                              title="Messages"
-                            >
-                              Communicate with customers.
-                            </ListItem>
-                          </>
-                        ) : (
-                          <>
-                            <ListItem href="/sign-up" title="Post a Job">
-                              Sign up as a customer to post jobs.
-                            </ListItem>
-                            <ListItem href="/sign-up" title="Find Work">
-                              Sign up as a tradesperson to find work.
-                            </ListItem>
-                            <ListItem href="/sign-in" title="Sign In">
-                              Access your account.
-                            </ListItem>
-                          </>
-                        )}
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
+                  {!isAdmin && (
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger>Jobs</NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                          <li className="row-span-3">
+                            <NavigationMenuLink asChild>
+                              <Link
+                                className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                                href={
+                                  isTradesperson
+                                    ? "/dashboard/jobs"
+                                    : "/dashboard/jobs/new"
+                                }
+                              >
+                                <div className="mb-2 mt-4 text-lg font-medium">
+                                  {isTradesperson ? "Browse Jobs" : "Post a Job"}
+                                </div>
+                                <p className="text-sm leading-tight text-muted-foreground">
+                                  {isTradesperson
+                                    ? "Find work opportunities in your area and apply to jobs that match your skills."
+                                    : "Create a new job posting to find skilled tradespeople."}
+                                </p>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                          {isCustomer ? (
+                            <>
+                              <ListItem
+                                href="/dashboard/jobs/new"
+                                title="Post a Job"
+                              >
+                                Create a new job posting to find skilled
+                                tradespeople.
+                              </ListItem>
+                              <ListItem
+                                href="/dashboard/my-jobs"
+                                title="My Jobs"
+                              >
+                                Manage your posted jobs and view applications.
+                              </ListItem>
+                              <ListItem
+                                href="/dashboard/messages"
+                                title="Messages"
+                              >
+                                Communicate with tradespeople.
+                              </ListItem>
+                            </>
+                          ) : isTradesperson ? (
+                            <>
+                              <ListItem
+                                href="/dashboard/jobs"
+                                title="Browse Jobs"
+                              >
+                                Find work opportunities in your area.
+                              </ListItem>
+                              <ListItem
+                                href="/dashboard/my-responses"
+                                title="My Responses"
+                              >
+                                Track your job applications and responses.
+                              </ListItem>
+                              <ListItem
+                                href="/dashboard/messages"
+                                title="Messages"
+                              >
+                                Communicate with customers.
+                              </ListItem>
+                            </>
+                          ) : (
+                            <>
+                              <ListItem href="/sign-up" title="Post a Job">
+                                Sign up as a customer to post jobs.
+                              </ListItem>
+                              <ListItem href="/sign-up" title="Find Work">
+                                Sign up as a tradesperson to find work.
+                              </ListItem>
+                              <ListItem href="/sign-in" title="Sign In">
+                                Access your account.
+                              </ListItem>
+                            </>
+                          )}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  )}
 
                   <NavigationMenuItem>
                     <NavigationMenuLink asChild>
@@ -235,20 +246,56 @@ export default function Header({ userRole = null }: HeaderProps) {
                     </NavigationMenuLink>
                   </NavigationMenuItem>
 
-                  <NavigationMenuItem>
-                    <NavigationMenuLink asChild>
-                      <Link
-                        href="/dashboard/messages"
-                        className={cn(
-                          "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
-                          pathname?.startsWith("/dashboard/messages") &&
-                            "bg-accent text-accent-foreground"
-                        )}
-                      >
-                        Messages
-                      </Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
+                  {isAdmin && (
+                    <>
+                      <NavigationMenuItem>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/dashboard/admin/jobs"
+                            className={cn(
+                              "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                              pathname === "/dashboard/admin/jobs" &&
+                                "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            All Jobs
+                          </Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+
+                      <NavigationMenuItem>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/dashboard/admin/users"
+                            className={cn(
+                              "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                              pathname === "/dashboard/admin/users" &&
+                                "bg-accent text-accent-foreground"
+                            )}
+                          >
+                            All Users
+                          </Link>
+                        </NavigationMenuLink>
+                      </NavigationMenuItem>
+                    </>
+                  )}
+
+                  {!isAdmin && (
+                    <NavigationMenuItem>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/dashboard/messages"
+                          className={cn(
+                            "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                            pathname?.startsWith("/dashboard/messages") &&
+                              "bg-accent text-accent-foreground"
+                          )}
+                        >
+                          Messages
+                        </Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                  )}
 
                   {isTradesperson && (
                     <>
@@ -284,20 +331,22 @@ export default function Header({ userRole = null }: HeaderProps) {
                     </>
                   )}
 
-                  <NavigationMenuItem>
-                    <NavigationMenuLink asChild>
-                      <Link
-                        href="/dashboard/support"
-                        className={cn(
-                          "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
-                          pathname === "/dashboard/support" &&
-                            "bg-accent text-accent-foreground"
-                        )}
-                      >
-                        Support
-                      </Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem>
+                  {!isAdmin && (
+                    <NavigationMenuItem>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/dashboard/support"
+                          className={cn(
+                            "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50",
+                            pathname === "/dashboard/support" &&
+                              "bg-accent text-accent-foreground"
+                          )}
+                        >
+                          Support
+                        </Link>
+                      </NavigationMenuLink>
+                    </NavigationMenuItem>
+                  )}
                 </SignedIn>
               </NavigationMenuList>
             </NavigationMenu>
