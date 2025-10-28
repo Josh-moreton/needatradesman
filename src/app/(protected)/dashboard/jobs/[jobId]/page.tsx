@@ -32,14 +32,14 @@ const metadataLogger = createLogger("dashboard-job-detail-metadata");
 export const dynamic = "force-dynamic";
 
 interface JobDetailPageProps {
-  params: Promise<{
-    jobId: string;
+  readonly params: Promise<{
+    readonly jobId: string;
   }>;
-  searchParams: Promise<{
-    payment_success?: string;
-    payment_cancelled?: string;
-    final_payment_success?: string;
-    final_payment_cancelled?: string;
+  readonly searchParams: Promise<{
+    readonly payment_success?: string;
+    readonly payment_cancelled?: string;
+    readonly final_payment_success?: string;
+    readonly final_payment_cancelled?: string;
   }>;
 }
 

@@ -13,8 +13,8 @@ const metadataLogger = createLogger('customer-manage-job-metadata');
 export const dynamic = "force-dynamic";
 
 interface ManageResponsesPageProps {
-  params: Promise<{
-    jobId: string;
+  readonly params: Promise<{
+    readonly jobId: string;
   }>;
 }
 
