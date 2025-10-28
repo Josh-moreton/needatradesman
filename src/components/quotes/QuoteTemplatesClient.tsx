@@ -182,9 +182,9 @@ export default function QuoteTemplatesClient() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {template.items.map((item, i) => (
+                {template.items.map((item) => (
                   <div
-                    key={item.id || i}
+                    key={item.id}
                     className="flex justify-between text-sm"
                   >
                     <span>{item.description}</span>
