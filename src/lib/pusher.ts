@@ -21,7 +21,7 @@ export const pusherClient = new PusherClient(
 
 // Helper function to get channel name for a conversation
 export function getConversationChannel(jobId: string, participantIds: string[]): string {
-    const sortedIds = participantIds.sort();
+    const sortedIds = participantIds.toSorted((a, b) => a.localeCompare(b));
     return `conversation-${jobId}-${sortedIds.join("-")}`;
 }
 
