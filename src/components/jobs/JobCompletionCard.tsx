@@ -10,6 +10,93 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('job-completion-card');
 
+function CompletionBadge({ confirmed, completedAt }: { confirmed: boolean; completedAt?: string | null }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        {confirmed ? (
+          <Badge variant="secondary" className="text-green-700 bg-green-100">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Confirmed
+          </Badge>
+        ) : (
+          <Badge variant="outline">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        )}
+      </div>
+      {completedAt && (
+        <p className="text-xs text-muted-foreground">
+          {new Date(completedAt).toLocaleDateString()}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CompletionStatusMessage({ 
+  bothConfirmed, 
+  userHasConfirmed, 
+  userRole,
+  payoutReleased,
+  otherPartyConfirmed 
+}: { 
+  bothConfirmed: boolean;
+  userHasConfirmed: boolean;
+  userRole: "CUSTOMER" | "TRADESPERSON";
+  payoutReleased: boolean;
+  otherPartyConfirmed: boolean;
+}) {
+  if (bothConfirmed) {
+    return (
+      <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium text-green-800">Job Completed!</p>
+          <p className="text-green-700">
+            Both parties have confirmed completion.{" "}
+            {payoutReleased
+              ? "Payment has been released to the tradesperson."
+              : "Payment processing is in progress."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (userHasConfirmed) {
+    return (
+      <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium text-blue-800">You&apos;ve confirmed completion</p>
+          <p className="text-blue-700">
+            Waiting for the {userRole === "CUSTOMER" ? "tradesperson" : "customer"} to confirm.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+      <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+      <div className="text-sm">
+        <p className="font-medium text-amber-800">Confirm job completion</p>
+        <p className="text-amber-700">
+          Please confirm that the work has been completed to your satisfaction.
+          {otherPartyConfirmed && (
+            <span className="block mt-1 font-medium">
+              The {userRole === "CUSTOMER" ? "tradesperson" : "customer"} has already confirmed.
+            </span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 interface JobCompletionCardProps {
   jobId: string;
   userRole: "CUSTOMER" | "TRADESPERSON";
@@ -32,7 +119,7 @@ export function JobCompletionCard({
   jobStatus,
   payoutReleased = false,
   onStatusUpdate,
-}: JobCompletionCardProps) {
+}: Readonly<JobCompletionCardProps>) {
   const [loading, setLoading] = useState(false);
 
   const userHasConfirmed = userRole === "CUSTOMER" ? customerConfirmed : tradespersonConfirmed;
@@ -88,91 +175,31 @@ export function JobCompletionCard({
         <div className="space-y-4">
           {/* Completion Status */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Customer</span>
-                {customerConfirmed ? (
-                  <Badge variant="secondary" className="text-green-700 bg-green-100">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Confirmed
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Pending
-                  </Badge>
-                )}
-              </div>
-              {customerCompletedAt && (
-                <p className="text-xs text-muted-foreground">
-                  {new Date(customerCompletedAt).toLocaleDateString()}
-                </p>
-              )}
+            <div>
+              <span className="text-sm font-medium">Customer</span>
+              <CompletionBadge 
+                confirmed={customerConfirmed}
+                completedAt={customerCompletedAt}
+              />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Tradesperson</span>
-                {tradespersonConfirmed ? (
-                  <Badge variant="secondary" className="text-green-700 bg-green-100">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Confirmed
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Pending
-                  </Badge>
-                )}
-              </div>
-              {tradespersonCompletedAt && (
-                <p className="text-xs text-muted-foreground">
-                  {new Date(tradespersonCompletedAt).toLocaleDateString()}
-                </p>
-              )}
+            <div>
+              <span className="text-sm font-medium">Tradesperson</span>
+              <CompletionBadge 
+                confirmed={tradespersonConfirmed}
+                completedAt={tradespersonCompletedAt}
+              />
             </div>
           </div>
 
           {/* Status Messages */}
-          {bothConfirmed ? (
-            <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
-              <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-green-800">Job Completed!</p>
-                <p className="text-green-700">
-                  Both parties have confirmed completion.{" "}
-                  {payoutReleased
-                    ? "Payment has been released to the tradesperson."
-                    : "Payment processing is in progress."}
-                </p>
-              </div>
-            </div>
-          ) : userHasConfirmed ? (
-            <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <CheckCircle2 className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-800">You&apos;ve confirmed completion</p>
-                <p className="text-blue-700">
-                  Waiting for the {userRole === "CUSTOMER" ? "tradesperson" : "customer"} to confirm.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-              <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-amber-800">Confirm job completion</p>
-                <p className="text-amber-700">
-                  Please confirm that the work has been completed to your satisfaction.
-                  {otherPartyConfirmed && (
-                    <span className="block mt-1 font-medium">
-                      The {userRole === "CUSTOMER" ? "tradesperson" : "customer"} has already confirmed.
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          )}
+          <CompletionStatusMessage
+            bothConfirmed={bothConfirmed}
+            userHasConfirmed={userHasConfirmed}
+            userRole={userRole}
+            payoutReleased={payoutReleased}
+            otherPartyConfirmed={otherPartyConfirmed}
+          />
 
           {/* Action Button */}
           {!userHasConfirmed && jobStatus === "IN_PROGRESS" && (
