@@ -75,9 +75,13 @@ async function CustomerDashboardPage({ user }: { user: { id: string; firstName: 
     }),
   ]);
 
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
+  let displayName = "there";
+  if (user.firstName) {
+    displayName = user.firstName;
+    if (user.lastName) {
+      displayName = `${user.firstName} ${user.lastName}`;
+    }
+  }
 
   // Return the exact same content as the original customer page
   return (
@@ -280,9 +284,13 @@ async function TradespersonDashboardPage({ user }: { user: { id: string; firstNa
     }),
   ]);
 
-  const displayName = user.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
-    : "there";
+  let displayName = "there";
+  if (user.firstName) {
+    displayName = user.firstName;
+    if (user.lastName) {
+      displayName = `${user.firstName} ${user.lastName}`;
+    }
+  }
 
   // Return the exact same content as the original tradesperson page
   return (
