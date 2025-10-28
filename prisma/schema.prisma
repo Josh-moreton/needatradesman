@@ -23,22 +23,25 @@ model User {
   updatedAt       DateTime      @updatedAt
 
   // Relationships
-  jobsPosted       Job[]              @relation("CustomerJobs")
-  applications     Application[]
-  messagesSent     Message[]          @relation("MessageSender")
-  messagesReceived Message[]          @relation("MessageReceiver")
-  quoteTemplates   QuoteTemplate[]
-  emailPreference  EmailPreference?
+  jobsPosted        Job[]              @relation("CustomerJobs")
+  applications      Application[]
+  messagesSent      Message[]          @relation("MessageSender")
+  messagesReceived  Message[]          @relation("MessageReceiver")
+  quoteTemplates    QuoteTemplate[]
+  emailPreference   EmailPreference?
   emailSuppressions EmailSuppression[]
+  tradeProfile      TradeProfile?
 
   @@map("users")
 }
 
 model Job {
-  id                            String       @id @default(cuid())
+  id                            String          @id @default(cuid())
   title                         String
   description                   String
   category                      JobCategory
+  tradeCategories               TradeCategory[] // New: specific trade categories for verification gating
+  region                        Region          @default(ENG_WLS) // UK region for region-specific rules
   location                      String // Legacy text field for display
   placeId                       String? // Google Places ID for validation and future verification
   latitude                      Float? // For distance-based searches
@@ -47,33 +50,33 @@ model Job {
   city                          String? // Extracted city/town
   postcode                      String? // UK postcode for filtering
   budget                        Decimal?
-  status                        JobStatus    @default(OPEN)
+  status                        JobStatus       @default(OPEN)
   attachments                   String? // Store as JSON string of file URLs
   customerId                    String
-  depositPaid                   Boolean      @default(false)
-  depositPaymentIntentId        String?      @unique // Ensure each payment intent is used only once
-  finalPaid                     Boolean      @default(false)
-  finalPaymentIntentId          String?      @unique // Ensure each payment intent is used only once
+  depositPaid                   Boolean         @default(false)
+  depositPaymentIntentId        String?         @unique // Ensure each payment intent is used only once
+  finalPaid                     Boolean         @default(false)
+  finalPaymentIntentId          String?         @unique // Ensure each payment intent is used only once
   acceptedTradespersonId        String?
-  customerConfirmedComplete     Boolean      @default(false)
-  tradespersonConfirmedComplete Boolean      @default(false)
+  customerConfirmedComplete     Boolean         @default(false)
+  tradespersonConfirmedComplete Boolean         @default(false)
   customerCompletedAt           DateTime?
   tradespersonCompletedAt       DateTime?
-  payoutReleased                Boolean      @default(false)
+  payoutReleased                Boolean         @default(false)
   payoutTransferId              String? // Legacy field, migrated to depositTransferId
-  
+
   // Payment tracking fields
-  transferGroup                 String? // "job_${jobId}" for linking payments
-  depositChargeId               String? // Stripe Charge ID for deposit
-  depositTransferId             String? // Stripe Transfer ID for deposit
-  depositReleasedAt             DateTime? // When deposit transfer was created
-  finalChargeId                 String? // Stripe Charge ID for final payment
-  finalTransferId               String? // Stripe Transfer ID for final payment
-  finalReleasedAt               DateTime? // When final transfer was created
-  chargeModel                   ChargeModel? @default(DESTINATION_CHARGE) // Track which charge model is used
-  
-  createdAt                     DateTime     @default(now())
-  updatedAt                     DateTime     @updatedAt
+  transferGroup     String? // "job_${jobId}" for linking payments
+  depositChargeId   String? // Stripe Charge ID for deposit
+  depositTransferId String? // Stripe Transfer ID for deposit
+  depositReleasedAt DateTime? // When deposit transfer was created
+  finalChargeId     String? // Stripe Charge ID for final payment
+  finalTransferId   String? // Stripe Transfer ID for final payment
+  finalReleasedAt   DateTime? // When final transfer was created
+  chargeModel       ChargeModel? @default(DESTINATION_CHARGE) // Track which charge model is used
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
   customer     User          @relation("CustomerJobs", fields: [customerId], references: [id], onDelete: Cascade)
@@ -205,23 +208,23 @@ enum MessageType {
 
 enum ChargeModel {
   DESTINATION_CHARGE // Current: instant transfer via transfer_data
-  SC_AND_T          // Future: separate charges & transfers with control
+  SC_AND_T // Future: separate charges & transfers with control
 }
 
 // Email event tracking for idempotency and audit trail
 model EmailEvent {
-  id              String   @id @default(cuid())
-  idempotencyKey  String   @unique // SHA-256 hash of event_type + payload
-  eventType       String   // e.g., "UserRegistered", "JobResponded"
-  payloadHash     String   // Hash of the full payload for verification
-  status          EmailEventStatus @default(PENDING)
-  messageId       String?  // Resend message ID after successful send
-  recipientEmail  String
-  subject         String?
-  errorMessage    String?
-  createdAt       DateTime @default(now())
-  sentAt          DateTime?
-  
+  id             String           @id @default(cuid())
+  idempotencyKey String           @unique // SHA-256 hash of event_type + payload
+  eventType      String // e.g., "UserRegistered", "JobResponded"
+  payloadHash    String // Hash of the full payload for verification
+  status         EmailEventStatus @default(PENDING)
+  messageId      String? // Resend message ID after successful send
+  recipientEmail String
+  subject        String?
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+  sentAt         DateTime?
+
   @@index([idempotencyKey])
   @@index([eventType, createdAt])
   @@index([recipientEmail, createdAt])
@@ -230,32 +233,32 @@ model EmailEvent {
 
 // User email preferences for transactional and digest emails
 model EmailPreference {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
-  allowTransactional    Boolean  @default(true) // Always true, locked for transactional
-  allowDigest           Boolean  @default(true)
-  digestFrequency       DigestFrequency @default(WEEKLY)
-  professionFilters     JobCategory[] // Filter digest by these professions
-  regionFilters         String[] // Array of postcodes or cities
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
+  id                 String          @id @default(cuid())
+  userId             String          @unique
+  allowTransactional Boolean         @default(true) // Always true, locked for transactional
+  allowDigest        Boolean         @default(true)
+  digestFrequency    DigestFrequency @default(WEEKLY)
+  professionFilters  JobCategory[] // Filter digest by these professions
+  regionFilters      String[] // Array of postcodes or cities
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("email_preferences")
 }
 
 // Email suppressions for bounces, complaints, and manual unsubscribes
 model EmailSuppression {
-  id        String              @id @default(cuid())
+  id        String            @id @default(cuid())
   userId    String?
   email     String
   reason    SuppressionReason
-  source    String?             // e.g., "resend_webhook", "manual"
-  createdAt DateTime            @default(now())
-  
+  source    String? // e.g., "resend_webhook", "manual"
+  createdAt DateTime          @default(now())
+
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([email, reason])
   @@index([email])
   @@map("email_suppressions")
@@ -282,4 +285,186 @@ enum SuppressionReason {
   COMPLAINT
   MANUAL_UNSUBSCRIBE
   ABUSE
+}
+
+// ===== VERIFICATION SYSTEM MODELS =====
+
+// Trade profile for tradespeople with business details
+model TradeProfile {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  legalEntityType LegalEntityType @default(SOLE_TRADER)
+  companyNumber   String? // Companies House number
+  vatNumber       String?
+  hasEmployees    Boolean         @default(false)
+  bankAccountName String? // From Open Banking verification
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifications Verification[]
+  badges        Badge[]
+
+  @@index([companyNumber])
+  @@map("trade_profiles")
+}
+
+// Verification records for qualifications, licenses, insurance
+model Verification {
+  id             String             @id @default(cuid())
+  tradeProfileId String
+  type           VerificationType
+  schemeName     String? // e.g. Gas Safe, NICEIC, REFCOM
+  registrationNo String? // scheme/company/engineer ID
+  level          VerificationLevel  @default(MANDATORY)
+  status         VerificationStatus @default(PENDING)
+  validFrom      DateTime?
+  validTo        DateTime?
+  fields         Json? // issuer, coverLimit, insurer, etc.
+  publicUrl      String? // link to register
+  lastCheckedAt  DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  tradeProfile TradeProfile           @relation(fields: [tradeProfileId], references: [id], onDelete: Cascade)
+  evidences    VerificationEvidence[]
+  auditLogs    AuditLog[]
+
+  @@index([type, status, validTo])
+  @@index([tradeProfileId, status])
+  @@map("verifications")
+}
+
+// Evidence files/documents for verifications
+model VerificationEvidence {
+  id             String       @id @default(cuid())
+  verificationId String
+  kind           EvidenceKind
+  url            String // S3 or file storage
+  meta           Json?
+  uploadedAt     DateTime     @default(now())
+
+  verification Verification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+  @@map("verification_evidences")
+}
+
+// Public badges displayed on profiles
+model Badge {
+  id             String    @id @default(cuid())
+  tradeProfileId String
+  name           String // e.g., "Gas Safe"
+  value          String // "123456"
+  expiresAt      DateTime?
+  isPublic       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  tradeProfile TradeProfile @relation(fields: [tradeProfileId], references: [id], onDelete: Cascade)
+
+  @@index([tradeProfileId])
+  @@map("badges")
+}
+
+// Job visibility rules - maps categories to required verifications
+model JobVisibilityRule {
+  id            String             @id @default(cuid())
+  category      TradeCategory
+  region        Region
+  requiredTypes VerificationType[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([category, region])
+  @@index([category])
+  @@map("job_visibility_rules")
+}
+
+// Audit log for verification actions
+model AuditLog {
+  id             String   @id @default(cuid())
+  verificationId String?
+  actorUserId    String?
+  action         String
+  details        Json?
+  createdAt      DateTime @default(now())
+
+  verification Verification? @relation(fields: [verificationId], references: [id], onDelete: SetNull)
+
+  @@index([verificationId])
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
+}
+
+// ===== VERIFICATION ENUMS =====
+
+enum LegalEntityType {
+  SOLE_TRADER
+  PARTNERSHIP
+  LIMITED
+}
+
+enum VerificationType {
+  IDENTITY
+  BUSINESS
+  COMPANIES_HOUSE
+  VAT
+  INSURANCE_PUBLIC
+  INSURANCE_EMPLOYERS
+  GAS_SAFE
+  ELECTRICAL_CPS_EW
+  ELECTRICAL_APPROVED_SCOT
+  OFTEC
+  HETAS
+  MCS
+  FGAS_COMPANY
+  CSCS
+  ECS
+  WATERSAFE
+  CITY_GUILDS
+  NVQ_SVQ
+  FMB
+  DBS_BASIC
+  DISCLOSURE_SCOT
+}
+
+enum VerificationLevel {
+  MANDATORY
+  OPTIONAL
+}
+
+enum VerificationStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REJECTED
+}
+
+enum EvidenceKind {
+  DOCUMENT
+  IMAGE
+  SCREENSHOT
+  EMAIL
+  CONFIRMATION
+}
+
+enum Region {
+  ENG_WLS // England & Wales
+  SCT // Scotland
+  NI // Northern Ireland
+}
+
+enum TradeCategory {
+  GAS
+  ELECTRICAL_NOTIFIABLE_EW
+  ELECTRICAL_SCOT_WARRANT
+  OIL
+  SOLID_FUEL
+  HEAT_PUMP_SOLAR
+  AC_REFRIGERANT
+  PLUMBING
+  JOINERY
+  TILING
+  DECORATING
+  GENERAL_BUILDER
 }

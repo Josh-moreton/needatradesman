@@ -120,9 +120,70 @@ export type QuoteItem = z.infer<typeof quoteItemSchema>
 export type CreateMessageInput = z.infer<typeof createMessageSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 
+// Verification schemas
+export const verificationEvidenceSchema = z.object({
+  kind: z.enum(['DOCUMENT', 'IMAGE', 'SCREENSHOT', 'EMAIL', 'CONFIRMATION']),
+  url: z.string().url(),
+  meta: z.record(z.any()).optional(),
+})
+
+export const submitVerificationSchema = z.object({
+  type: z.enum([
+    'IDENTITY',
+    'BUSINESS',
+    'COMPANIES_HOUSE',
+    'VAT',
+    'INSURANCE_PUBLIC',
+    'INSURANCE_EMPLOYERS',
+    'GAS_SAFE',
+    'ELECTRICAL_CPS_EW',
+    'ELECTRICAL_APPROVED_SCOT',
+    'OFTEC',
+    'HETAS',
+    'MCS',
+    'FGAS_COMPANY',
+    'CSCS',
+    'ECS',
+    'WATERSAFE',
+    'CITY_GUILDS',
+    'NVQ_SVQ',
+    'FMB',
+    'DBS_BASIC',
+    'DISCLOSURE_SCOT',
+  ]),
+  schemeName: z.string().optional(),
+  registrationNo: z.string().optional(),
+  level: z.enum(['MANDATORY', 'OPTIONAL']).default('MANDATORY'),
+  validFrom: z.string().datetime().optional(),
+  validTo: z.string().datetime().optional(),
+  fields: z.record(z.any()).optional(),
+  evidences: z.array(verificationEvidenceSchema).optional(),
+})
+
+export const reviewVerificationSchema = z.object({
+  status: z.enum(['ACTIVE', 'REJECTED']),
+  publicUrl: z.string().url().optional(),
+  validFrom: z.string().datetime().optional(),
+  validTo: z.string().datetime().optional(),
+  notes: z.string().optional(),
+})
+
+export const createTradeProfileSchema = z.object({
+  legalEntityType: z.enum(['SOLE_TRADER', 'PARTNERSHIP', 'LIMITED']).default('SOLE_TRADER'),
+  companyNumber: z.string().optional(),
+  vatNumber: z.string().optional(),
+  hasEmployees: z.boolean().default(false),
+})
+
+export type VerificationEvidenceInput = z.infer<typeof verificationEvidenceSchema>
+export type SubmitVerificationInput = z.infer<typeof submitVerificationSchema>
+export type ReviewVerificationInput = z.infer<typeof reviewVerificationSchema>
+export type CreateTradeProfileInput = z.infer<typeof createTradeProfileSchema>
+
 // Export enums for easy access
 export { UserRole } from '@prisma/client'
 export { JobCategory } from '@prisma/client'
 export { JobStatus } from '@prisma/client'
 export { ApplicationStatus } from '@prisma/client'
 export { MessageType } from '@prisma/client'
+export { VerificationType, VerificationStatus, Region, TradeCategory } from '@prisma/client'

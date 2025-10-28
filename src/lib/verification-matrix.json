@@ -1,0 +1,85 @@
+{
+  "version": "2025-10-26",
+  "matrix": {
+    "GAS": {
+      "ENG_WLS": {
+        "required": ["GAS_SAFE", "INSURANCE_PUBLIC"],
+        "optional": ["DBS_BASIC", "WATERSAFE"]
+      },
+      "SCT": {
+        "required": ["GAS_SAFE", "INSURANCE_PUBLIC"],
+        "optional": ["DISCLOSURE_SCOT", "WATERSAFE"]
+      },
+      "NI": {
+        "required": ["GAS_SAFE", "INSURANCE_PUBLIC"],
+        "optional": ["DBS_BASIC", "WATERSAFE"]
+      }
+    },
+    "ELECTRICAL_NOTIFIABLE_EW": {
+      "ENG_WLS": {
+        "required": ["ELECTRICAL_CPS_EW", "INSURANCE_PUBLIC"],
+        "optional": ["ECS"]
+      }
+    },
+    "ELECTRICAL_SCOT_WARRANT": {
+      "SCT": {
+        "required": ["ELECTRICAL_APPROVED_SCOT", "INSURANCE_PUBLIC"],
+        "optional": ["ECS"]
+      }
+    },
+    "OIL": {
+      "ALL": {
+        "required": ["OFTEC", "INSURANCE_PUBLIC"],
+        "optional": []
+      }
+    },
+    "SOLID_FUEL": {
+      "ALL": {
+        "required": ["HETAS", "INSURANCE_PUBLIC"],
+        "optional": []
+      }
+    },
+    "HEAT_PUMP_SOLAR": {
+      "ALL": {
+        "required": ["INSURANCE_PUBLIC"],
+        "optional": ["MCS"]
+      }
+    },
+    "AC_REFRIGERANT": {
+      "ALL": {
+        "required": ["FGAS_COMPANY", "INSURANCE_PUBLIC"],
+        "optional": []
+      }
+    },
+    "PLUMBING": {
+      "ALL": {
+        "required": ["INSURANCE_PUBLIC"],
+        "optional": ["WATERSAFE", "CITY_GUILDS", "NVQ_SVQ"]
+      }
+    },
+    "JOINERY": {
+      "ALL": {
+        "required": ["INSURANCE_PUBLIC"],
+        "optional": ["NVQ_SVQ"]
+      }
+    },
+    "TILING": {
+      "ALL": {
+        "required": ["INSURANCE_PUBLIC"],
+        "optional": ["NVQ_SVQ"]
+      }
+    },
+    "DECORATING": {
+      "ALL": {
+        "required": ["INSURANCE_PUBLIC"],
+        "optional": ["NVQ_SVQ"]
+      }
+    },
+    "GENERAL_BUILDER": {
+      "ALL": {
+        "required": ["INSURANCE_PUBLIC"],
+        "optional": ["FMB", "NVQ_SVQ"]
+      }
+    }
+  }
+}
